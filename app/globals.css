@@ -36,6 +36,11 @@ body {
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 120px;
+}
+
 body {
   background:
     radial-gradient(circle at top right, rgba(243, 112, 33, 0.16), transparent 36%),

@@ -6,10 +6,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/packages", label: "Packages" },
-  { href: "/tests", label: "Individual Tests" },
-  { href: "/process", label: "Process" }
+  { href: "/#hero", label: "Home" },
+  { href: "/#packages", label: "Packages" },
+  { href: "/#individual-tests", label: "Individual Tests" },
+  { href: "/#why-scopex", label: "Why Scopex" },
+  { href: "/#how-it-works", label: "Process" }
 ];
 
 export function SiteHeader() {

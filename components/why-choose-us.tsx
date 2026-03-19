@@ -7,7 +7,7 @@ const points = [
 
 export function WhyChooseUs() {
   return (
-    <section className="section-wrap mt-16">
+    <section id="why-scopex" className="section-wrap mt-16 scroll-mt-32">
       <div className="grid gap-6 rounded-3xl border border-black/10 bg-[var(--surface)] p-7 dark:border-white/10 md:grid-cols-[1.2fr_1fr] md:p-10">
         <div>
           <h2 className="text-2xl font-bold md:text-3xl">Why Choose SCOPEX</h2>
