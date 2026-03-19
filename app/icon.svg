@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#000000"/>
+  <text x="14" y="86" fill="#FFFFFF" font-size="72" font-family="Montserrat, Arial, sans-serif" font-weight="800">S</text>
+  <text x="64" y="86" fill="#FFFFFF" font-size="72" font-family="Montserrat, Arial, sans-serif" font-weight="800">X</text>
+  <rect x="74" y="16" width="12" height="96" rx="6" transform="rotate(38 80 64)" fill="#F37021"/>
+</svg>
