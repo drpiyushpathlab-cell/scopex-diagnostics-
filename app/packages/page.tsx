@@ -14,7 +14,7 @@ export default function PackagesPage() {
   const orderedPackages = featured ? [featured, ...standard] : packagesData;
 
   return (
-    <section id="health-packages" className="premium-section relative overflow-hidden pb-28 pt-10 md:pb-14 md:pt-12">
+    <section id="packages" className="premium-section relative overflow-hidden pb-28 pt-10 md:pb-14 md:pt-12 scroll-mt-32">
       <div className="section-wrap relative z-10">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#FF6A00]">Premium Wellness Plans</p>

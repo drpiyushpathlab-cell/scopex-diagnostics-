@@ -9,18 +9,20 @@ type Slide = {
   variant: "main" | "stress" | "packages" | "advisor" | "home";
   badge?: string;
   credibility?: string;
+  trustBadges?: string[];
   ctas: Array<{ label: string; href?: string; advisor?: boolean; variant?: "primary" | "secondary" }>;
 };
 
 const slides: Slide[] = [
   {
-    heading: "Advanced Diagnostics, Delivered with SCOPEX Precision",
-    subtext: "Book home sample collection, explore curated health packages, and receive accurate digital reports with speed.",
+    heading: "Your Health, Decoded",
+    subtext: "Book premium home sample collection, explore curated health packages, and receive accurate digital reports with speed.",
     variant: "main",
     badge: "Premium Medical Tech",
+    trustBadges: ["NABL Standard", "Fast Reports", "Home Collection"],
     ctas: [
       { label: "Book Home Collection", href: "/book-home-collection", variant: "primary" },
-      { label: "View Packages", href: "/packages", variant: "secondary" }
+      { label: "View Packages", href: "/#packages", variant: "secondary" }
     ]
   },
   {
@@ -28,7 +30,7 @@ const slides: Slide[] = [
     subtext: "Early detection helps prevent long-term health risks.",
     variant: "stress",
     badge: "Preventive Wellness",
-    ctas: [{ label: "Check Now", href: "/packages#health-packages", variant: "primary" }]
+    ctas: [{ label: "Check Now", href: "/#packages", variant: "primary" }]
   },
   {
     heading: "Preventive Health Packages",
@@ -36,7 +38,7 @@ const slides: Slide[] = [
     variant: "packages",
     badge: "Limited Time Offer",
     credibility: "Trusted by 10,000+ families",
-    ctas: [{ label: "View Packages", href: "/packages", variant: "primary" }]
+    ctas: [{ label: "View Packages", href: "/#packages", variant: "primary" }]
   },
   {
     heading: "Not Sure Which Test to Choose?",
@@ -95,7 +97,7 @@ export function Hero() {
   };
 
   return (
-    <section className="container-px pt-2 md:pt-4">
+    <section id="hero" className="container-px pt-2 scroll-mt-32 md:pt-4">
       <div
         className="relative mx-auto h-[430px] w-full max-w-[1500px] overflow-hidden rounded-[22px] border border-white/15 shadow-premium sm:h-[500px] md:h-[620px]"
         onMouseEnter={() => setPaused(true)}
@@ -176,6 +178,16 @@ export function Hero() {
                       );
                     })}
                   </div>
+
+                  {slide.trustBadges?.length ? (
+                    <div className="mt-5 flex flex-wrap gap-2.5">
+                      {slide.trustBadges.map((badge) => (
+                        <span key={badge} className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/88">
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </article>
@@ -188,7 +200,7 @@ export function Hero() {
           aria-label="Previous slide"
           className="absolute left-5 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 text-white transition hover:bg-black/75 md:flex"
         >
-          {"‹"}
+          {"\u2039"}
         </button>
         <button
           type="button"
@@ -196,7 +208,7 @@ export function Hero() {
           aria-label="Next slide"
           className="absolute right-5 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/45 text-white transition hover:bg-black/75 md:flex"
         >
-          {"›"}
+          {"\u203A"}
         </button>
 
         <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 md:bottom-6">
