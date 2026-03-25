@@ -51,11 +51,11 @@ export function SiteHeader() {
 
         <button
           type="button"
-          className="ml-auto rounded-xl border border-[#dbe9e7] p-1.5 text-[#264547] md:hidden"
+          className="ml-auto inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-[#dbe9e7] bg-white text-[#264547] shadow-[0_8px_20px_rgba(16,24,40,0.08)] md:hidden"
           onClick={() => setOpen((prev) => !prev)}
           aria-label="Toggle menu"
         >
-          <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>

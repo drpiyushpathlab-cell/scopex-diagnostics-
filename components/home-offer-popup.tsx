@@ -7,10 +7,15 @@ export function HomeOfferPopup() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const alreadySeen = sessionStorage.getItem("scopex-offer-seen");
-    if (alreadySeen) return;
-    const timer = setTimeout(() => setOpen(true), 700);
-    return () => clearTimeout(timer);
+    try {
+      const alreadySeen = sessionStorage.getItem("scopex-offer-seen");
+      if (alreadySeen) return;
+      const timer = setTimeout(() => setOpen(true), 700);
+      return () => clearTimeout(timer);
+    } catch {
+      const timer = setTimeout(() => setOpen(true), 700);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   if (!open) return null;
@@ -20,7 +25,9 @@ export function HomeOfferPopup() {
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[var(--surface)] p-7 text-[var(--text)] shadow-2xl">
         <button
           onClick={() => {
-            sessionStorage.setItem("scopex-offer-seen", "1");
+            try {
+              sessionStorage.setItem("scopex-offer-seen", "1");
+            } catch {}
             setOpen(false);
           }}
           className="absolute right-4 top-4 rounded-md border border-black/20 bg-white px-3 py-1 text-sm font-semibold text-black shadow-sm dark:border-white/20 dark:bg-black dark:text-white"

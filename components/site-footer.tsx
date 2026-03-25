@@ -1,13 +1,13 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 const popularTests = [
-  { label: "CBC Test", href: "/tests?search=CBC" },
-  { label: "Thyroid Profile", href: "/tests?search=Thyroid" },
-  { label: "Diabetes (HbA1c)", href: "/tests?search=HbA1c" },
-  { label: "Lipid Profile", href: "/tests?search=Lipid" },
-  { label: "Liver Function Test", href: "/tests?search=Liver" },
-  { label: "Kidney Function Test", href: "/tests?search=Kidney" },
-  { label: "Vitamin D Test", href: "/tests?search=Vitamin%20D" }
+  { label: "CBC Test", href: "/tests?focus=basic-tests&filter=blood&search=cbc" },
+  { label: "Thyroid Profile", href: "/tests?focus=profile-tests&filter=profile&search=thyroid" },
+  { label: "Diabetes (HbA1c)", href: "/tests?focus=basic-tests&filter=blood&search=hba1c" },
+  { label: "Lipid Profile", href: "/tests?focus=profile-tests&filter=profile&search=lipid" },
+  { label: "Liver Function Test", href: "/tests?focus=organ-function-tests&filter=profile&search=liver" },
+  { label: "Kidney Function Test", href: "/tests?focus=organ-function-tests&filter=profile&search=kidney" },
+  { label: "Vitamin D Test", href: "/tests?focus=hormone-special-tests&filter=hormone&search=vitamin%20d" }
 ];
 
 const healthPackages = [
@@ -80,9 +80,9 @@ export function SiteFooter() {
           <div>
             <h3 className="text-lg font-bold text-[#102a2d]">Contact</h3>
             <div className="mt-4 space-y-2 text-sm leading-7 text-[var(--muted)]">
-              <p>📞 +91-8989273440</p>
-              <p>📧 support@scopexdiagnostics.in</p>
-              <p>📍 Lucknow, India</p>
+              <p>+91-8989273440</p>
+              <p>support@scopexdiagnostics.in</p>
+              <p>Lucknow, India</p>
             </div>
 
             <h4 className="mt-5 text-base font-bold text-[#102a2d]">Book Test</h4>
@@ -114,3 +114,5 @@ export function SiteFooter() {
     </footer>
   );
 }
+
+

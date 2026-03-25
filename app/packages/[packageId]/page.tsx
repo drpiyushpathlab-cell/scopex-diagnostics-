@@ -74,7 +74,7 @@ export default function PackageDetailPage({ params }: PackagePageProps) {
                 <ul className="mt-4 space-y-2 text-sm leading-7 text-[#4f6b6d]">
                   {item.whyPackage.map((point) => (
                     <li key={point} className="flex gap-2">
-                      <span className="text-[#f37021]">⚡</span>
+                      <span className="text-[#f37021]">?</span>
                       <span>{point}</span>
                     </li>
                   ))}
@@ -102,8 +102,15 @@ export default function PackageDetailPage({ params }: PackagePageProps) {
               Talk to Advisor
             </Link>
           </div>
+
+          <div className="mt-5">
+            <Link href="/packages" className="text-sm font-medium text-[#7c8f90] underline-offset-4 transition hover:text-[#0f8f7c] hover:underline">
+              View all other packages
+            </Link>
+          </div>
         </div>
       </div>
     </section>
   );
 }
+

@@ -7,3 +7,5 @@ node_modules
 .codex
 *.log
 dist
+
+.vercel

@@ -18,7 +18,7 @@ export function TestimonialsSlider() {
     <section id="testimonials" className="section-wrap mt-16 scroll-mt-32">
       <h2 className="text-2xl font-bold md:text-3xl">Testimonials</h2>
       <div className="mt-6 rounded-2xl border border-black/10 bg-[var(--surface)] p-6 dark:border-white/10">
-        <p className="text-base leading-relaxed md:text-lg">“{testimonials[index].text}”</p>
+        <p className="text-base leading-relaxed md:text-lg">&ldquo;{testimonials[index].text}&rdquo;</p>
         <div className="mt-5 flex items-center justify-between">
           <div>
             <p className="font-semibold">{testimonials[index].name}</p>
@@ -40,3 +40,4 @@ export function TestimonialsSlider() {
     </section>
   );
 }
+

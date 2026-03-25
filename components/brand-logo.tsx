@@ -7,8 +7,8 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ href = "/", compact = false }: BrandLogoProps) {
-  const width = compact ? 175 : 320;
-  const height = compact ? 40 : 78;
+  const width = compact ? 150 : 320;
+  const height = compact ? 34 : 78;
 
   const content = (
     <div className="relative leading-none">
@@ -17,7 +17,7 @@ export function BrandLogo({ href = "/", compact = false }: BrandLogoProps) {
         alt="SCOPEX Diagnostics"
         width={width}
         height={height}
-        className="block h-auto w-auto max-w-full"
+        className={`block h-auto w-auto max-w-full ${compact ? "sm:w-[175px]" : ""}`}
         priority
       />
     </div>

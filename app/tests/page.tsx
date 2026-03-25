@@ -9,7 +9,13 @@ export const metadata: Metadata = {
 export default function TestsPage({
   searchParams
 }: {
-  searchParams?: { search?: string; focus?: string };
+  searchParams?: { search?: string; focus?: string; filter?: string };
 }) {
-  return <TestsCatalog initialSearch={searchParams?.search ?? ""} initialFocus={searchParams?.focus ?? ""} />;
+  return (
+    <TestsCatalog
+      initialSearch={searchParams?.search ?? ""}
+      initialFocus={searchParams?.focus ?? ""}
+      initialFilter={searchParams?.filter ?? ""}
+    />
+  );
 }

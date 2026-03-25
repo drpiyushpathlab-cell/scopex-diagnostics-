@@ -139,12 +139,12 @@ const seoHighlights = [
 ];
 
 const popularTests = [
-  { label: "CBC", href: "/tests?search=cbc" },
-  { label: "Lipid Profile", href: "/tests?search=lipid" },
-  { label: "Thyroid", href: "/tests?search=thyroid" },
-  { label: "Vitamin D", href: "/tests?search=vitamin%20d" },
-  { label: "HbA1c", href: "/tests?search=hba1c" },
-  { label: "LFT", href: "/tests?search=liver" }
+  { label: "CBC", href: "/tests?focus=basic-tests&filter=blood&search=cbc" },
+  { label: "Lipid Profile", href: "/tests?focus=profile-tests&filter=profile&search=lipid" },
+  { label: "Thyroid", href: "/tests?focus=profile-tests&filter=profile&search=thyroid" },
+  { label: "Vitamin D", href: "/tests?focus=hormone-special-tests&filter=hormone&search=vitamin%20d" },
+  { label: "HbA1c", href: "/tests?focus=basic-tests&filter=blood&search=hba1c" },
+  { label: "LFT", href: "/tests?focus=organ-function-tests&filter=profile&search=liver" }
 ];
 
 function formatPrice(value: number) {
@@ -191,7 +191,7 @@ export default function HomePage() {
                 Accurate, affordable diagnostics with home sample collection.
               </p>
               <p className="mt-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#0f8f7c] md:text-base">
-                Now Live in Lucknow • Expanding to Pune, Nagpur, Varanasi &amp; Kanpur
+                Now Live in Lucknow | Expanding to Pune, Nagpur, Varanasi &amp; Kanpur
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link href="/book-home-collection" className="cta-btn w-full sm:w-auto">
@@ -225,6 +225,14 @@ export default function HomePage() {
                       {item.label}
                     </Link>
                   ))}
+                </div>
+                <div className="mt-4">
+                  <Link
+                    href="/tests"
+                    className="inline-flex items-center justify-center rounded-full border border-[#dbe9e7] bg-[#f7fbfa] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#264547] transition hover:border-[#ffd8bf] hover:bg-[#fff7f1] hover:text-[#f37021]"
+                  >
+                    View All Tests
+                  </Link>
                 </div>
               </div>
             </div>
@@ -264,39 +272,61 @@ export default function HomePage() {
             </Link>
           </div>
 
+          <div className="mt-4 md:hidden">
+            <Link
+              href="/packages"
+              className="inline-flex items-center text-sm font-semibold text-[#0f8f7c] underline-offset-4 transition hover:text-[#f37021] hover:underline"
+            >
+              View all packages
+            </Link>
+          </div>
+
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {featuredPackages.map((item) => (
-              <article key={item.id} className="relative rounded-[28px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] transition hover:-translate-y-1 hover:shadow-[0_22px_46px_rgba(16,24,40,0.11)]">
+              <article key={item.id} className="rounded-[28px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] transition hover:-translate-y-1 hover:shadow-[0_22px_46px_rgba(16,24,40,0.11)]">
                 <Link
                   href={`/packages/${item.id}`}
                   aria-label={`${item.name} package details`}
-                  className="absolute inset-0 z-0 rounded-[28px]"
-                />
-                <div className="relative z-10 flex items-start justify-between gap-3">
+                  className="group block cursor-pointer rounded-[20px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f8f7c]"
+                >
+                  <div className="flex items-start justify-between gap-3">
                   <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${homepageBadgeClassMap[item.badge] ?? "bg-[#ecfbf8] text-[#0f8f7c] border border-[#d9ebe7]"}`}>
                     {item.badge}
                   </span>
                   <span className="text-xs font-semibold text-[#0f8f7c]">{item.discount}% OFF</span>
-                </div>
-                <h3 className="relative z-10 mt-4 text-xl font-bold text-[#102a2d]">{item.name}</h3>
-                <p className="relative z-10 mt-2 text-sm leading-7 text-[#5a7273]">{item.tagline}</p>
-                <div className="relative z-10 mt-5 flex items-end gap-3">
-                  <p className="text-4xl font-extrabold text-[#102a2d]">{"\u20B9"}{formatPrice(item.price)}</p>
-                  <div className="pb-1">
-                    <p className="text-xs text-[#7c8f90] line-through">MRP {"\u20B9"}{formatPrice(item.mrp)}</p>
-                    <p className="text-xs font-semibold text-[#0f8f7c]">Save {"\u20B9"}{formatPrice(item.mrp - item.price)}</p>
                   </div>
-                </div>
-                <ul className="relative z-10 mt-5 space-y-2 text-sm leading-7 text-[#4f6b6d]">
-                  {item.overview.slice(0, 3).map((test) => (
-                    <li key={test}>{"\u2022"} {test}</li>
-                  ))}
-                </ul>
-                <Link href={`/book-home-collection?package=${encodeURIComponent(item.name)}`} className="cta-btn relative z-20 mt-6 w-full">
+                  <h3 className="mt-4 text-xl font-bold text-[#102a2d] transition group-hover:text-[#0f8f7c]">{item.name}</h3>
+                  <p className="mt-2 text-sm leading-7 text-[#5a7273]">{item.tagline}</p>
+                  <div className="mt-5 flex items-end gap-3">
+                    <p className="text-4xl font-extrabold text-[#102a2d]">{"\u20B9"}{formatPrice(item.price)}</p>
+                    <div className="pb-1">
+                      <p className="text-xs text-[#7c8f90] line-through">MRP {"\u20B9"}{formatPrice(item.mrp)}</p>
+                      <p className="text-xs font-semibold text-[#0f8f7c]">Save {"\u20B9"}{formatPrice(item.mrp - item.price)}</p>
+                    </div>
+                  </div>
+                  <ul className="mt-5 space-y-2 text-sm leading-7 text-[#4f6b6d]">
+                    {item.overview.slice(0, 3).map((test) => (
+                      <li key={test}>{"\u2022"} {test}</li>
+                    ))}
+                  </ul>
+                  <span className="mt-4 inline-flex text-sm font-semibold text-[#0f8f7c] transition group-hover:text-[#f37021]">
+                    View package details
+                  </span>
+                </Link>
+                <Link href={`/book-home-collection?package=${encodeURIComponent(item.name)}`} className="cta-btn mt-6 w-full">
                   Book Now
                 </Link>
               </article>
             ))}
+          </div>
+
+          <div className="mt-5 flex justify-center">
+            <Link
+              href="/packages"
+              className="inline-flex items-center text-sm font-semibold text-[#0f8f7c] underline-offset-4 transition hover:text-[#f37021] hover:underline"
+            >
+              View all other packages
+            </Link>
           </div>
         </div>
       </section>

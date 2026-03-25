@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { testsData } from "@/lib/data";
 
 const filters = ["All", "Blood", "Hormone", "Profile"] as const;
@@ -14,25 +15,64 @@ const focusMap: Record<string, (typeof groups)[number] | undefined> = {
   "hormone-special-tests": "Hormone & Special Tests"
 };
 
+const filterMap: Record<string, (typeof filters)[number] | undefined> = {
+  all: "All",
+  blood: "Blood",
+  hormone: "Hormone",
+  profile: "Profile"
+};
+
 function formatPrice(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }
 
 export function TestsCatalog({
   initialSearch = "",
-  initialFocus = ""
+  initialFocus = "",
+  initialFilter = ""
 }: {
   initialSearch?: string;
   initialFocus?: string;
+  initialFilter?: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const normalizedInitialFilter = filterMap[initialFilter.toLowerCase()] ?? "All";
+
   const [search, setSearch] = useState(initialSearch);
-  const [filter, setFilter] = useState<(typeof filters)[number]>("All");
+  const [filter, setFilter] = useState<(typeof filters)[number]>(normalizedInitialFilter);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  useEffect(() => {
+    setSearch(initialSearch);
+  }, [initialSearch]);
+
+  useEffect(() => {
+    setFilter(filterMap[initialFilter.toLowerCase()] ?? "All");
+  }, [initialFilter]);
+
+  const updateRoute = (nextSearch: string, nextFilter: (typeof filters)[number]) => {
+    const params = new URLSearchParams();
+
+    if (initialFocus) {
+      params.set("focus", initialFocus);
+    }
+
+    const trimmedSearch = nextSearch.trim();
+    if (trimmedSearch) {
+      params.set("search", trimmedSearch);
+    }
+
+    if (nextFilter !== "All") {
+      params.set("filter", nextFilter.toLowerCase());
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
   const groupedTests = useMemo(() => {
-    const manualSearch = search.trim().toLowerCase();
-    const routeSearch = initialSearch.trim().toLowerCase();
-    const needle = manualSearch || routeSearch;
+    const needle = search.trim().toLowerCase();
     const focusGroup = focusMap[initialFocus];
 
     return groups
@@ -56,7 +96,7 @@ export function TestsCatalog({
         return { group, items };
       })
       .filter((section) => section.items.length > 0);
-  }, [filter, initialFocus, initialSearch, search]);
+  }, [filter, initialFocus, search]);
 
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -73,18 +113,34 @@ export function TestsCatalog({
 
         <div className="premium-panel mt-8 rounded-[24px] p-4 md:p-5">
           <div className="grid gap-3 md:grid-cols-[1.8fr_1fr]">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tests or components"
-              className="premium-input rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#FF6A00]"
-            />
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tests or components"
+                className="premium-input rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#FF6A00]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const nextSearch = search.trim();
+                  setSearch(nextSearch);
+                  updateRoute(nextSearch, filter);
+                }}
+                className="secondary-btn whitespace-nowrap px-4 py-3 text-[11px] sm:min-w-[108px]"
+              >
+                Search
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {filters.map((option) => (
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setFilter(option)}
+                  onClick={() => {
+                    setFilter(option);
+                    updateRoute(search, option);
+                  }}
                   className={[
                     "rounded-full px-4 py-3 text-sm font-semibold transition",
                     filter === option ? "bg-[#FF6A00] text-white shadow-[0_0_22px_rgba(255,106,0,0.28)]" : "premium-chip hover:border-[#FF6A00]/50"
