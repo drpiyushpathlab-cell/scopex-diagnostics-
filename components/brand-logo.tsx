@@ -7,25 +7,17 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ href = "/", compact = false }: BrandLogoProps) {
-  const width = compact ? 220 : 340;
-  const height = compact ? 54 : 84;
+  const width = compact ? 250 : 360;
+  const height = compact ? 60 : 88;
 
   const content = (
     <div className="relative leading-none">
       <Image
-        src="/brand/logo-dark.png"
+        src="/brand/weblogo.png"
         alt="SCOPEX Diagnostics"
         width={width}
         height={height}
-        className="logo-dark block h-auto w-auto max-w-full"
-        priority
-      />
-      <Image
-        src="/brand/logo-light.png"
-        alt="SCOPEX Diagnostics"
-        width={width}
-        height={height}
-        className="logo-light hidden h-auto w-auto max-w-full"
+        className="block h-auto w-auto max-w-full"
         priority
       />
     </div>

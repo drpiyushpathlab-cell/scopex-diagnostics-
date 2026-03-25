@@ -9,7 +9,7 @@ import { HealthAdvisorPopup } from "@/components/health-advisor-popup";
 const poppins = Poppins({ subsets: ["latin"], variable: "--font-poppins", weight: ["400", "600", "700"] });
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", weight: ["400", "700", "800"] });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scopex-diagnostics.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scopexdiagnostics.in";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -19,15 +19,31 @@ export const metadata: Metadata = {
     apple: "/icon.png"
   },
   title: {
-    default: "SCOPEX DIAGNOSTICS | Premium Medical Testing",
+    default: "Book Blood Test at Home | ScopeX Diagnostics India",
     template: "%s | SCOPEX DIAGNOSTICS"
   },
   description:
-    "SCOPEX DIAGNOSTICS offers premium health packages, individual lab tests, and home sample collection with fast report delivery.",
-  keywords: ["SCOPEX", "Diagnostics", "Home Collection", "Lab Tests", "Health Packages"],
+    "Book blood tests at home with ScopeX Diagnostics. Accurate reports, home sample collection, and preventive health packages. Now live in Lucknow and expanding across India.",
+  keywords: [
+    "blood test at home",
+    "home sample collection india",
+    "full body checkup",
+    "online blood test booking"
+  ],
+  robots: {
+    index: true,
+    follow: true
+  },
+  alternates: {
+    canonical: "/"
+  },
+  verification: {
+    google: "PASTE_VERIFICATION_CODE_HERE"
+  },
   openGraph: {
-    title: "SCOPEX DIAGNOSTICS",
-    description: "Premium diagnostic services with doorstep collection and fast reports.",
+    title: "Book Blood Test at Home | ScopeX Diagnostics India",
+    description:
+      "Book blood tests at home with ScopeX Diagnostics. Accurate reports, home sample collection, and preventive health packages. Now live in Lucknow and expanding across India.",
     url: siteUrl,
     siteName: "SCOPEX DIAGNOSTICS",
     type: "website"
@@ -36,14 +52,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="light" suppressHydrationWarning>
       <body className={`${poppins.variable} ${montserrat.variable} font-[var(--font-poppins)]`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
-                const theme = localStorage.getItem('scopex-theme');
-                if (theme === 'light') document.documentElement.classList.add('light');
+                document.documentElement.classList.add('light');
               })();
             `
           }}

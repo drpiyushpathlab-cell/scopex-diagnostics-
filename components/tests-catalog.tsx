@@ -7,33 +7,56 @@ import { testsData } from "@/lib/data";
 const filters = ["All", "Blood", "Hormone", "Profile"] as const;
 const groups = ["Basic Tests", "Profile Tests", "Organ Function Tests", "Hormone & Special Tests"] as const;
 
+const focusMap: Record<string, (typeof groups)[number] | undefined> = {
+  "basic-tests": "Basic Tests",
+  "profile-tests": "Profile Tests",
+  "organ-function-tests": "Organ Function Tests",
+  "hormone-special-tests": "Hormone & Special Tests"
+};
+
 function formatPrice(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }
 
-export function TestsCatalog() {
-  const [search, setSearch] = useState("");
+export function TestsCatalog({
+  initialSearch = "",
+  initialFocus = ""
+}: {
+  initialSearch?: string;
+  initialFocus?: string;
+}) {
+  const [search, setSearch] = useState(initialSearch);
   const [filter, setFilter] = useState<(typeof filters)[number]>("All");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const groupedTests = useMemo(() => {
-    const needle = search.trim().toLowerCase();
+    const manualSearch = search.trim().toLowerCase();
+    const routeSearch = initialSearch.trim().toLowerCase();
+    const needle = manualSearch || routeSearch;
+    const focusGroup = focusMap[initialFocus];
 
     return groups
       .map((group) => {
         const items = testsData.filter((item) => {
+          const matchesFocusGroup = !focusGroup || item.group === focusGroup;
           const matchesGroup = item.group === group;
           const matchesFilter = filter === "All" || item.category === filter;
           const haystack = [item.name, ...(item.components ?? [])].join(" ").toLowerCase();
-          const matchesSearch = needle.length === 0 || haystack.includes(needle);
+          const matchesSearch =
+            needle.length === 0 ||
+            haystack.includes(needle) ||
+            (needle === "sugar" &&
+              ["hba1c", "fasting blood sugar", "post prandial blood sugar", "random blood sugar"].some((term) =>
+                haystack.includes(term)
+              ));
 
-          return matchesGroup && matchesFilter && matchesSearch;
+          return matchesFocusGroup && matchesGroup && matchesFilter && matchesSearch;
         });
 
         return { group, items };
       })
       .filter((section) => section.items.length > 0);
-  }, [filter, search]);
+  }, [filter, initialFocus, initialSearch, search]);
 
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));

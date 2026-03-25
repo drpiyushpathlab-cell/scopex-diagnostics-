@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   description: "Browse and book individual diagnostic tests by category."
 };
 
-export default function TestsPage() {
-  return <TestsCatalog />;
+export default function TestsPage({
+  searchParams
+}: {
+  searchParams?: { search?: string; focus?: string };
+}) {
+  return <TestsCatalog initialSearch={searchParams?.search ?? ""} initialFocus={searchParams?.focus ?? ""} />;
 }
