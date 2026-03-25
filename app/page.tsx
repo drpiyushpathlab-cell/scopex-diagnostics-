@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HealthAdvisorSection } from "@/components/health-advisor-section";
 import { packagesData } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -63,7 +64,7 @@ const categories: CategoryCard[] = [
   {
     title: "Women Health",
     href: "/packages",
-    blurb: "Discover preventive packages suited for women’s routine and wellness needs.",
+    blurb: "Discover preventive packages suited for women's routine and wellness needs.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8">
         <circle cx="12" cy="9" r="4" />
@@ -98,7 +99,7 @@ const trustPoints = [
     )
   },
   {
-    title: "4.8★ Rating",
+    title: "4.8 Star Rating",
     value: "Built for patients and families who want a smooth experience.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -150,8 +151,29 @@ function formatPrice(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }
 
+const homepagePackageOrder = [
+  "health-360-pro",
+  "burnout-predictor-basic",
+  "burnout-predictor-pro",
+  "gut-health-check"
+] as const;
+
+const homepageBadgeClassMap: Record<string, string> = {
+  "Most Popular": "bg-[#fff1e8] text-[#f37021] border border-[#ffd8bf]",
+  Recommended: "bg-[#fff8d9] text-[#9a7600] border border-[#f6e294]",
+  Advanced: "bg-[#f3ebff] text-[#7c3aed] border border-[#dac8ff]",
+  Specialized: "bg-[#fff0e4] text-[#9a5a20] border border-[#f3d0ad]",
+  "Start Here": "bg-[#eaf8ef] text-[#16a34a] border border-[#bde5c8]",
+  "Best Value": "bg-[#eaf2ff] text-[#2563eb] border border-[#c8dafd]",
+  Premium: "bg-[#ffe8ea] text-[#dc2626] border border-[#ffc5cb]",
+  "Women Health": "bg-[#ffeaf4] text-[#db2777] border border-[#ffc8df]",
+  Confidential: "bg-[#eef2f7] text-[#475569] border border-[#d4dbe4]"
+};
+
 export default function HomePage() {
-  const featuredPackages = packagesData.slice(0, 4);
+  const featuredPackages = homepagePackageOrder
+    .map((id) => packagesData.find((item) => item.id === id))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return (
     <>
@@ -244,28 +266,33 @@ export default function HomePage() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {featuredPackages.map((item) => (
-              <article key={item.id} className="rounded-[28px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="rounded-full bg-[#ecfbf8] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#0f8f7c]">
+              <article key={item.id} className="relative rounded-[28px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] transition hover:-translate-y-1 hover:shadow-[0_22px_46px_rgba(16,24,40,0.11)]">
+                <Link
+                  href={`/packages/${item.id}`}
+                  aria-label={`${item.name} package details`}
+                  className="absolute inset-0 z-0 rounded-[28px]"
+                />
+                <div className="relative z-10 flex items-start justify-between gap-3">
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${homepageBadgeClassMap[item.badge] ?? "bg-[#ecfbf8] text-[#0f8f7c] border border-[#d9ebe7]"}`}>
                     {item.badge}
                   </span>
                   <span className="text-xs font-semibold text-[#0f8f7c]">{item.discount}% OFF</span>
                 </div>
-                <h3 className="mt-4 text-xl font-bold text-[#102a2d]">{item.name}</h3>
-                <p className="mt-2 text-sm leading-7 text-[#5a7273]">{item.tagline}</p>
-                <div className="mt-5 flex items-end gap-3">
+                <h3 className="relative z-10 mt-4 text-xl font-bold text-[#102a2d]">{item.name}</h3>
+                <p className="relative z-10 mt-2 text-sm leading-7 text-[#5a7273]">{item.tagline}</p>
+                <div className="relative z-10 mt-5 flex items-end gap-3">
                   <p className="text-4xl font-extrabold text-[#102a2d]">{"\u20B9"}{formatPrice(item.price)}</p>
                   <div className="pb-1">
                     <p className="text-xs text-[#7c8f90] line-through">MRP {"\u20B9"}{formatPrice(item.mrp)}</p>
                     <p className="text-xs font-semibold text-[#0f8f7c]">Save {"\u20B9"}{formatPrice(item.mrp - item.price)}</p>
                   </div>
                 </div>
-                <ul className="mt-5 space-y-2 text-sm leading-7 text-[#4f6b6d]">
-                  {item.tests.slice(0, 3).map((test) => (
+                <ul className="relative z-10 mt-5 space-y-2 text-sm leading-7 text-[#4f6b6d]">
+                  {item.overview.slice(0, 3).map((test) => (
                     <li key={test}>{"\u2022"} {test}</li>
                   ))}
                 </ul>
-                <Link href={`/book-home-collection?package=${encodeURIComponent(item.name)}`} className="cta-btn mt-6 w-full">
+                <Link href={`/book-home-collection?package=${encodeURIComponent(item.name)}`} className="cta-btn relative z-20 mt-6 w-full">
                   Book Now
                 </Link>
               </article>
@@ -320,6 +347,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <HealthAdvisorSection />
 
       <section className="container-px pb-10 pt-12 md:pb-14 md:pt-14">
         <div className="section-wrap rounded-[30px] border border-[#deece9] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] md:p-8">

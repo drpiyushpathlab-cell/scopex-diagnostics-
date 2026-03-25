@@ -9,9 +9,17 @@ export const metadata: Metadata = {
 };
 
 export default function PackagesPage() {
-  const featured = packagesData.find((item) => item.featured);
-  const standard = packagesData.filter((item) => !item.featured);
-  const orderedPackages = featured ? [featured, ...standard] : packagesData;
+  const sectionOrder = ["Stress & Lifestyle", "Preventive Health", "Advanced & Specialized"] as const;
+  const sectionDescriptions: Record<(typeof sectionOrder)[number], string> = {
+    "Stress & Lifestyle": "Stress, fatigue, digestion, and performance-focused screening built for modern routines.",
+    "Preventive Health": "Routine wellness and full-body screening packages for proactive health tracking.",
+    "Advanced & Specialized": "Deeper diagnostic plans for hormonal balance, confidential screening, and long-term monitoring."
+  };
+  const packageOrderBySection: Record<(typeof sectionOrder)[number], string[]> = {
+    "Stress & Lifestyle": ["burnout-predictor-basic", "burnout-predictor-pro", "gut-health-check"],
+    "Preventive Health": ["health-360-basic", "health-360-pro", "health-360-elite"],
+    "Advanced & Specialized": ["longevity-package", "pcod-package", "std-package"]
+  };
 
   return (
     <section id="packages" className="premium-section relative overflow-hidden pb-28 pt-10 md:pb-14 md:pt-12 scroll-mt-32">
@@ -24,12 +32,48 @@ export default function PackagesPage() {
           </p>
         </div>
 
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-3">
-          {orderedPackages.map((item) => (
-            <div key={item.id} className={item.featured ? "lg:col-span-2" : ""}>
-              <PackageCard item={item} />
-            </div>
-          ))}
+        <div className="mt-8 space-y-10">
+          {sectionOrder.map((sectionName) => {
+            const sectionItems = packagesData.filter((item) => item.section === sectionName);
+            if (!sectionItems.length) return null;
+            const desiredOrder = packageOrderBySection[sectionName];
+            const orderedItems = desiredOrder
+              .map((id) => sectionItems.find((item) => item.id === id))
+              .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+            return (
+              <div key={sectionName}>
+                <div className="mb-5 max-w-3xl">
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#FF6A00]">{sectionName}</p>
+                  <p className="premium-muted mt-2 text-sm leading-7 md:text-base">{sectionDescriptions[sectionName]}</p>
+                </div>
+
+                <div className="grid items-stretch gap-6 lg:grid-cols-3">
+                  {orderedItems.map((item) => (
+                    <div key={item.id}>
+                      <PackageCard item={item} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="premium-panel mx-auto mt-10 max-w-4xl rounded-[28px] p-6 text-center md:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6A00]">Still Confused?</p>
+          <h2 className="mt-2 text-3xl font-bold md:text-[2.2rem]">Need help choosing the right package?</h2>
+          <p className="premium-muted mx-auto mt-3 max-w-2xl text-sm leading-7 md:text-base">
+            Not sure which test is right for you? Get expert guidance in minutes.
+          </p>
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link href="/health-advisor" className="secondary-btn min-w-[200px] justify-center text-center">
+              Talk to Advisor
+            </Link>
+            <Link href="/health-advisor" className="cta-btn min-w-[200px] justify-center text-center">
+              Book Advisor Slot
+            </Link>
+          </div>
         </div>
 
         <div className="premium-panel mx-auto mt-8 max-w-4xl rounded-2xl p-6">

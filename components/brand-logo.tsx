@@ -7,8 +7,8 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ href = "/", compact = false }: BrandLogoProps) {
-  const width = compact ? 250 : 360;
-  const height = compact ? 60 : 88;
+  const width = compact ? 175 : 320;
+  const height = compact ? 40 : 78;
 
   const content = (
     <div className="relative leading-none">

@@ -5,18 +5,24 @@ export type BadgeLabel =
   | "Premium"
   | "Recommended"
   | "Advanced"
-  | "Specialized";
+  | "Specialized"
+  | "Women Health"
+  | "Confidential";
+
+export type PackageSection = "Stress & Lifestyle" | "Preventive Health" | "Advanced & Specialized";
 
 export type PackageItem = {
   id: string;
   name: string;
+  section: PackageSection;
   badge: BadgeLabel;
   price: number;
   mrp: number;
   discount: number;
   tagline: string;
-  tests: string[];
-  bestFor: string;
+  overview: string[];
+  whyPackage: string[];
+  bestFor: string[];
   featured?: boolean;
 };
 
@@ -36,72 +42,103 @@ export const packagesData: PackageItem[] = [
   {
     id: "health-360-pro",
     name: "HEALTH 360 PRO",
+    section: "Preventive Health",
     badge: "Most Popular",
     price: 1599,
     mrp: 3340,
     discount: 52,
     tagline: "Complete Body Check",
-    tests: [
-      "Liver Function",
-      "Protein Profile",
-      "Kidney Function",
-      "Lipid + TGI",
-      "HbA1c",
+    overview: [
+      "CBC",
+      "Bilirubin",
+      "Alkaline Phosphatase",
+      "SGOT",
+      "SGPT",
+      "Creatinine",
+      "Urea",
+      "Uric Acid",
+      "Lipid Profile",
+      "TGI Ratio",
+      "Fasting Blood Sugar",
+      "HbA1C (HPLC)",
       "Calcium",
       "TSH",
       "Vitamin B12"
     ],
-    bestFor: "Young & Middle Age",
+    whyPackage: [
+      "Comprehensive health check",
+      "Early risk detection"
+    ],
+    bestFor: ["Young & Middle Age"],
     featured: true
   },
   {
     id: "burnout-predictor-basic",
     name: "BURNOUT PREDICTOR BASIC",
+    section: "Stress & Lifestyle",
     badge: "Recommended",
     price: 2480,
     mrp: 5800,
     discount: 57,
     tagline: "Stress & Energy Health Check",
-    tests: [
+    overview: [
       "Cortisol (AM)",
-      "hs-CRP",
+      "Hs-CRP",
       "Ferritin",
-      "HbA1c",
+      "HbA1C (HPLC)",
       "Lipid Profile (Direct LDL)",
       "SGOT",
       "SGPT",
       "TSH",
       "Vitamin B12",
-      "Fasting Blood Sugar",
-      "CBC"
+      "Fasting Blood Sugar"
     ],
-    bestFor: "Young Professionals"
+    whyPackage: [
+      "Detects stress and fatigue",
+      "Improves energy and performance"
+    ],
+    bestFor: ["Young Professionals"]
   },
   {
     id: "burnout-predictor-pro",
     name: "BURNOUT PREDICTOR PRO",
+    section: "Stress & Lifestyle",
     badge: "Advanced",
     price: 3680,
     mrp: 7800,
     discount: 53,
     tagline: "Advanced Stress + Hormone Panel",
-    tests: [
-      "All Basic",
+    overview: [
+      "Cortisol (AM)",
       "DHEA-S",
+      "Hs-CRP",
+      "Ferritin",
+      "HbA1C (HPLC)",
+      "Lipid Profile (Direct LDL)",
+      "SGOT",
+      "SGPT",
+      "TSH",
       "Vitamin D",
-      "Insulin (Fasting)"
+      "Vitamin B12",
+      "Insulin (Fasting)",
+      "Fasting Blood Sugar"
     ],
-    bestFor: "Young & Senior Professionals"
+    whyPackage: [
+      "Advanced stress and hormone check",
+      "Ideal for high-stress lifestyle"
+    ],
+    bestFor: ["Young & Senior Professionals"]
   },
   {
     id: "health-360-basic",
     name: "HEALTH 360 BASIC",
+    section: "Preventive Health",
     badge: "Start Here",
     price: 699,
     mrp: 1950,
     discount: 64,
     tagline: "Basic Preventive Screening",
-    tests: [
+    overview: [
       "CBC",
       "SGOT",
       "SGPT",
@@ -109,76 +146,183 @@ export const packagesData: PackageItem[] = [
       "Urea",
       "Lipid Profile",
       "TGI Ratio",
-      "Fasting Sugar",
+      "Fasting Blood Sugar",
       "Calcium",
       "Uric Acid",
       "TSH"
     ],
-    bestFor: "Young Population"
+    whyPackage: [
+      "Basic full-body screening",
+      "Ideal for routine checkups"
+    ],
+    bestFor: ["Young Population"]
   },
   {
     id: "health-360-elite",
     name: "HEALTH 360 ELITE",
+    section: "Preventive Health",
     badge: "Best Value",
     price: 1999,
     mrp: 4200,
     discount: 52,
     tagline: "Advanced Preventive Screening",
-    tests: [
-      "All PRO",
+    overview: [
+      "CBC",
+      "Bilirubin",
+      "Alkaline Phosphatase",
+      "SGOT",
+      "SGPT",
       "GGT",
+      "Creatinine",
+      "Urea",
+      "Uric Acid",
+      "Lipid Profile (Direct LDL)",
+      "TGI Ratio",
+      "Fasting Blood Sugar",
+      "HbA1C (HPLC)",
+      "Calcium",
       "Thyroid Function Test",
       "Vitamin D",
+      "Vitamin B12",
       "Iron Profile",
-      "Electrolytes"
+      "Electrolyte"
     ],
-    bestFor: "Middle to Senior Age"
+    whyPackage: [
+      "Advanced preventive screening",
+      "Complete health monitoring"
+    ],
+    bestFor: ["Middle to Senior Age"]
   },
   {
     id: "longevity-package",
     name: "LONGEVITY PACKAGE",
+    section: "Advanced & Specialized",
     badge: "Premium",
     price: 4999,
     mrp: 12000,
     discount: 58,
     tagline: "Full Body + Disease Risk Screening",
-    tests: [
-      "Full Body + Hormonal + Cardiac + Cancer markers",
-      "HbA1c",
+    overview: [
+      "CBC",
+      "Bilirubin",
+      "Alkaline Phosphatase",
+      "SGOT",
+      "SGPT",
+      "Creatinine",
+      "Urea",
+      "Uric Acid",
+      "Lipid Profile (Direct LDL)",
+      "Fasting Blood Sugar",
+      "HbA1C (HPLC)",
+      "Calcium",
+      "Free Thyroid Function Test",
+      "Vitamin D",
+      "Vitamin B12",
+      "Iron Profile",
+      "Electrolyte",
+      "RA Factor",
+      "Urine Routine",
+      "Urine Microalbumin",
+      "Magnesium",
+      "Hs-CRP",
+      "CA-125 / PSA",
+      "Ferritin",
       "Insulin",
       "HOMA Index",
-      "Apo A1",
-      "Apo B",
-      "hs-CRP",
-      "CA-125 / PSA",
-      "Urine + Microalbumin",
-      "Magnesium",
-      "Iron Profile"
+      "Apolipoprotein A1",
+      "Apolipoprotein B",
+      "Apolipoprotein-a"
     ],
-    bestFor: "All Age Groups"
+    whyPackage: [
+      "Deep health and aging analysis",
+      "Long-term health planning"
+    ],
+    bestFor: ["All Age Groups"]
   },
   {
     id: "gut-health-check",
     name: "GUT HEALTH CHECK",
+    section: "Stress & Lifestyle",
     badge: "Specialized",
     price: 3599,
     mrp: 7200,
     discount: 50,
     tagline: "Digestive & Absorption Health",
-    tests: [
+    overview: [
+      "Hs-CRP",
       "Total IgA",
-      "tTG-IgA",
-      "Vitamin B12 & D",
+      "TTG-IgA",
+      "Vitamin B12",
+      "Vitamin D",
       "Iron",
       "Ferritin",
       "Folate",
-      "Liver Enzymes",
-      "HbA1c",
+      "SGOT",
+      "SGPT",
+      "GGT",
+      "HbA1C",
       "Insulin"
     ],
-    bestFor: "Young & Middle Age"
+    whyPackage: [
+      "Detects gut issues",
+      "Improves digestion and immunity"
+    ],
+    bestFor: ["Young & Middle Age"]
+  },
+  {
+    id: "pcod-package",
+    name: "PCOD PACKAGE",
+    section: "Advanced & Specialized",
+    badge: "Women Health",
+    price: 2500,
+    mrp: 5000,
+    discount: 50,
+    tagline: "Women Health",
+    overview: [
+      "LH",
+      "FSH",
+      "TSH",
+      "Prolactin",
+      "Estradiol",
+      "Testosterone",
+      "Lipid Profile (Direct LDL)",
+      "Fasting Blood Sugar",
+      "Insulin (Fasting)",
+      "HOMA Index"
+    ],
+    whyPackage: [
+      "Detects hormonal imbalance",
+      "Supports fertility and cycle health"
+    ],
+    bestFor: ["Irregular periods", "Acne / hair fall", "Weight gain"]
+  },
+  {
+    id: "std-package",
+    name: "STD PACKAGE",
+    section: "Advanced & Specialized",
+    badge: "Confidential",
+    price: 1250,
+    mrp: 3000,
+    discount: 60,
+    tagline: "Confidential",
+    overview: [
+      "HIV 1 & 2",
+      "HBsAg",
+      "Anti-HCV",
+      "VDRL",
+      "HSV 1 & 2"
+    ],
+    whyPackage: [
+      "Early infection detection",
+      "Prevents complications and spread"
+    ],
+    bestFor: ["Unprotected exposure", "Pre-marriage screening", "Routine confidential testing"]
   }
 ];
+
+export function getPackageById(id: string) {
+  return packagesData.find((item) => item.id === id);
+}
 
 export const testsData: TestItem[] = [
   {
