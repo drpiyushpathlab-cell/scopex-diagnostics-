@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { testsData } from "@/lib/data";
 
 const filters = ["All", "Blood", "Hormone", "Profile"] as const;
@@ -26,36 +26,32 @@ function formatPrice(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }
 
-export function TestsCatalog({
-  initialSearch = "",
-  initialFocus = "",
-  initialFilter = ""
-}: {
-  initialSearch?: string;
-  initialFocus?: string;
-  initialFilter?: string;
-}) {
+export function TestsCatalog() {
   const router = useRouter();
   const pathname = usePathname();
-  const normalizedInitialFilter = filterMap[initialFilter.toLowerCase()] ?? "All";
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams.get("search") ?? "";
+  const urlFocus = searchParams.get("focus") ?? "";
+  const urlFilter = searchParams.get("filter") ?? "";
+  const normalizedUrlFilter = filterMap[urlFilter.toLowerCase()] ?? "All";
 
-  const [search, setSearch] = useState(initialSearch);
-  const [filter, setFilter] = useState<(typeof filters)[number]>(normalizedInitialFilter);
+  const [search, setSearch] = useState(urlSearch);
+  const [filter, setFilter] = useState<(typeof filters)[number]>(normalizedUrlFilter);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    setSearch(initialSearch);
-  }, [initialSearch]);
+    setSearch(urlSearch);
+  }, [urlSearch]);
 
   useEffect(() => {
-    setFilter(filterMap[initialFilter.toLowerCase()] ?? "All");
-  }, [initialFilter]);
+    setFilter(normalizedUrlFilter);
+  }, [normalizedUrlFilter]);
 
   const updateRoute = (nextSearch: string, nextFilter: (typeof filters)[number]) => {
     const params = new URLSearchParams();
 
-    if (initialFocus) {
-      params.set("focus", initialFocus);
+    if (urlFocus) {
+      params.set("focus", urlFocus);
     }
 
     const trimmedSearch = nextSearch.trim();
@@ -73,7 +69,7 @@ export function TestsCatalog({
 
   const groupedTests = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    const focusGroup = focusMap[initialFocus];
+    const focusGroup = focusMap[urlFocus];
 
     return groups
       .map((group) => {
@@ -96,7 +92,7 @@ export function TestsCatalog({
         return { group, items };
       })
       .filter((section) => section.items.length > 0);
-  }, [filter, initialFocus, search]);
+  }, [filter, search, urlFocus]);
 
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));

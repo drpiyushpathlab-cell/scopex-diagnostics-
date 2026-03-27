@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { TestsCatalog } from "@/components/tests-catalog";
 
 export const metadata: Metadata = {
@@ -6,16 +7,10 @@ export const metadata: Metadata = {
   description: "Browse and book individual diagnostic tests by category."
 };
 
-export default function TestsPage({
-  searchParams
-}: {
-  searchParams?: { search?: string; focus?: string; filter?: string };
-}) {
+export default function TestsPage() {
   return (
-    <TestsCatalog
-      initialSearch={searchParams?.search ?? ""}
-      initialFocus={searchParams?.focus ?? ""}
-      initialFilter={searchParams?.filter ?? ""}
-    />
+    <Suspense fallback={null}>
+      <TestsCatalog />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HealthAdvisorSection } from "@/components/health-advisor-section";
+import { Hero } from "@/components/hero";
 import { packagesData } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -177,68 +178,7 @@ export default function HomePage() {
 
   return (
     <>
-      <section id="hero" className="container-px pt-5 md:pt-8">
-        <div className="section-wrap rounded-[32px] border border-[#d9ebe7] bg-white px-6 py-8 shadow-[0_20px_60px_rgba(16,24,40,0.08)] md:px-10 md:py-12">
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div className="max-w-3xl">
-              <p className="inline-flex rounded-full bg-[#ecfbf8] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">
-                Home Diagnostics Across India
-              </p>
-              <h1 className="mt-5 text-4xl font-extrabold leading-tight text-[#102a2d] md:text-6xl">
-                Book Blood Test at Home
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-8 text-[#4f6b6d] md:text-xl">
-                Accurate, affordable diagnostics with home sample collection.
-              </p>
-              <p className="mt-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#0f8f7c] md:text-base">
-                Now Live in Lucknow | Expanding to Pune, Nagpur, Varanasi &amp; Kanpur
-              </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link href="/book-home-collection" className="cta-btn w-full sm:w-auto">
-                  Book Test Now
-                </Link>
-                <Link href="/packages" className="secondary-btn w-full sm:w-auto">
-                  View Packages
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="rounded-[28px] border border-[#d9ebe7] bg-[#f7fbfa] p-5 shadow-[0_14px_36px_rgba(15,143,124,0.08)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Why patients choose ScopeX</p>
-                <ul className="mt-4 space-y-3 text-sm leading-7 text-[#4f6b6d]">
-                  <li>{"\u2714"} Easy online booking</li>
-                  <li>{"\u2714"} Home sample collection</li>
-                  <li>{"\u2714"} Preventive health packages</li>
-                  <li>{"\u2714"} Fast digital reports</li>
-                </ul>
-              </div>
-              <div className="rounded-[28px] border border-[#d9ebe7] bg-white p-5 shadow-[0_14px_36px_rgba(16,24,40,0.06)]">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Popular tests</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {popularTests.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className="rounded-full bg-[#eef7f6] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#24484a] transition hover:bg-[#fff2e9] hover:text-[#f37021]"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <Link
-                    href="/tests"
-                    className="inline-flex items-center justify-center rounded-full border border-[#dbe9e7] bg-[#f7fbfa] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#264547] transition hover:border-[#ffd8bf] hover:bg-[#fff7f1] hover:text-[#f37021]"
-                  >
-                    View All Tests
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       <section className="container-px pt-8 md:pt-10">
         <div className="section-wrap rounded-[28px] border border-[#d9ebe7] bg-[#f7fbfa] p-6 shadow-[0_12px_30px_rgba(16,24,40,0.05)]">

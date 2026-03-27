@@ -82,6 +82,7 @@ export const packagesData: PackageItem[] = [
     discount: 57,
     tagline: "Stress & Energy Health Check",
     overview: [
+      "CBC",
       "Cortisol (AM)",
       "Hs-CRP",
       "Ferritin",
@@ -109,6 +110,7 @@ export const packagesData: PackageItem[] = [
     discount: 53,
     tagline: "Advanced Stress + Hormone Panel",
     overview: [
+      "CBC",
       "Cortisol (AM)",
       "DHEA-S",
       "Hs-CRP",

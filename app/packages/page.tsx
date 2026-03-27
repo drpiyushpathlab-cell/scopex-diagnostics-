@@ -26,7 +26,7 @@ export default function PackagesPage() {
       <div className="section-wrap relative z-10">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#FF6A00]">Premium Wellness Plans</p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">Packages Crafted For Preventive Care, Precision Screening, and Better Conversions.</h1>
+          <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">Premium Preventive Care. Precision Screening.</h1>
           <p className="premium-muted mt-4 text-base leading-7 md:text-lg">
             Clean pricing, trusted processing, and home collection convenience across every SCOPEX package.
           </p>
@@ -115,3 +115,4 @@ export default function PackagesPage() {
     </section>
   );
 }
+
