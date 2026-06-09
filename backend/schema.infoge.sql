@@ -379,6 +379,9 @@ create table if not exists leads (
   created_at timestamptz not null default now()
 );
 
+alter table leads add column if not exists collection_date text;
+alter table leads add column if not exists family_members text;
+
 create index if not exists family_members_user_idx on family_members(user_id);
 create index if not exists cart_items_user_idx on cart_items(user_id, created_at desc);
 create index if not exists bookings_user_idx on bookings(user_id, created_at desc);

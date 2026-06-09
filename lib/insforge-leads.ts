@@ -61,6 +61,8 @@ export async function storeLeadInInsForge(payload: LeadPayload) {
     age: payload.age ?? null,
     gender: payload.gender ?? null,
     mobile_number: payload.mobileNumber,
+    collection_date: payload.collectionDate ?? payload.appointmentDate ?? null,
+    family_members: payload.familyMembers ?? null,
     city: payload.city ?? null,
     address: payload.address ?? null,
     preferred_time: payload.preferredTime ?? null,
@@ -69,14 +71,22 @@ export async function storeLeadInInsForge(payload: LeadPayload) {
     created_at: now.toISOString()
   };
 
-  const create = await insforgeRequest<Array<{ id: string }>>(
-    leadsTable,
-    new URLSearchParams({ select: "id" }),
-    {
-      method: "POST",
-      body: JSON.stringify(insertPayload)
-    }
-  );
+  const createLead = (body: Record<string, unknown>) =>
+    insforgeRequest<Array<{ id: string }>>(
+      leadsTable,
+      new URLSearchParams({ select: "id" }),
+      {
+        method: "POST",
+        body: JSON.stringify(body)
+      }
+    );
+
+  let create = await createLead(insertPayload);
+
+  if (create.error && /collection_date|family_members|column/i.test(create.error.message)) {
+    const { collection_date: _collectionDate, family_members: _familyMembers, ...legacyPayload } = insertPayload;
+    create = await createLead(legacyPayload);
+  }
 
   if (create.error) {
     throw new Error(`InsForge insert failed: ${create.error.message}`);

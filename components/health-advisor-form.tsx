@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { submitViaFormSubmit } from "@/lib/formsubmit";
+import { submitLead } from "@/lib/lead-submit";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 type AdvisorPurpose = "before_test" | "after_test";
@@ -40,7 +40,7 @@ export function HealthAdvisorForm({
     }
 
     try {
-      await submitViaFormSubmit({
+      await submitLead({
         leadType: "health_advisor",
         name,
         age: Number(age),
@@ -48,7 +48,7 @@ export function HealthAdvisorForm({
         gender,
         mobileNumber: sanitizedMobile,
         purpose
-      });
+      }, "/api/health-advisor");
       setStatus("success");
       setName("");
       setAge("");

@@ -22,7 +22,7 @@ export async function appendLeadToGoogleSheet(payload: LeadPayload) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: sheetsId,
-    range: `${sheetTab}!A:K`,
+    range: `${sheetTab}!A:N`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [
@@ -33,6 +33,8 @@ export async function appendLeadToGoogleSheet(payload: LeadPayload) {
           payload.age ?? "",
           payload.gender ?? "",
           payload.mobileNumber,
+          payload.collectionDate ?? payload.appointmentDate ?? "",
+          payload.familyMembers ?? "",
           payload.city ?? "",
           payload.address ?? "",
           payload.preferredTime ?? "",

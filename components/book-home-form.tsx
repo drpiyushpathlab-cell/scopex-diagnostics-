@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { homeCollectionTimeSlots } from "@/lib/validation";
-import { submitViaFormSubmit } from "@/lib/formsubmit";
+import { submitLead } from "@/lib/lead-submit";
 
 type SubmitState = "idle" | "loading" | "success" | "error" | "duplicate";
 const mobileRegex = /^[6-9]\d{9}$/;
@@ -32,7 +32,7 @@ export function BookHomeForm() {
     }
 
     try {
-      await submitViaFormSubmit({
+      await submitLead({
         leadType: "home_collection",
         name,
         age: Number(age),
@@ -42,7 +42,7 @@ export function BookHomeForm() {
         city,
         address,
         preferredTime
-      });
+      }, "/api/enquiry");
 
       setStatus("success");
       setMessage("Your booking request was submitted.");

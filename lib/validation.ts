@@ -8,6 +8,9 @@ export type LeadPayload = {
   mobileNumber: string;
   age?: number;
   gender?: GenderType;
+  collectionDate?: string;
+  appointmentDate?: string;
+  familyMembers?: string;
   city?: string;
   address?: string;
   preferredTime?: string;
@@ -53,9 +56,12 @@ export function validateLeadPayload(raw: unknown): { valid: true; data: LeadPayl
     const city = typeof input.city === "string" ? input.city.trim() : "";
     const address = typeof input.address === "string" ? input.address.trim() : "";
     const preferredTime = typeof input.preferredTime === "string" ? input.preferredTime.trim() : "";
+    const collectionDate = typeof input.collectionDate === "string" ? input.collectionDate.trim() : "";
+    const familyMembers = typeof input.familyMembers === "string" ? input.familyMembers.trim() : "Self only";
     if (!Number.isInteger(age) || age < 1 || age > 120) return { valid: false, error: "Enter a valid age." };
     if (city.length < 2) return { valid: false, error: "Enter a valid city." };
     if (address.length < 5) return { valid: false, error: "Enter a valid address." };
+    if (!collectionDate) return { valid: false, error: "Select a collection date." };
     if (!homeCollectionTimeSlots.includes(preferredTime as (typeof homeCollectionTimeSlots)[number])) {
       return { valid: false, error: "Select a valid preferred time slot." };
     }
@@ -66,6 +72,8 @@ export function validateLeadPayload(raw: unknown): { valid: true; data: LeadPayl
         name,
         mobileNumber,
         age,
+        collectionDate,
+        familyMembers,
         city,
         address,
         preferredTime
@@ -76,10 +84,12 @@ export function validateLeadPayload(raw: unknown): { valid: true; data: LeadPayl
   const purpose = input.purpose;
   const age = Number(input.age);
   const gender = typeof input.gender === "string" ? input.gender : "";
+  const appointmentDate = typeof input.appointmentDate === "string" ? input.appointmentDate.trim() : "";
   if (purpose !== "before_test" && purpose !== "after_test") {
     return { valid: false, error: "Select consultation type." };
   }
   if (!Number.isInteger(age) || age < 1 || age > 120) return { valid: false, error: "Enter a valid age." };
+  if (!appointmentDate) return { valid: false, error: "Select an appointment date." };
   if (gender !== "male" && gender !== "female" && gender !== "other") {
     return { valid: false, error: "Select gender." };
   }
@@ -92,6 +102,7 @@ export function validateLeadPayload(raw: unknown): { valid: true; data: LeadPayl
       mobileNumber,
       age,
       gender,
+      appointmentDate,
       purpose
     }
   };
