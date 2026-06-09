@@ -35,7 +35,33 @@ if (!parsed.success) {
   throw new Error(`Invalid backend environment configuration. ${issues}`);
 }
 
-export const backendEnv = parsed.data;
+const data = parsed.data;
+
+export const backendEnv = {
+  ...data,
+  INSFORGE_BASE_URL:
+    data.INSFORGE_BASE_URL ||
+    process.env.API_BASE_URL ||
+    process.env.NEXT_PUBLIC_INSFORGE_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    "",
+  INSFORGE_ANON_KEY:
+    data.INSFORGE_ANON_KEY ||
+    process.env.API_KEY ||
+    process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY ||
+    process.env.ANON_KEY ||
+    "",
+  MSG91_AUTH_KEY:
+    data.MSG91_AUTH_KEY ||
+    process.env.ScopexOTPKey ||
+    process.env.SCOPEX_OTP_KEY ||
+    "",
+  MSG91_TEMPLATE_ID:
+    data.MSG91_TEMPLATE_ID ||
+    process.env.MSG91_FLOW_ID ||
+    process.env.MSG91_OTP_TEMPLATE_ID ||
+    ""
+};
 
 export function requireBackendEnv(key: keyof typeof backendEnv) {
   const value = backendEnv[key];
