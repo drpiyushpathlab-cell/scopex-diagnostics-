@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { BookHomeForm } from "@/components/book-home-form";
+import { BookingFlow } from "@/components/booking-flow";
 
 export const metadata: Metadata = {
-  title: "Book Home Collection",
-  description: "Schedule SCOPEX home sample collection in minutes."
+  title: "Book Test and Pay Online",
+  description: "OTP login, family member booking, offers, and Razorpay checkout for ScopeX Diagnostics."
 };
 
 export default function BookHomeCollectionPage() {
@@ -14,11 +14,7 @@ export default function BookHomeCollectionPage() {
           Add Family Members &amp; Get <span className="text-[#f37021]">Extra 10% OFF</span>
         </p>
       </div>
-      <h1 className="text-3xl font-bold">Book Home Collection</h1>
-      <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-        Submit your details and our team will confirm your preferred slot for safe and convenient home sample collection.
-      </p>
-      <BookHomeForm />
+      <BookingFlow />
     </section>
   );
 }

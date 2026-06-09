@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { getPackageById, packagesData } from "@/lib/data";
 
 type PackagePageProps = {
-  params: {
+  params: Promise<{
     packageId: string;
-  };
+  }>;
 };
 
 export async function generateStaticParams() {
@@ -16,7 +16,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PackagePageProps): Promise<Metadata> {
-  const item = getPackageById(params.packageId);
+  const { packageId } = await params;
+  const item = getPackageById(packageId);
 
   if (!item) {
     return {
@@ -30,8 +31,9 @@ export async function generateMetadata({ params }: PackagePageProps): Promise<Me
   };
 }
 
-export default function PackageDetailPage({ params }: PackagePageProps) {
-  const item = getPackageById(params.packageId);
+export default async function PackageDetailPage({ params }: PackagePageProps) {
+  const { packageId } = await params;
+  const item = getPackageById(packageId);
 
   if (!item) {
     notFound();

@@ -52,7 +52,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="light" suppressHydrationWarning>
+    <html lang="en" className="light" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${poppins.variable} ${montserrat.variable} font-[var(--font-poppins)]`}>
         <script
           dangerouslySetInnerHTML={{

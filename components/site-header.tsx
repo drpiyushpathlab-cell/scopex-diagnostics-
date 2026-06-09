@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
+import { getDashboardHrefForRole, getStoredAuthUser, onAuthChange, type StoredAuthUser } from "@/lib/backend-client";
 
 const links = [
   { href: "/#hero", label: "Home" },
@@ -12,6 +13,15 @@ const links = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<StoredAuthUser | null>(null);
+  const dashboardHref = authUser ? getDashboardHrefForRole(authUser.role) : "";
+  const dashboardLabel = authUser?.role === "admin" ? "Admin Dashboard" : authUser?.role === "super-admin" || authUser?.role === "super_admin" ? "Super Admin Dashboard" : "Patient Dashboard";
+
+  useEffect(() => {
+    const syncAuth = () => setAuthUser(getStoredAuthUser());
+    syncAuth();
+    return onAuthChange(syncAuth);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#deece9] bg-white/95 backdrop-blur">
@@ -41,17 +51,49 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto hidden items-center gap-2.5 md:flex">
-          <Link href="/contact" className="rounded-full border border-[#dbe9e7] px-4 py-1.5 text-sm font-semibold text-[#264547]">
-            Login
-          </Link>
+          {authUser && dashboardHref ? (
+            <Link
+              href={dashboardHref}
+              title={dashboardLabel}
+              aria-label={dashboardLabel}
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#cfe5e1] bg-[#effaf7] text-[#0f8f7c] transition hover:border-[#0f8f7c] hover:bg-white hover:text-[#f37021]"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 10.5 12 3l9 7.5" />
+                <path d="M5 10v10h14V10" />
+                <path d="M9 20v-6h6v6" />
+              </svg>
+              <span className="sr-only">{dashboardLabel}</span>
+            </Link>
+          ) : (
+            <Link href="/patient/login" className="rounded-full border border-[#dbe9e7] px-4 py-1.5 text-sm font-semibold text-[#264547]">
+              Login
+            </Link>
+          )}
           <Link href="/book-home-collection" className="cta-btn px-5 py-2 text-xs">
             Book Test
           </Link>
         </div>
 
+        {authUser && dashboardHref ? (
+          <Link
+            href={dashboardHref}
+            title={dashboardLabel}
+            aria-label={dashboardLabel}
+            className="ml-auto inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-[#cfe5e1] bg-[#effaf7] text-[#0f8f7c] shadow-[0_8px_20px_rgba(16,24,40,0.08)] transition hover:text-[#f37021] md:hidden"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 10.5 12 3l9 7.5" />
+              <path d="M5 10v10h14V10" />
+              <path d="M9 20v-6h6v6" />
+            </svg>
+            <span className="sr-only">{dashboardLabel}</span>
+          </Link>
+        ) : null}
+
         <button
           type="button"
-          className="ml-auto inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-[#dbe9e7] bg-white text-[#264547] shadow-[0_8px_20px_rgba(16,24,40,0.08)] md:hidden"
+          className={`${authUser ? "" : "ml-auto"} inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-[#dbe9e7] bg-white text-[#264547] shadow-[0_8px_20px_rgba(16,24,40,0.08)] md:hidden`}
           onClick={() => setOpen((prev) => !prev)}
           aria-label="Toggle menu"
         >
@@ -76,9 +118,20 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          <Link href="/contact" className="block rounded-xl border border-[#deece9] px-4 py-3 text-sm font-semibold text-[#264547]" onClick={() => setOpen(false)}>
-            Login
-          </Link>
+          {authUser && dashboardHref ? (
+            <Link href={dashboardHref} className="flex items-center gap-3 rounded-xl border border-[#deece9] bg-[#effaf7] px-4 py-3 text-sm font-bold text-[#0f8f7c]" onClick={() => setOpen(false)}>
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 10.5 12 3l9 7.5" />
+                <path d="M5 10v10h14V10" />
+                <path d="M9 20v-6h6v6" />
+              </svg>
+              {dashboardLabel}
+            </Link>
+          ) : (
+            <Link href="/patient/login" className="block rounded-xl border border-[#deece9] px-4 py-3 text-sm font-semibold text-[#264547]" onClick={() => setOpen(false)}>
+              Login
+            </Link>
+          )}
           <Link href="/book-home-collection" className="cta-btn w-full text-center text-xs" onClick={() => setOpen(false)}>
             Book Test
           </Link>

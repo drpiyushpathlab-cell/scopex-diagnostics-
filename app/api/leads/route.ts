@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { appendLeadToGoogleSheet } from "@/lib/google-sheets";
 import { sendLeadNotification } from "@/lib/email";
-import { storeLeadInSupabase } from "@/lib/supabase";
+import { storeLeadInInsForge } from "@/lib/insforge-leads";
 import { validateLeadPayload } from "@/lib/validation";
 
 export async function POST(request: Request) {
@@ -12,8 +12,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: validated.error }, { status: 400 });
     }
 
-    const supabaseResult = await storeLeadInSupabase(validated.data);
-    if (supabaseResult.duplicate) {
+    const insforgeResult = await storeLeadInInsForge(validated.data);
+    if (insforgeResult.duplicate) {
       return NextResponse.json({ message: "You already submitted this request today." }, { status: 409 });
     }
 
