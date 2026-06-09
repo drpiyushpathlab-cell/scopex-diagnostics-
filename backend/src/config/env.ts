@@ -8,17 +8,17 @@ const envSchema = z.object({
   BACKEND_PORT: z.coerce.number().default(4000),
   FRONTEND_ORIGIN: z.string().default("http://localhost:3000"),
   NEXT_PUBLIC_SITE_URL: z.string().optional(),
-  INSFORGE_BASE_URL: z.string().url(),
-  INSFORGE_ANON_KEY: z.string().min(1),
+  INSFORGE_BASE_URL: z.string().default(""),
+  INSFORGE_ANON_KEY: z.string().default(""),
   INSFORGE_REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1000).max(30000).default(8000),
-  MSG91_AUTH_KEY: z.string().min(1),
-  MSG91_TEMPLATE_ID: z.string().min(1),
+  MSG91_AUTH_KEY: z.string().default(""),
+  MSG91_TEMPLATE_ID: z.string().default(""),
   MSG91_SENDER_ID: z.string().default("SCOPEX"),
   MSG91_DLT_TEMPLATE_ID: z.string().optional(),
-  RAZORPAY_KEY_ID: z.string().min(1),
-  RAZORPAY_KEY_SECRET: z.string().min(1),
-  APP_JWT_SECRET: z.string().min(16),
-  OTP_HASH_SECRET: z.string().min(8),
+  RAZORPAY_KEY_ID: z.string().default(""),
+  RAZORPAY_KEY_SECRET: z.string().default(""),
+  APP_JWT_SECRET: z.string().default(""),
+  OTP_HASH_SECRET: z.string().default(""),
   SMTP_SENDER_NAME: z.string().default("ScopeX Diagnostics"),
   SMTP_SENDER_EMAIL: z.string().email().default("team@scopexdiagnostics.in"),
   SMTP_HOST: z.string().optional().default("smtp.hostinger.com"),
@@ -36,3 +36,11 @@ if (!parsed.success) {
 }
 
 export const backendEnv = parsed.data;
+
+export function requireBackendEnv(key: keyof typeof backendEnv) {
+  const value = backendEnv[key];
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}

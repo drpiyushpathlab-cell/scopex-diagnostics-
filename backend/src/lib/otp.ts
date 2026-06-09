@@ -23,6 +23,9 @@ export function generateOtp() {
 }
 
 export function hashOtp(mobile: string, otp: string) {
+  if (!backendEnv.OTP_HASH_SECRET) {
+    throw new HttpError(500, "OTP security secret is not configured.");
+  }
   return crypto.createHash("sha256").update(`${mobile}:${otp}:${backendEnv.OTP_HASH_SECRET}`).digest("hex");
 }
 

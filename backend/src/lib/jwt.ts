@@ -22,6 +22,10 @@ export type AppJwtPayload = {
 const revokedTokens = new Set<string>();
 
 export function signAppToken(payload: AppJwtPayload) {
+  if (!backendEnv.APP_JWT_SECRET || backendEnv.APP_JWT_SECRET.length < 16) {
+    throw new Error("APP_JWT_SECRET is not configured.");
+  }
+
   return jwt.sign(payload, backendEnv.APP_JWT_SECRET, {
     expiresIn: "365d",
     issuer: "scopex-backend",
@@ -38,6 +42,10 @@ export function isAppTokenRevoked(token: string) {
 }
 
 export function verifyAppToken(token: string) {
+  if (!backendEnv.APP_JWT_SECRET || backendEnv.APP_JWT_SECRET.length < 16) {
+    throw new Error("APP_JWT_SECRET is not configured.");
+  }
+
   return jwt.verify(token, backendEnv.APP_JWT_SECRET, {
     issuer: "scopex-backend",
     audience: "scopex-app"

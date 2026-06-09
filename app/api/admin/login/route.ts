@@ -1,24 +1,30 @@
 import { NextResponse } from "next/server";
-import { getBackendBaseUrl, missingBackendUrlResponse } from "../../_utils/backend";
+import { z } from "zod";
+import { apiErrorResponse } from "../../_utils/errors";
+import { signAppToken } from "@/backend/src/lib/jwt";
+import { authenticateAdmin } from "@/backend/src/services/admin";
 
 export async function POST(request: Request) {
-  const backendUrl = getBackendBaseUrl();
-  if (!backendUrl) return missingBackendUrlResponse();
-
   try {
-    const response = await fetch(`${backendUrl}/auth/admin/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(await request.json()),
-      cache: "no-store"
+    const body = await request.json();
+    const parsed = z.object({ email: z.string().email(), password: z.string().min(6) }).parse(body);
+    const admin = await authenticateAdmin(parsed.email, parsed.password);
+    const token = signAppToken({
+      userId: admin.id,
+      email: admin.email,
+      role: admin.role === "super-admin" ? "super_admin" : admin.role
     });
-    const data = await response.json().catch(() => ({ success: false, message: "Invalid backend response." }));
 
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json({
+      success: true,
+      token,
+      user: {
+        id: admin.id,
+        email: admin.email,
+        role: admin.role
+      }
+    });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : "Unable to reach backend login service." },
-      { status: 502 }
-    );
+    return apiErrorResponse(error, "Unable to login.");
   }
 }

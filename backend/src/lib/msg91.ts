@@ -21,6 +21,10 @@ export function toInternationalIndianMobile(mobile: string) {
 }
 
 export async function sendMsg91Otp(mobile: string, otp: string) {
+  if (!backendEnv.MSG91_AUTH_KEY || !backendEnv.MSG91_TEMPLATE_ID) {
+    throw new HttpError(500, "MSG91 OTP credentials are not configured.");
+  }
+
   const message = `Dear Customer, your OTP for login to your Scopex Diagnostics account is ${otp}. This OTP is valid for 5 minutes. Please do not share it with anyone.`;
   const query = new URLSearchParams({
     authkey: backendEnv.MSG91_AUTH_KEY,

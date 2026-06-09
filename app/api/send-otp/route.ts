@@ -1,16 +1,29 @@
 import { NextResponse } from "next/server";
-import { getBackendBaseUrl, missingBackendUrlResponse } from "../_utils/backend";
+import { z } from "zod";
+import { apiErrorResponse } from "../_utils/errors";
+import { generateOtp, persistOtpRequest } from "@/backend/src/lib/otp";
+import { normalizeIndianMobile, sendMsg91Otp } from "@/backend/src/lib/msg91";
 
 export async function POST(request: Request) {
-  const backendUrl = getBackendBaseUrl();
-  if (!backendUrl) return missingBackendUrlResponse();
+  try {
+    const body = await request.json();
+    const parsed = z.object({ mobile: z.string().min(10) }).parse(body);
+    const mobile = normalizeIndianMobile(parsed.mobile);
+    if (!mobile) {
+      return NextResponse.json({ success: false, message: "Enter a valid 10-digit mobile number." }, { status: 400 });
+    }
 
-  const response = await fetch(`${backendUrl}/auth/send-otp`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(await request.json()),
-    cache: "no-store"
-  });
+    const otp = generateOtp();
+    const providerResponse = await sendMsg91Otp(mobile, otp);
+    await persistOtpRequest({ mobile, otp, providerResponse });
 
-  return NextResponse.json(await response.json(), { status: response.status });
+    return NextResponse.json({
+      success: true,
+      message: "OTP sent successfully.",
+      mobile,
+      ...(process.env.ALLOW_DEBUG_OTP === "true" ? { debugOtp: otp } : {})
+    });
+  } catch (error) {
+    return apiErrorResponse(error, "Unable to send OTP.");
+  }
 }
