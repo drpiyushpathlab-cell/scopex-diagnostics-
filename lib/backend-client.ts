@@ -113,7 +113,7 @@ export function onAuthChange(callback: () => void) {
 
 export function backendUrl(path: string) {
   if (backendBaseUrl) return `${backendBaseUrl}${path}`;
-  return path;
+  return `/api/backend${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export async function backendFetch(path: string, init: RequestInit = {}) {

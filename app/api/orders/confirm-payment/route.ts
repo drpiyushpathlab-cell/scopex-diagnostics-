@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
+import { getBackendBaseUrl, missingBackendUrlResponse } from "../../_utils/backend";
 
 export async function POST(request: Request) {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendUrl = getBackendBaseUrl();
   const authorization = request.headers.get("authorization");
-  if (!backendUrl) {
-    return NextResponse.json({ message: "Backend URL is not configured." }, { status: 500 });
-  }
+  if (!backendUrl) return missingBackendUrlResponse();
 
-  const response = await fetch(`${backendUrl.replace(/\/$/, "")}/payment/verify`, {
+  const response = await fetch(`${backendUrl}/payment/verify`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
