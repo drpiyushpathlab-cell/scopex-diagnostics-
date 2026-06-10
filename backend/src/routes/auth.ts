@@ -4,7 +4,7 @@ import { asyncRoute } from "@/backend/src/lib/async-route";
 import { generateOtp, persistOtpRequest, verifyPersistedOtp } from "@/backend/src/lib/otp";
 import { normalizeIndianMobile, sendMsg91Otp } from "@/backend/src/lib/msg91";
 import { revokeAppToken, signAppToken } from "@/backend/src/lib/jwt";
-import { upsertPatientUser } from "@/backend/src/services/users";
+import { normalizePatientUser, upsertPatientUser } from "@/backend/src/services/users";
 import { authenticateAdmin } from "@/backend/src/services/admin";
 import { HttpError } from "@/backend/src/lib/http-error";
 import { logLogin } from "@/backend/src/services/activity";
@@ -96,7 +96,7 @@ authRouter.post(
     }
 
     await verifyPersistedOtp(mobile, parsed.otp);
-    const user = await upsertPatientUser(mobile);
+    const user = normalizePatientUser(await upsertPatientUser(mobile), mobile);
     const token = signAppToken({
       userId: user.id,
       patientId: user.patient_id,

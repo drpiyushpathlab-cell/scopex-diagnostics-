@@ -5,6 +5,7 @@ import crypto from "crypto";
 type LocalPatientUser = {
   id: string;
   mobile: string;
+  phone?: string;
   role: "patient";
   patient_id: string;
 };
@@ -29,11 +30,20 @@ function getLocalPatientUser(mobile: string) {
   return user;
 }
 
+export function normalizePatientUser(user: any, fallbackMobile: string) {
+  return {
+    ...user,
+    mobile: user?.mobile || user?.phone || fallbackMobile,
+    phone: user?.phone || user?.mobile || fallbackMobile,
+    role: user?.role || "patient"
+  };
+}
+
 export async function findUserByMobile(mobile: string) {
   const { data, error } = await insforge.database
     .from("users")
-    .select("id, mobile, role, patient_id")
-    .eq("mobile", mobile)
+    .select("id, phone, mobile, role, patient_id")
+    .eq("phone", mobile)
     .maybeSingle();
 
   if (error) {
@@ -86,7 +96,7 @@ export async function upsertPatientUser(mobile: string) {
       patient_id: patient.id,
       is_active: true
     })
-    .select("id, mobile, role, patient_id")
+    .select("id, phone, mobile, role, patient_id")
     .single();
 
   if (userError || !user) {
