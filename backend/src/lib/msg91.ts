@@ -25,19 +25,20 @@ export async function sendMsg91Otp(mobile: string, otp: string) {
     throw new HttpError(500, "MSG91 OTP credentials are not configured.");
   }
 
-  const message = `Dear Customer, your OTP for login to your Scopex Diagnostics account is ${otp}. This OTP is valid for 5 minutes. Please do not share it with anyone.`;
+  if (!backendEnv.MSG91_DLT_TEMPLATE_ID) {
+    throw new HttpError(500, "MSG91 DLT Template ID is not configured.");
+  }
+
+  const message = `Dear Customer, your OTP for login to your Scopex Diagnostics account is ${otp}. This OTP is valid for 5 minutes. Please do not share it with anyone`;
   const query = new URLSearchParams({
     authkey: backendEnv.MSG91_AUTH_KEY,
     mobile: toInternationalIndianMobile(mobile),
     sender: backendEnv.MSG91_SENDER_ID,
     otp,
     message,
-    template_id: backendEnv.MSG91_TEMPLATE_ID
+    template_id: backendEnv.MSG91_TEMPLATE_ID,
+    DLT_TE_ID: backendEnv.MSG91_DLT_TEMPLATE_ID
   });
-
-  if (backendEnv.MSG91_DLT_TEMPLATE_ID) {
-    query.set("DLT_TE_ID", backendEnv.MSG91_DLT_TEMPLATE_ID);
-  }
 
   const response = await fetch(`https://control.msg91.com/api/sendotp.php?${query.toString()}`, {
     method: "GET",

@@ -60,6 +60,13 @@ export const backendEnv = {
     data.MSG91_TEMPLATE_ID ||
     process.env.MSG91_FLOW_ID ||
     process.env.MSG91_OTP_TEMPLATE_ID ||
+    "",
+  MSG91_DLT_TEMPLATE_ID:
+    data.MSG91_DLT_TEMPLATE_ID ||
+    process.env.MSG91_DLT_TE_ID ||
+    process.env.DLT_TE_ID ||
+    process.env.DLT_TEMPLATE_ID ||
+    process.env.MSG91_DLT_ID ||
     ""
 };
 
