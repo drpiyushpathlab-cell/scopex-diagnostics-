@@ -21,7 +21,7 @@ export function toInternationalIndianMobile(mobile: string) {
 }
 
 export async function sendMsg91Otp(mobile: string, otp: string) {
-  if (!backendEnv.MSG91_AUTH_KEY || !backendEnv.MSG91_TEMPLATE_ID) {
+  if (!backendEnv.MSG91_AUTH_KEY) {
     throw new HttpError(500, "MSG91 OTP credentials are not configured.");
   }
 
@@ -36,7 +36,6 @@ export async function sendMsg91Otp(mobile: string, otp: string) {
     sender: backendEnv.MSG91_SENDER_ID,
     otp,
     message,
-    template_id: backendEnv.MSG91_TEMPLATE_ID,
     DLT_TE_ID: backendEnv.MSG91_DLT_TEMPLATE_ID
   });
 
