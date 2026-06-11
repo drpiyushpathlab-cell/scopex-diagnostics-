@@ -2,44 +2,65 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Refund & Cancellation Policy | ScopeX Diagnostics",
-  description: "Read the ScopeX Diagnostics refund and cancellation policy for home sample collection bookings, missed slots, duplicate payments, and report-related cases."
+  description:
+    "Read the ScopeX Diagnostics refund and cancellation policy for cancellations, rescheduling, duplicate payments, report delays, and billing support."
 };
 
-const policies = [
+const sections = [
   {
-    title: "Cancellation Before Collection",
+    title: "1. Cancellation Before Sample Collection",
     body:
-      "You may request cancellation before the sample collection team is assigned or dispatched. Eligible refunds are processed to the original payment method after verification."
+      "Customers may cancel a booking before the scheduled sample collection or laboratory visit. Eligible refunds, if any, will be processed after verification and credited to the original payment method within 7-10 business days."
   },
   {
-    title: "Cancellation After Dispatch",
+    title: "2. Cancellation After Sample Collection",
     body:
-      "If the phlebotomist has already been assigned or is on the way, cancellation may be subject to operational charges or may not be eligible for full refund."
+      "Once a biological sample has been collected, processing, transportation, or testing may begin immediately. Therefore, no refund shall be provided after sample collection, except in cases where ScopeX Diagnostics determines that the service could not be delivered due to its own operational error."
   },
   {
-    title: "No Refund After Sample Collection",
+    title: "3. Rescheduling of Appointments",
     body:
-      "Once the sample has been collected, refunds are generally not available because lab processing and reporting workflows begin immediately."
+      "Customers may request rescheduling of appointments subject to availability of slots, service coverage, and operational feasibility. ScopeX Diagnostics reserves the right to approve or decline rescheduling requests based on operational requirements."
   },
   {
-    title: "Duplicate or Failed Payments",
+    title: "4. Failed or Incomplete Sample Collection",
     body:
-      "If a duplicate payment or payment gateway error is confirmed, the excess amount will be refunded after reconciliation with the payment provider."
+      "If sample collection cannot be completed due to reasons attributable to ScopeX Diagnostics, including staff unavailability or operational issues, the customer may choose either a rescheduled appointment or a full refund of the amount paid."
   },
   {
-    title: "Rescheduling",
+    title: "5. Customer Unavailability",
     body:
-      "Customers may request slot rescheduling based on availability. Rescheduling is recommended when fasting or preparation requirements are not met."
+      "If the customer or patient is unavailable at the scheduled collection time, provides incorrect contact details, refuses sample collection, or fails to comply with collection requirements, ScopeX Diagnostics may treat the appointment as completed and no refund may be issued."
   },
   {
-    title: "Refund Timelines",
+    title: "6. Duplicate or Excess Payments",
     body:
-      "Approved refunds are usually initiated within 5-7 working days. The final credit timeline depends on the bank, card issuer, UPI provider, or payment gateway."
+      "Any duplicate, excess, or erroneous payment made by a customer will be refunded after verification. Refunds will be processed to the original payment method used for the transaction."
   },
   {
-    title: "How to Request Support",
+    title: "7. Report Delays",
     body:
-      "For cancellations, refunds, or payment concerns, contact ScopeX Diagnostics at support@scopexdiagnostics.in or +91-8989273440 with your booking ID and registered mobile number."
+      "While ScopeX Diagnostics endeavors to deliver reports within the estimated timelines, testing requirements, quality control procedures, technical issues, public holidays, force majeure events, or unforeseen circumstances may result in delays. Such delays shall not automatically qualify for a refund."
+  },
+  {
+    title: "8. Promotional Offers and Packages",
+    body:
+      "Payments made for promotional packages, discounted health checkups, memberships, subscriptions, or special offers may be non-refundable unless specifically stated otherwise in the offer terms."
+  },
+  {
+    title: "9. Refund Processing Time",
+    body:
+      "Approved refunds are generally processed within 7-10 business days. Actual credit timelines may vary depending on the customer's bank, payment gateway, card issuer, or financial institution."
+  },
+  {
+    title: "10. Right to Refuse Refund",
+    body:
+      "ScopeX Diagnostics reserves the right to refuse any refund request where services have already been rendered, sample collection has been completed, fraudulent activity is suspected, or the request violates applicable laws or company policies."
+  },
+  {
+    title: "11. Changes to This Policy",
+    body:
+      "ScopeX Diagnostics reserves the right to modify, amend, or update this Refund & Cancellation Policy at any time without prior notice. Updated versions will be published on the official website."
   }
 ];
 
@@ -50,18 +71,47 @@ export default function RefundPolicyPage() {
         <p className="text-sm font-black uppercase tracking-[0.18em] text-[#0f8f7c]">ScopeX Diagnostics</p>
         <h1 className="mt-3 text-3xl font-black text-[#102a2d] md:text-5xl">Refund &amp; Cancellation Policy</h1>
         <p className="mt-3 text-sm font-semibold text-[#f37021]">Last Updated: June 2026</p>
-        <p className="mt-5 max-w-4xl text-sm leading-8 text-[var(--muted)] md:text-base">
-          This policy explains how cancellations, rescheduling, failed payments, duplicate payments, and refund requests
-          are handled for ScopeX Diagnostics home sample collection services.
+        <p className="mt-5 max-w-5xl text-sm leading-8 text-[var(--muted)] md:text-base">
+          At ScopeX Diagnostics, we strive to provide high-quality diagnostic services and a seamless customer
+          experience. This Refund &amp; Cancellation Policy outlines the terms governing cancellations, refunds, and
+          rescheduling of diagnostic services booked through our website, mobile platform, call center, or authorized
+          representatives.
         </p>
 
         <div className="mt-8 grid gap-4">
-          {policies.map((section) => (
+          {sections.map((section) => (
             <article key={section.title} className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-              <h2 className="text-xl font-black text-[#102a2d]">{section.title}</h2>
+              <h2 className="text-lg font-black text-[#102a2d] md:text-xl">{section.title}</h2>
               <p className="mt-3 text-sm leading-8 text-[var(--muted)] md:text-base">{section.body}</p>
             </article>
           ))}
+        </div>
+
+        <div className="mt-8 rounded-[24px] border border-[#deece9] bg-[#fff8f3] p-5">
+          <h2 className="text-xl font-black text-[#102a2d]">Contact Us</h2>
+          <p className="mt-3 text-sm leading-8 text-[var(--muted)] md:text-base">
+            For refund, cancellation, or billing-related queries, contact ScopeX Diagnostics.
+          </p>
+          <div className="mt-4 grid gap-2 text-sm font-semibold text-[#102a2d] md:text-base">
+            <p>ScopeX Diagnostics</p>
+            <p>
+              Email:{" "}
+              <a className="text-[#0f8f7c] underline-offset-4 hover:underline" href="mailto:scopexdiagnostic@gmail.com">
+                scopexdiagnostic@gmail.com
+              </a>
+            </p>
+            <p>
+              Website:{" "}
+              <a
+                className="text-[#0f8f7c] underline-offset-4 hover:underline"
+                href="https://www.scopexdiagnostics.in"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://www.scopexdiagnostics.in
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </section>
