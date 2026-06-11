@@ -26,19 +26,31 @@ async function getPublicConfig(): Promise<PublicInsForgeConfig> {
   return { baseUrl: data.baseUrl, anonKey: data.anonKey };
 }
 
+function createBrowserClient(config: PublicInsForgeConfig, options?: { autoRefreshToken?: boolean }) {
+  return createClient({
+    baseUrl: config.baseUrl,
+    anonKey: config.anonKey,
+    autoRefreshToken: options?.autoRefreshToken
+  });
+}
+
 export async function getInsForgeBrowserClient() {
   if (!clientPromise) {
-    clientPromise = getPublicConfig().then((config) =>
-      createClient({
-        baseUrl: config.baseUrl,
-        anonKey: config.anonKey
-      })
-    );
+    clientPromise = getPublicConfig().then((config) => createBrowserClient(config));
   }
 
   return clientPromise;
 }
 
+export async function createInsForgeOAuthCallbackClient() {
+  const config = await getPublicConfig();
+  return createBrowserClient(config, { autoRefreshToken: false });
+}
+
 export function getInsForgeAccessToken(client: InsForgeClient) {
   return (client as any)?.tokenManager?.getAccessToken?.() || "";
+}
+
+export function getInsForgeBrowserSession(client: InsForgeClient) {
+  return (client as any)?.tokenManager?.getSession?.() || null;
 }

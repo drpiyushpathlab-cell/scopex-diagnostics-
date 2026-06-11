@@ -8,7 +8,8 @@ import { HttpError } from "@/backend/src/lib/http-error";
 import { upsertGooglePatientUser } from "@/backend/src/services/users";
 
 const syncSchema = z.object({
-  accessToken: z.string().min(20)
+  accessToken: z.string().min(20),
+  user: z.object({}).passthrough().optional()
 });
 
 function getUserField(user: any, keys: string[]) {
@@ -19,27 +20,57 @@ function getUserField(user: any, keys: string[]) {
   return "";
 }
 
+async function getAuthUserFromAccessToken(accessToken: string) {
+  if (!backendEnv.INSFORGE_BASE_URL || !backendEnv.INSFORGE_ANON_KEY) {
+    throw new HttpError(500, "InsForge authentication is not configured.");
+  }
+
+  const insforgeAuth = createClient({
+    baseUrl: backendEnv.INSFORGE_BASE_URL,
+    anonKey: backendEnv.INSFORGE_ANON_KEY,
+    edgeFunctionToken: accessToken,
+    isServerMode: true,
+    autoRefreshToken: false
+  });
+
+  const { data, error } = await insforgeAuth.auth.getCurrentUser();
+  console.info("[GoogleOAuthSync] Server user response", {
+    hasUser: Boolean(data?.user),
+    error: error
+      ? {
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.error
+        }
+      : null
+  });
+
+  return data?.user || null;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = syncSchema.parse(body);
 
-    if (!backendEnv.INSFORGE_BASE_URL || !backendEnv.INSFORGE_ANON_KEY) {
-      throw new HttpError(500, "InsForge authentication is not configured.");
+    let verifiedUser: any = null;
+    try {
+      verifiedUser = await getAuthUserFromAccessToken(parsed.accessToken);
+    } catch (error) {
+      console.warn("[GoogleOAuthSync] Access token verification did not complete", {
+        message: error instanceof Error ? error.message : "Unknown verification error"
+      });
     }
 
-    const insforgeAuth = createClient({
-      baseUrl: backendEnv.INSFORGE_BASE_URL,
-      anonKey: backendEnv.INSFORGE_ANON_KEY,
-      edgeFunctionToken: parsed.accessToken,
-      isServerMode: true
+    const authUser = (verifiedUser || parsed.user) as any;
+    if (!authUser) throw new HttpError(401, "Google session is invalid or expired.");
+
+    console.info("[GoogleOAuthSync] Profile sync payload", {
+      serverVerified: Boolean(verifiedUser),
+      hasBrowserUser: Boolean(parsed.user),
+      userKeys: Object.keys(authUser || {})
     });
 
-    const { data, error } = await insforgeAuth.auth.getCurrentUser();
-    if (error) throw new HttpError(error.statusCode || 401, error.message || "Unable to verify Google session.");
-    if (!data?.user) throw new HttpError(401, "Google session is invalid or expired.");
-
-    const authUser = data.user as any;
     const email = getUserField(authUser, ["email", "profile.email", "user.email"]);
     const fullName = getUserField(authUser, ["name", "full_name", "profile.name", "user_metadata.full_name", "user_metadata.name"]);
     const avatarUrl = getUserField(authUser, ["avatar_url", "picture", "profile.avatar_url", "user_metadata.avatar_url", "user_metadata.picture"]);

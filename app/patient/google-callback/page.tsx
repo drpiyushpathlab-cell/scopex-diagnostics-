@@ -4,7 +4,18 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { storeAuthToken } from "@/lib/backend-client";
-import { getInsForgeAccessToken, getInsForgeBrowserClient } from "@/lib/insforge-browser";
+import { createInsForgeOAuthCallbackClient, getInsForgeAccessToken, getInsForgeBrowserSession } from "@/lib/insforge-browser";
+
+function logGoogleOAuth(label: string, payload: unknown) {
+  console.log(`[GoogleOAuth] ${label}`, payload);
+}
+
+function getSafeTokenDebug(token: string) {
+  return {
+    hasAccessToken: Boolean(token),
+    tokenPrefix: token ? `${token.slice(0, 10)}...` : ""
+  };
+}
 
 function CallbackShell({ message, error }: { message?: string; error?: string }) {
   return (
@@ -38,21 +49,79 @@ function PatientGoogleCallbackContent() {
 
     async function completeLogin() {
       try {
-        const oauthError = searchParams.get("insforge_error");
+        const callbackPayload = Object.fromEntries(searchParams.entries());
+        logGoogleOAuth("Callback payload", callbackPayload);
+
+        const oauthError = searchParams.get("insforge_error") || searchParams.get("error");
         if (oauthError) throw new Error(oauthError);
 
-        const client = await getInsForgeBrowserClient();
-        const { data, error: userError } = await client.auth.getCurrentUser();
-        if (userError) throw new Error(userError.message || "Unable to read Google session.");
-        if (!data?.user) throw new Error("Google session was not created. Please try again.");
+        const oauthCode = searchParams.get("insforge_code") || searchParams.get("code") || "";
+        logGoogleOAuth("OAuth code received", {
+          hasCode: Boolean(oauthCode),
+          codeParam: searchParams.get("insforge_code") ? "insforge_code" : searchParams.get("code") ? "code" : "none"
+        });
 
-        const accessToken = getInsForgeAccessToken(client);
+        const client = await createInsForgeOAuthCallbackClient();
+
+        let session = getInsForgeBrowserSession(client);
+        let exchangedUser: any = null;
+        let exchangedAccessToken = "";
+        logGoogleOAuth("Initial session response", {
+          hasSession: Boolean(session),
+          hasUser: Boolean(session?.user),
+          ...getSafeTokenDebug(session?.accessToken || getInsForgeAccessToken(client))
+        });
+
+        if (!session?.accessToken && oauthCode) {
+          const exchangeResponse = await (client.auth as any).exchangeOAuthCode?.(oauthCode);
+          exchangedUser = exchangeResponse?.data?.user || null;
+          exchangedAccessToken = exchangeResponse?.data?.accessToken || "";
+          logGoogleOAuth("Session exchange response", {
+            hasData: Boolean(exchangeResponse?.data),
+            error: exchangeResponse?.error
+              ? {
+                  message: exchangeResponse.error.message,
+                  statusCode: exchangeResponse.error.statusCode,
+                  code: exchangeResponse.error.error
+                }
+              : null,
+            hasUser: Boolean(exchangeResponse?.data?.user),
+            ...getSafeTokenDebug(exchangeResponse?.data?.accessToken || "")
+          });
+
+          if (exchangeResponse?.error && !exchangeResponse?.data?.accessToken && !getInsForgeBrowserSession(client)?.accessToken) {
+            throw new Error(exchangeResponse.error.message || "Unable to exchange Google login code.");
+          }
+          session = getInsForgeBrowserSession(client);
+        }
+
+        const userResponse = session?.user
+          ? { data: { user: session.user }, error: null }
+          : exchangedUser
+            ? { data: { user: exchangedUser }, error: null }
+            : await client.auth.getCurrentUser();
+        logGoogleOAuth("User response", {
+          hasUser: Boolean(userResponse.data?.user),
+          error: userResponse.error
+            ? {
+                message: userResponse.error.message,
+                statusCode: userResponse.error.statusCode,
+                code: userResponse.error.error
+              }
+            : null
+        });
+
+        const sessionUser = session?.user || exchangedUser || userResponse.data?.user;
+        const accessToken = session?.accessToken || exchangedAccessToken || getInsForgeAccessToken(client);
+        logGoogleOAuth("Token response", getSafeTokenDebug(accessToken));
+
         if (!accessToken) throw new Error("Google session token is missing. Please try again.");
+        if (!sessionUser) throw new Error("Google session user is missing. Please try again.");
 
         const response = await fetch("/api/auth/google-sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken })
+          body: JSON.stringify({ accessToken, user: sessionUser })
         });
         const payload = await response.json().catch(() => ({ message: "Google login returned an invalid response." }));
 

@@ -107,7 +107,8 @@ export function SiteFooter() {
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
             <Link href="/privacy-policy">Privacy Policy</Link>
-            <Link href="/terms">Terms &amp; Conditions</Link>
+            <Link href="/terms-and-conditions">Terms &amp; Conditions</Link>
+            <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>
           </div>
         </div>
       </div>
