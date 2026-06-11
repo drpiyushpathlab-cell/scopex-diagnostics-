@@ -50,7 +50,7 @@ function columnsFor(mode: Mode) {
   if (mode === "bookings") return ["booking_id", "contact_name", "contact_phone", "booking_status", "payment_status", "payable_amount", "created_at"];
   if (mode === "revenue") return ["provider_order_id", "provider_payment_id", "status", "amount", "booking_id", "created_at"];
   if (mode === "sessions") return ["role", "event", "user_id", "admin_id", "ip_address", "created_at"];
-  return ["phone", "email", "role", "is_active", "created_at"];
+  return ["phone", "email", "auth_provider", "role", "is_active", "created_at"];
 }
 
 function printableRows(rows: Row[], mode: Mode) {
@@ -75,6 +75,9 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
   const [staffForm, setStaffForm] = useState({ email: "", password: "", role: "admin", is_active: true });
   const [staffMessage, setStaffMessage] = useState("");
   const [creatingStaff, setCreatingStaff] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const role = getStoredAuthUser()?.role;
   const isSuperAdmin = role === "super_admin" || role === "super-admin";
   const pageSize = 12;
@@ -236,6 +239,41 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
     setMessage(response.ok ? "Password reset successfully." : "Unable to reset password.");
   }
 
+  async function changeSuperAdminPassword() {
+    setPasswordMessage("");
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordMessage("All password fields are required.");
+      return;
+    }
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordMessage("New password must be at least 8 characters.");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMessage("New password and confirmation do not match.");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const response = await backendFetch("/admin/change-password", {
+        method: "POST",
+        body: JSON.stringify(passwordForm)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPasswordMessage(data.message || "Unable to change password.");
+        return;
+      }
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordMessage(data.message || "Super Admin password changed successfully.");
+    } catch (error) {
+      setPasswordMessage(error instanceof Error ? error.message : "Unable to change password.");
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
@@ -318,6 +356,26 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
             </div>
           ) : null}
           {staffMessage ? <p className={`mt-4 rounded-2xl p-3 text-sm font-bold ${staffMessage.includes("success") ? "bg-[#eef8f5] text-[#0f8f7c]" : "bg-[#fff4ee] text-[#f37021]"}`}>{staffMessage}</p> : null}
+          {isSuperAdmin ? (
+            <div className="mt-6 rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
+              <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-[#102a2d]">Change Super Admin Password</h3>
+                  <p className="mt-1 text-sm text-[#5a7273]">Available after Super Admin login. Confirm your current password before changing it.</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                <input value={passwordForm.currentPassword} onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })} className="form-field" placeholder="Current password" type="password" autoComplete="current-password" />
+                <input value={passwordForm.newPassword} onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })} className="form-field" placeholder="New password" type="password" autoComplete="new-password" />
+                <input value={passwordForm.confirmPassword} onChange={(event) => setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })} className="form-field" placeholder="Confirm new password" type="password" autoComplete="new-password" />
+              </div>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button type="button" onClick={changeSuperAdminPassword} disabled={changingPassword} className="cta-btn disabled:opacity-60">{changingPassword ? "Changing..." : "Change Password"}</button>
+                {passwordMessage ? <p className={`text-sm font-bold ${passwordMessage.includes("success") || passwordMessage.includes("changed") ? "text-[#0f8f7c]" : "text-red-600"}`}>{passwordMessage}</p> : null}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-5 grid gap-3">
             {adminUsers.map((user) => (
               <article key={String(user.id)} className="flex flex-col gap-3 rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4 md:flex-row md:items-center md:justify-between">
@@ -352,3 +410,4 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
     </div>
   );
 }
+

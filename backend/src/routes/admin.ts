@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { z } from "zod";
 import { asyncRoute } from "@/backend/src/lib/async-route";
 import { requireAuth, type AuthedRequest } from "@/backend/src/middleware/auth";
@@ -7,7 +7,7 @@ import { HttpError } from "@/backend/src/lib/http-error";
 import { authenticateAdmin } from "@/backend/src/services/admin";
 import { signAppToken } from "@/backend/src/lib/jwt";
 import { logAudit, logLogin } from "@/backend/src/services/activity";
-import { hashPassword } from "@/backend/src/lib/password";
+import { hashPassword, verifyPassword } from "@/backend/src/lib/password";
 import { resendLoggedEmail, sendEmail, sendPasswordResetEmail } from "@/backend/src/services/email";
 import crypto from "crypto";
 
@@ -25,6 +25,20 @@ const passwordResetSchema = z.object({
   token: z.string().min(20),
   password: z.string().min(8)
 });
+const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(6),
+    newPassword: z.string().min(8, "New password must be at least 8 characters."),
+    confirmPassword: z.string().min(8)
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    message: "New password and confirmation do not match.",
+    path: ["confirmPassword"]
+  })
+  .refine((value) => value.currentPassword !== value.newPassword, {
+    message: "New password must be different from current password.",
+    path: ["newPassword"]
+  });
 const emailLogQuerySchema = z.object({
   q: z.string().optional().default(""),
   status: z.string().optional().default(""),
@@ -115,6 +129,55 @@ adminRouter.post(
   })
 );
 
+adminRouter.post(
+  "/change-password",
+  requireAuth("admin"),
+  asyncRoute(async (request: AuthedRequest, response) => {
+    if (!["super_admin", "super-admin"].includes(String(request.auth?.role))) {
+      throw new HttpError(403, "Only Super Admin can change the Super Admin password here.");
+    }
+
+    const parsed = passwordChangeSchema.parse(request.body);
+    const adminId = request.auth?.userId;
+    if (!adminId) throw new HttpError(401, "Admin session is missing.");
+
+    const { data: admin, error } = await insforge.database
+      .from("admins")
+      .select("id, email, password_hash")
+      .eq("id", adminId)
+      .maybeSingle();
+
+    if (error) throw new HttpError(500, error.message || "Unable to verify current password.");
+    if (!admin) throw new HttpError(404, "Admin account not found.");
+    if (!verifyPassword(parsed.currentPassword, String((admin as { password_hash?: string }).password_hash || ""))) {
+      throw new HttpError(400, "Current password is incorrect.");
+    }
+
+    const { error: updateError } = await insforge.database
+      .from("admins")
+      .update({
+        password_hash: hashPassword(parsed.newPassword),
+        reset_token: null,
+        reset_expires_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", adminId);
+
+    if (updateError) throw new HttpError(500, updateError.message || "Unable to change password.");
+
+    void logAudit({
+      adminId,
+      role: request.auth?.role,
+      action: "super_admin_password_changed",
+      entityType: "admin",
+      entityId: adminId,
+      metadata: { email: (admin as { email?: string }).email },
+      request
+    });
+
+    response.json({ success: true, message: "Super Admin password changed successfully." });
+  })
+);
 adminRouter.get(
   "/overview",
   requireAuth("admin"),
@@ -599,7 +662,7 @@ adminRouter.get(
     await enforcePermission(request, "users");
     const query = String(request.query.q || "").trim();
     const format = String(request.query.format || "").toLowerCase();
-    const { data, error } = await insforge.database.from("users").select("id, phone, mobile, email, role, is_active, patient_id, created_at, updated_at").order("created_at", { ascending: false }).limit(500);
+    const { data, error } = await insforge.database.from("users").select("id, phone, mobile, email, role, is_active, patient_id, auth_provider, avatar_url, created_at, updated_at").order("created_at", { ascending: false }).limit(500);
     if (error) throw new HttpError(500, error.message || "Unable to fetch users.");
     const rows = ((data ?? []) as Array<Record<string, unknown>>).filter((row) => textSearch(row, query));
     if (format === "csv") return sendCsv(response, "scopex-users.csv", rows);
@@ -908,6 +971,8 @@ adminRouter.delete(
     response.json({ success: true });
   })
 );
+
+
 
 
 

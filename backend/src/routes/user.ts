@@ -20,6 +20,9 @@ type LocalProfile = {
   city: string | null;
   pincode: string | null;
   preferred_collection_address: string | null;
+  google_id: string | null;
+  avatar_url: string | null;
+  auth_provider: string;
   is_profile_complete: boolean;
   created_at: string;
   updated_at: string;
@@ -67,6 +70,9 @@ function getLocalProfile(userId: string, mobile = "") {
     city: null,
     pincode: null,
     preferred_collection_address: null,
+    google_id: null,
+    avatar_url: null,
+    auth_provider: "mobile_otp",
     is_profile_complete: false,
     created_at: nowIso(),
     updated_at: nowIso()
@@ -100,7 +106,7 @@ userRouter.get(
 
     const { data: profileData, error: profileError } = await insforge.database
       .from("user_profiles")
-      .select("id, user_id, full_name, mobile, email, dob, age, gender, address, city, pincode, preferred_collection_address, is_profile_complete, created_at, updated_at")
+      .select("id, user_id, full_name, mobile, email, dob, age, gender, address, city, pincode, preferred_collection_address, google_id, avatar_url, auth_provider, is_profile_complete, created_at, updated_at")
       .eq("user_id", auth.userId)
       .maybeSingle();
 
@@ -111,7 +117,7 @@ userRouter.get(
 
     const { data: userData, error: userError } = await insforge.database
       .from("users")
-      .select("id, phone, mobile, email, role, patient_id, medical_history, patients(id, full_name, mobile, email)")
+      .select("id, phone, mobile, email, role, patient_id, google_id, avatar_url, auth_provider, medical_history, patients(id, full_name, mobile, email, google_id, avatar_url, auth_provider)")
       .eq("id", auth.userId)
       .maybeSingle();
 
@@ -145,6 +151,9 @@ userRouter.get(
       city: null,
       pincode: null,
       preferred_collection_address: null,
+      google_id: patient?.google_id || (userData as any).google_id || null,
+      avatar_url: patient?.avatar_url || (userData as any).avatar_url || null,
+      auth_provider: patient?.auth_provider || (userData as any).auth_provider || "mobile_otp",
       is_profile_complete: false,
       created_at: nowIso(),
       updated_at: nowIso()
@@ -215,7 +224,7 @@ userRouter.patch(
         : insforge.database.from("user_profiles").insert({ ...payload, mobile: mobile || auth.mobile || localExisting.mobile });
 
       const { data, error } = await query
-        .select("id, user_id, full_name, mobile, email, dob, age, gender, address, city, pincode, preferred_collection_address, is_profile_complete, created_at, updated_at")
+        .select("id, user_id, full_name, mobile, email, dob, age, gender, address, city, pincode, preferred_collection_address, google_id, avatar_url, auth_provider, is_profile_complete, created_at, updated_at")
         .single();
 
       if (!error && data) {

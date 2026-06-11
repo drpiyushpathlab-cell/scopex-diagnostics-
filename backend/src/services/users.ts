@@ -39,6 +39,136 @@ export function normalizePatientUser(user: any, fallbackMobile: string) {
   };
 }
 
+export async function upsertGooglePatientUser(params: {
+  googleId: string;
+  email: string;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+}) {
+  const email = params.email.trim().toLowerCase();
+  if (!email) throw new HttpError(400, "Google account email is required.");
+
+  const { data: existingUser, error: existingUserError } = await insforge.database
+    .from("users")
+    .select("id, phone, mobile, email, role, patient_id, google_id, avatar_url, auth_provider")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existingUserError) {
+    throw new HttpError(500, existingUserError.message || "Unable to check Google account.");
+  }
+
+  if (existingUser) {
+    const { data: linkedUser, error: linkError } = await insforge.database
+      .from("users")
+      .update({
+        google_id: params.googleId,
+        email,
+        avatar_url: params.avatarUrl || null,
+        auth_provider: "google",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", (existingUser as any).id)
+      .select("id, phone, mobile, email, role, patient_id, google_id, avatar_url, auth_provider")
+      .single();
+
+    if (linkError || !linkedUser) {
+      throw new HttpError(500, linkError?.message || "Unable to link Google account.");
+    }
+
+    await ensureGoogleProfile(linkedUser, params);
+    return normalizePatientUser(linkedUser, "");
+  }
+
+  const { data: existingPatient, error: patientLookupError } = await insforge.database
+    .from("patients")
+    .select("id, full_name, mobile, email, google_id, avatar_url, auth_provider")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (patientLookupError) {
+    throw new HttpError(500, patientLookupError.message || "Unable to check patient profile.");
+  }
+
+  let patientId = (existingPatient as any)?.id as string | undefined;
+  if (patientId) {
+    await insforge.database
+      .from("patients")
+      .update({
+        google_id: params.googleId,
+        avatar_url: params.avatarUrl || (existingPatient as any)?.avatar_url || null,
+        auth_provider: "google",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", patientId);
+  } else {
+    const { data: patient, error: patientError } = await insforge.database
+      .from("patients")
+      .insert({
+        full_name: params.fullName || null,
+        mobile: "",
+        email,
+        google_id: params.googleId,
+        avatar_url: params.avatarUrl || null,
+        auth_provider: "google"
+      })
+      .select("id")
+      .single();
+
+    if (patientError || !patient) {
+      throw new HttpError(500, patientError?.message || "Unable to create patient profile.");
+    }
+    patientId = (patient as any).id;
+  }
+
+  const { data: user, error: userError } = await insforge.database
+    .from("users")
+    .insert({
+      phone: null,
+      email,
+      role: "patient",
+      patient_id: patientId,
+      is_active: true,
+      google_id: params.googleId,
+      avatar_url: params.avatarUrl || null,
+      auth_provider: "google"
+    })
+    .select("id, phone, mobile, email, role, patient_id, google_id, avatar_url, auth_provider")
+    .single();
+
+  if (userError || !user) {
+    throw new HttpError(500, userError?.message || "Unable to create Google patient account.");
+  }
+
+  await ensureGoogleProfile(user, params);
+  return normalizePatientUser(user, "");
+}
+
+async function ensureGoogleProfile(user: any, params: { email: string; fullName?: string | null; avatarUrl?: string | null; googleId: string }) {
+  const { data: existingProfile } = await insforge.database
+    .from("user_profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const payload = {
+    user_id: user.id,
+    full_name: params.fullName || null,
+    mobile: user.mobile || user.phone || "",
+    email: params.email.trim().toLowerCase(),
+    avatar_url: params.avatarUrl || null,
+    google_id: params.googleId,
+    auth_provider: "google",
+    updated_at: new Date().toISOString()
+  };
+
+  const query = existingProfile
+    ? insforge.database.from("user_profiles").update(payload).eq("user_id", user.id)
+    : insforge.database.from("user_profiles").insert(payload);
+
+  await query.select("id").single();
+}
+
 export async function findUserByMobile(mobile: string) {
   const { data, error } = await insforge.database
     .from("users")
