@@ -17,6 +17,42 @@ function getSafeTokenDebug(token: string) {
   };
 }
 
+function getNestedField(source: any, paths: string[]) {
+  for (const path of paths) {
+    const value = path.split(".").reduce((current, part) => current?.[part], source);
+    if (value) return value;
+  }
+  return null;
+}
+
+function extractOAuthAccessToken(source: any) {
+  const token = getNestedField(source, [
+    "accessToken",
+    "access_token",
+    "session.accessToken",
+    "session.access_token",
+    "data.accessToken",
+    "data.access_token",
+    "data.session.accessToken",
+    "data.session.access_token",
+    "tokens.accessToken",
+    "tokens.access_token"
+  ]);
+
+  return typeof token === "string" ? token : "";
+}
+
+function extractOAuthUser(source: any) {
+  return getNestedField(source, [
+    "user",
+    "data.user",
+    "session.user",
+    "data.session.user",
+    "profile",
+    "data.profile"
+  ]);
+}
+
 function CallbackShell({ message, error }: { message?: string; error?: string }) {
   return (
     <section className="section-wrap py-14">
@@ -74,22 +110,23 @@ function PatientGoogleCallbackContent() {
 
         if (!session?.accessToken && oauthCode) {
           const exchangeResponse = await (client.auth as any).exchangeOAuthCode?.(oauthCode);
-          exchangedUser = exchangeResponse?.data?.user || null;
-          exchangedAccessToken = exchangeResponse?.data?.accessToken || "";
+          exchangedUser = extractOAuthUser(exchangeResponse?.data) || null;
+          exchangedAccessToken = extractOAuthAccessToken(exchangeResponse?.data);
           logGoogleOAuth("Session exchange response", {
             hasData: Boolean(exchangeResponse?.data),
+            dataKeys: exchangeResponse?.data ? Object.keys(exchangeResponse.data) : [],
             error: exchangeResponse?.error
               ? {
                   message: exchangeResponse.error.message,
                   statusCode: exchangeResponse.error.statusCode,
                   code: exchangeResponse.error.error
-                }
+              }
               : null,
-            hasUser: Boolean(exchangeResponse?.data?.user),
-            ...getSafeTokenDebug(exchangeResponse?.data?.accessToken || "")
+            hasUser: Boolean(exchangedUser),
+            ...getSafeTokenDebug(exchangedAccessToken)
           });
 
-          if (exchangeResponse?.error && !exchangeResponse?.data?.accessToken && !getInsForgeBrowserSession(client)?.accessToken) {
+          if (exchangeResponse?.error && !exchangedAccessToken && !getInsForgeBrowserSession(client)?.accessToken) {
             throw new Error(exchangeResponse.error.message || "Unable to exchange Google login code.");
           }
           session = getInsForgeBrowserSession(client);
@@ -112,7 +149,7 @@ function PatientGoogleCallbackContent() {
         });
 
         const sessionUser = session?.user || exchangedUser || userResponse.data?.user;
-        const accessToken = session?.accessToken || exchangedAccessToken || getInsForgeAccessToken(client);
+        const accessToken = extractOAuthAccessToken(session) || exchangedAccessToken || getInsForgeAccessToken(client);
         logGoogleOAuth("Token response", getSafeTokenDebug(accessToken));
 
         if (!accessToken) throw new Error("Google session token is missing. Please try again.");
