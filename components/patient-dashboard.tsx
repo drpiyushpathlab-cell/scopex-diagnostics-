@@ -209,7 +209,7 @@ export function PatientDashboard() {
 
   useEffect(() => {
     if (!getStoredAuthToken()) {
-      setMessage("Please login with OTP to view your dashboard.");
+      setMessage("Please login to view your dashboard.");
       setLoading(false);
       return;
     }
@@ -423,7 +423,7 @@ export function PatientDashboard() {
         <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           <h1 className="text-3xl font-bold text-[#102a2d]">Login required</h1>
           <p className="mt-3 text-[#5a7273]">{message}</p>
-          <Link href="/patient/login" className="cta-btn mt-5 inline-flex">Login with OTP</Link>
+          <Link href="/patient/login" className="cta-btn mt-5 inline-flex">Login</Link>
         </div>
       </section>
     );

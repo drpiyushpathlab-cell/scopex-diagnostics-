@@ -141,7 +141,7 @@ userRouter.get(
     const fallbackProfile: LocalProfile = {
       id: auth.patientId || auth.userId,
       user_id: auth.userId,
-      full_name: patient?.full_name || null,
+      full_name: patient?.full_name || (userData as any).full_name || null,
       mobile: normalizeMobile(patient?.mobile || (userData as any).mobile || (userData as any).phone || auth.mobile || ""),
       email: patient?.email || (userData as any).email || null,
       dob: null,
@@ -159,7 +159,30 @@ userRouter.get(
       updated_at: nowIso()
     };
 
-    response.json({ profile: fallbackProfile });
+    const { data: createdProfile, error: createError } = await insforge.database
+      .from("user_profiles")
+      .insert({
+        user_id: fallbackProfile.user_id,
+        full_name: fallbackProfile.full_name,
+        mobile: fallbackProfile.mobile,
+        email: fallbackProfile.email,
+        dob: fallbackProfile.dob,
+        age: fallbackProfile.age,
+        gender: fallbackProfile.gender,
+        address: fallbackProfile.address,
+        city: fallbackProfile.city,
+        pincode: fallbackProfile.pincode,
+        preferred_collection_address: fallbackProfile.preferred_collection_address,
+        google_id: fallbackProfile.google_id,
+        avatar_url: fallbackProfile.avatar_url,
+        auth_provider: fallbackProfile.auth_provider,
+        is_profile_complete: fallbackProfile.is_profile_complete,
+        updated_at: fallbackProfile.updated_at
+      })
+      .select("id, user_id, full_name, mobile, email, dob, age, gender, address, city, pincode, preferred_collection_address, google_id, avatar_url, auth_provider, is_profile_complete, created_at, updated_at")
+      .single();
+
+    response.json({ profile: !createError && createdProfile ? createdProfile : fallbackProfile });
   })
 );
 
@@ -228,6 +251,32 @@ userRouter.patch(
         .single();
 
       if (!error && data) {
+        const dataProfile = data as {
+          full_name?: string | null;
+          mobile?: string | null;
+          email?: string | null;
+        };
+        const linkedMobile = normalizeMobile(dataProfile.mobile || "");
+        const userUpdate: Record<string, unknown> = {
+          updated_at: nowIso()
+        };
+        if (linkedMobile) {
+          userUpdate.mobile = linkedMobile;
+          userUpdate.phone = linkedMobile;
+        }
+        if (dataProfile.email) userUpdate.email = dataProfile.email;
+        await insforge.database.from("users").update(userUpdate).eq("id", auth.userId);
+
+        if (auth.patientId) {
+          const patientUpdate: Record<string, unknown> = {
+            full_name: dataProfile.full_name || null,
+            updated_at: nowIso()
+          };
+          if (linkedMobile) patientUpdate.mobile = linkedMobile;
+          if (dataProfile.email) patientUpdate.email = dataProfile.email;
+          await insforge.database.from("patients").update(patientUpdate).eq("id", auth.patientId);
+        }
+
         const savedEmail = String((data as { email?: string | null }).email || "").trim().toLowerCase();
         const previousEmail = String((existing as { email?: string | null } | null)?.email || "").trim().toLowerCase();
         if (savedEmail && savedEmail !== previousEmail) {

@@ -48,6 +48,21 @@ export async function upsertGooglePatientUser(params: {
   const email = params.email.trim().toLowerCase();
   if (!email) throw new HttpError(400, "Google account email is required.");
 
+  const { data: googleUser, error: googleUserError } = await insforge.database
+    .from("users")
+    .select("id, phone, mobile, email, role, patient_id, google_id, avatar_url, auth_provider")
+    .eq("google_id", params.googleId)
+    .maybeSingle();
+
+  if (googleUserError) {
+    throw new HttpError(500, googleUserError.message || "Unable to check Google account.");
+  }
+
+  if (googleUser) {
+    await ensureGoogleProfile(googleUser, params);
+    return normalizePatientUser(googleUser, "");
+  }
+
   const { data: existingUser, error: existingUserError } = await insforge.database
     .from("users")
     .select("id, phone, mobile, email, role, patient_id, google_id, avatar_url, auth_provider")
@@ -145,20 +160,51 @@ export async function upsertGooglePatientUser(params: {
 }
 
 async function ensureGoogleProfile(user: any, params: { email: string; fullName?: string | null; avatarUrl?: string | null; googleId: string }) {
-  const { data: existingProfile } = await insforge.database
+  const { data: existingProfile, error: existingProfileError } = await insforge.database
     .from("user_profiles")
-    .select("id")
+    .select("id, full_name, mobile, email, dob, age, gender, address, city, pincode, preferred_collection_address, is_profile_complete")
     .eq("user_id", user.id)
     .maybeSingle();
 
+  if (existingProfileError) {
+    throw new HttpError(500, existingProfileError.message || "Unable to check patient profile.");
+  }
+
+  const profile = existingProfile as any;
+  const mobile = user.mobile || user.phone || profile?.mobile || "";
+  const completionCandidate = {
+    full_name: profile?.full_name || params.fullName || null,
+    mobile,
+    dob: profile?.dob || null,
+    age: profile?.age ?? null,
+    gender: profile?.gender || null,
+    address: profile?.address || null,
+    pincode: profile?.pincode || null
+  };
+
   const payload = {
     user_id: user.id,
-    full_name: params.fullName || null,
-    mobile: user.mobile || user.phone || "",
-    email: params.email.trim().toLowerCase(),
-    avatar_url: params.avatarUrl || null,
+    full_name: completionCandidate.full_name,
+    mobile,
+    email: params.email.trim().toLowerCase() || profile?.email || null,
+    dob: profile?.dob || null,
+    age: profile?.age ?? null,
+    gender: profile?.gender || null,
+    address: profile?.address || null,
+    city: profile?.city || null,
+    pincode: profile?.pincode || null,
+    preferred_collection_address: profile?.preferred_collection_address || null,
+    avatar_url: params.avatarUrl || user.avatar_url || null,
     google_id: params.googleId,
     auth_provider: "google",
+    is_profile_complete: Boolean(
+      completionCandidate.full_name &&
+        String(completionCandidate.mobile || "").replace(/\D/g, "").length === 10 &&
+        (completionCandidate.age || completionCandidate.dob) &&
+        completionCandidate.gender &&
+        completionCandidate.address &&
+        completionCandidate.pincode
+    ),
     updated_at: new Date().toISOString()
   };
 
@@ -166,7 +212,10 @@ async function ensureGoogleProfile(user: any, params: { email: string; fullName?
     ? insforge.database.from("user_profiles").update(payload).eq("user_id", user.id)
     : insforge.database.from("user_profiles").insert(payload);
 
-  await query.select("id").single();
+  const { error } = await query.select("id").single();
+  if (error) {
+    throw new HttpError(500, error.message || "Unable to save Google patient profile.");
+  }
 }
 
 export async function findUserByMobile(mobile: string) {

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { bookingCatalog, bookingPackages, bookingTests } from "@/lib/booking-catalog";
 import { calculateBookingQuote, formatInr } from "@/lib/offers";
 import { clearVerifiedMobile, getVerifiedMobile, storeVerifiedMobile } from "@/lib/otp-client";
-import { backendFetch, getStoredAuthToken, logoutAuthSession, storeAuthToken } from "@/lib/backend-client";
+import { backendFetch, getStoredAuthToken, getStoredAuthUser, logoutAuthSession, storeAuthToken } from "@/lib/backend-client";
 import type { BookingCatalogItem, BookingCustomerInput, BookingPatientInput, FamilyMemberInput } from "@/lib/booking-types";
 
 declare global {
@@ -238,12 +238,24 @@ export function BookingFlow() {
   const [patientMessage, setPatientMessage] = useState("");
   const [previousReports, setPreviousReports] = useState<PreviousReportFile[]>([]);
   const [reportUploadMessage, setReportUploadMessage] = useState("");
-  const isLoggedIn = Boolean(otpPhone || customer.phone || savedProfile?.mobile) && Boolean(getStoredAuthToken() || otpPhone);
+  const isLoggedIn = Boolean(getStoredAuthToken() || otpPhone || customer.phone || savedProfile?.mobile);
   const loggedInName = savedProfile?.full_name || customer.fullName || bookingPatients.find((patient) => patient.patientId === "self")?.name || "Patient";
   const loggedInMobile = savedProfile?.mobile || customer.phone || otpPhone;
 
   useEffect(() => {
     const phone = getVerifiedMobile();
+    const token = getStoredAuthToken();
+    const authUser = getStoredAuthUser();
+    if (authUser?.patientId) setPatientAuthId(authUser.patientId);
+    if (authUser?.mobile && !phone) {
+      setOtpPhone(authUser.mobile);
+      setCustomer((prev) => ({ ...prev, phone: prev.phone || authUser.mobile || "" }));
+    }
+    if (token) {
+      setStep("select");
+      void loadPatientContext();
+      return;
+    }
     if (phone) {
       setOtpPhone(phone);
       setCustomer((prev) => ({ ...prev, phone: phone || prev.phone }));
