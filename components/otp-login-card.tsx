@@ -100,18 +100,18 @@ export function OtpLoginCard({
   }
 
   return (
-    <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">{mode === "admin" ? "Admin Access" : "OTP Login"}</p>
-      <h1 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">{title}</h1>
-      <p className="mt-3 max-w-xl text-sm leading-7 text-[#5a7273] md:text-base">{description}</p>
+    <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">{mode === "admin" ? "Admin Access" : "OTP Login"}</p>
+      <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">{title}</h1>
+      <p className="mt-3 max-w-xl text-sm leading-7 text-[#5f6868] md:text-base">{description}</p>
 
       {mode === "patient" ? (
         <div className="mt-6 grid gap-3 md:max-w-md">
           <GoogleLoginButton />
           <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.14em] text-[#8aa1a2]">
-            <span className="h-px flex-1 bg-[#deece9]" />
+            <span className="h-px flex-1 bg-[#f1dfce]" />
             or continue with mobile OTP
-            <span className="h-px flex-1 bg-[#deece9]" />
+            <span className="h-px flex-1 bg-[#f1dfce]" />
           </div>
         </div>
       ) : null}
@@ -122,7 +122,7 @@ export function OtpLoginCard({
           onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
           placeholder="10-digit mobile number"
           inputMode="numeric"
-          className="rounded-2xl border border-[#dbe9e7] bg-white px-4 py-3 text-sm text-[#102a2d] outline-none transition focus:border-[#0f8f7c]"
+          className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#F7931E]"
         />
 
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -135,7 +135,7 @@ export function OtpLoginCard({
               onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="Enter OTP"
               inputMode="numeric"
-              className="rounded-2xl border border-[#dbe9e7] bg-white px-4 py-3 text-sm text-[#102a2d] outline-none transition focus:border-[#0f8f7c]"
+              className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#F7931E]"
             />
           ) : null}
         </div>
@@ -147,7 +147,7 @@ export function OtpLoginCard({
         ) : null}
       </div>
 
-      {message ? <p className={`mt-4 text-sm ${status === "error" ? "text-red-600" : "text-[#0f8f7c]"}`}>{message}</p> : null}
+      {message ? <p className={`mt-4 text-sm ${status === "error" ? "text-red-600" : "text-[#F7931E]"}`}>{message}</p> : null}
     </div>
   );
 }

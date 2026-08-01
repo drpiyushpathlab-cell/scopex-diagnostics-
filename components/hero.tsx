@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -31,7 +31,7 @@ const heroSlides: HeroSlide[] = [
     title: "Book Blood Test at Home",
     tag: "Home Diagnostics Across India",
     benefit: "Accurate, affordable diagnostics with home sample collection.",
-    points: ["Now live in Lucknow", "Expanding to Pune, Nagpur, Varanasi & Kanpur"]
+    points: ["Pan India Diagnostic Network", "All Major Cities Across India"]
   },
   {
     type: "package",
@@ -110,15 +110,15 @@ const heroSlides: HeroSlide[] = [
     title: "Not Sure What to Book?",
     tag: "Expert Guidance",
     route: "/health-advisor",
-    benefit: "Avoid wrong tests. Get expert advice instantly — before & after reports.",
+    benefit: "Avoid wrong tests. Get expert advice instantly â€” before & after reports.",
     points: ["Free expert guidance", "Quick callback support"]
   }
 ];
 
 const tagStyles: Record<string, string> = {
-  "Home Diagnostics Across India": "bg-[#ecfbf8] text-[#0f8f7c] border border-[#d8efeb]",
+  "Home Diagnostics Across India": "bg-[#fff3e5] text-[#F7931E] border border-[#d8efeb]",
   "Expert Guidance": "bg-[#eef8ff] text-[#1a78b8] border border-[#d6eafb]",
-  Stress: "bg-[#fff2e8] text-[#f37021] border border-[#ffd9c4]",
+  Stress: "bg-[#fff2e8] text-[#F7931E] border border-[#ffd9c4]",
   "Most Popular": "bg-[#fff6db] text-[#a06a00] border border-[#f6df99]",
   Digestive: "bg-[#eef8e8] text-[#4e8a21] border border-[#d2ebbd]",
   "Women Health": "bg-[#ffeaf4] text-[#d33b82] border border-[#f6c8df]",
@@ -129,11 +129,11 @@ const tagStyles: Record<string, string> = {
 function HeroSupportPanel({ className = "" }: { className?: string }) {
   return (
     <div className={`grid gap-3 pt-1 lg:max-w-[300px] ${className}`.trim()}>
-      <div className="rounded-[22px] border border-[#d9ebe7] bg-[#f7fbfa] p-4 shadow-[0_10px_24px_rgba(15,143,124,0.08)]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">
+      <div className="rounded-[22px] border border-[#d9ebe7] bg-[#FFF8F2] p-4 shadow-[0_10px_24px_rgba(15,143,124,0.08)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#F7931E]">
           Why patients choose ScopeX
         </p>
-        <ul className="mt-3 space-y-2 text-xs leading-6 text-[#4f6b6d] md:text-[13px]">
+        <ul className="mt-3 space-y-2 text-xs leading-6 text-[#5f6868] md:text-[13px]">
           <li>{"\u2714"} Easy online booking</li>
           <li>{"\u2714"} Home sample collection</li>
           <li>{"\u2714"} Preventive health packages</li>
@@ -142,7 +142,7 @@ function HeroSupportPanel({ className = "" }: { className?: string }) {
       </div>
 
       <div className="rounded-[22px] border border-[#d9ebe7] bg-white p-4 shadow-[0_10px_24px_rgba(16,24,40,0.06)]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#F7931E]">
           Popular tests
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -150,7 +150,7 @@ function HeroSupportPanel({ className = "" }: { className?: string }) {
             <Link
               key={item.label}
               href={item.href}
-              className="rounded-full bg-[#eef7f6] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#24484a] transition hover:bg-[#fff2e9] hover:text-[#f37021]"
+              className="rounded-full bg-[#eef7f6] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#24484a] transition hover:bg-[#fff2e9] hover:text-[#F7931E]"
             >
               {item.label}
             </Link>
@@ -159,7 +159,7 @@ function HeroSupportPanel({ className = "" }: { className?: string }) {
         <div className="mt-3">
           <Link
             href="/tests"
-            className="inline-flex items-center justify-center rounded-full border border-[#dbe9e7] bg-[#f7fbfa] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#264547] transition hover:border-[#ffd8bf] hover:bg-[#fff7f1] hover:text-[#f37021]"
+            className="inline-flex items-center justify-center rounded-full border border-[#f1dfce] bg-[#FFF8F2] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#264547] transition hover:border-[#ffd8bf] hover:bg-[#fff7f1] hover:text-[#F7931E]"
           >
             View All Tests
           </Link>
@@ -208,12 +208,12 @@ export function Hero() {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <div className="relative overflow-hidden rounded-[28px] border border-[#deece9] bg-[linear-gradient(180deg,#ffffff_0%,#f8fcfb_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] md:p-6">
+        <div className="relative overflow-hidden rounded-[28px] border border-[#f1dfce] bg-[linear-gradient(180deg,#ffffff_0%,#f8fcfb_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] md:p-6">
           <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6 lg:items-start">
             <div className="relative min-h-[420px] sm:min-h-[450px] md:min-h-[470px] lg:min-h-[390px]">
             {heroSlides.map((slide, index) => {
               const isActive = index === active;
-              const tagStyle = slide.tag ? tagStyles[slide.tag] ?? "bg-[#ecfbf8] text-[#0f8f7c] border border-[#d8efeb]" : "";
+              const tagStyle = slide.tag ? tagStyles[slide.tag] ?? "bg-[#fff3e5] text-[#F7931E] border border-[#d8efeb]" : "";
               return (
                 <div
                   key={`${slide.title}-${index}`}
@@ -233,13 +233,13 @@ export function Hero() {
                             {slide.tag}
                           </span>
                         ) : null}
-                        <h1 className="mt-5 max-w-[520px] text-[2.75rem] font-extrabold leading-[0.98] text-[#102a2d] sm:text-[3.4rem] md:max-w-[620px] md:text-[4.8rem] lg:max-w-[520px] lg:text-[4rem]">
+                        <h1 className="mt-5 max-w-[520px] text-[2.75rem] font-extrabold leading-[0.98] text-[#0D0D0D] sm:text-[3.4rem] md:max-w-[620px] md:text-[4.8rem] lg:max-w-[520px] lg:text-[4rem]">
                           {slide.title}
                         </h1>
-                        <p className="mt-4 max-w-[540px] text-lg leading-8 text-[#4f6b6d] md:text-[1.3rem] lg:max-w-[470px] lg:text-[1.15rem] lg:leading-7">
+                        <p className="mt-4 max-w-[540px] text-lg leading-8 text-[#5f6868] md:text-[1.3rem] lg:max-w-[470px] lg:text-[1.15rem] lg:leading-7">
                           {slide.benefit}
                         </p>
-                        <div className="mt-4 space-y-1 text-sm font-semibold uppercase tracking-[0.12em] text-[#0f8f7c] md:text-base lg:text-[0.92rem]">
+                        <div className="mt-4 space-y-1 text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E] md:text-base lg:text-[0.92rem]">
                           {slide.points.map((point) => (
                             <p key={point}>{point}</p>
                           ))}
@@ -248,7 +248,7 @@ export function Hero() {
                           <div className="mt-6 inline-flex items-center">
                             <Link
                               href={slide.route ?? "/health-advisor"}
-                              className="inline-flex items-center text-[12px] font-semibold uppercase tracking-[0.08em] text-[#0f8f7c] transition hover:text-[#f37021] md:text-sm"
+                              className="inline-flex items-center text-[12px] font-semibold uppercase tracking-[0.08em] text-[#F7931E] transition hover:text-[#F7931E] md:text-sm"
                             >
                               Talk to Advisor
                             </Link>
@@ -258,25 +258,25 @@ export function Hero() {
                     ) : (
                       <Link
                         href={slide.route ?? "/packages"}
-                        className="mx-auto flex min-h-[360px] w-full max-w-[352px] cursor-pointer flex-col justify-between rounded-[24px] border border-[#deece9] bg-white px-4 py-4 shadow-[0_16px_36px_rgba(16,24,40,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_rgba(16,24,40,0.1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f8f7c] sm:min-h-[372px] md:max-w-none md:px-5 md:py-5 lg:min-h-[360px] lg:max-w-[700px] lg:px-5 lg:py-5"
+                        className="mx-auto flex min-h-[360px] w-full max-w-[352px] cursor-pointer flex-col justify-between rounded-[24px] border border-[#f1dfce] bg-white px-4 py-4 shadow-[0_16px_36px_rgba(16,24,40,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_rgba(16,24,40,0.1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F7931E] sm:min-h-[372px] md:max-w-none md:px-5 md:py-5 lg:min-h-[360px] lg:max-w-[700px] lg:px-5 lg:py-5"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-3">
                             <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${tagStyle}`}>
                               {slide.tag}
                             </span>
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0f8f7c]">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#F7931E]">
                               {slide.discount}
                             </span>
                           </div>
 
-                          <h2 className="mt-3 text-[1.6rem] font-extrabold uppercase leading-[1.04] text-[#102a2d] sm:text-[1.8rem] md:mt-4 md:text-[2.45rem] lg:text-[3rem]">
+                          <h2 className="mt-3 text-[1.6rem] font-extrabold uppercase leading-[1.04] text-[#0D0D0D] sm:text-[1.8rem] md:mt-4 md:text-[2.45rem] lg:text-[3rem]">
                             {slide.title}
                           </h2>
 
                           <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-2 md:mt-5 md:gap-x-5">
                             {slide.price ? (
-                              <span className="text-[2.5rem] font-extrabold leading-none text-[#f37021] sm:text-[2.8rem] md:text-[4rem] lg:text-[3.6rem]">
+                              <span className="text-[2.5rem] font-extrabold leading-none text-[#F7931E] sm:text-[2.8rem] md:text-[4rem] lg:text-[3.6rem]">
                                 {slide.price}
                               </span>
                             ) : null}
@@ -286,7 +286,7 @@ export function Hero() {
                                 <span className="text-[0.9rem] leading-none text-[#8ca0a2] line-through md:text-[1.1rem] lg:text-[0.95rem]">{slide.oldPrice}</span>
                               ) : null}
                               {slide.discount ? (
-                                <span className="inline-flex w-fit rounded-full bg-[#fff4ec] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#f37021] md:px-3 md:py-1.5 md:text-[11px]">
+                                <span className="inline-flex w-fit rounded-full bg-[#fff4ec] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#F7931E] md:px-3 md:py-1.5 md:text-[11px]">
                                   {slide.discount}
                                 </span>
                               ) : null}
@@ -294,7 +294,7 @@ export function Hero() {
                           </div>
 
                           {slide.save ? (
-                            <p className="mt-2 text-[1rem] font-bold text-[#0f8f7c] md:mt-3 md:text-[1.35rem] lg:text-[1.1rem]">{slide.save}</p>
+                            <p className="mt-2 text-[1rem] font-bold text-[#F7931E] md:mt-3 md:text-[1.35rem] lg:text-[1.1rem]">{slide.save}</p>
                           ) : null}
 
                           <p className="mt-4 text-[1.03rem] font-semibold leading-7 text-[#28484a] sm:text-[1.08rem] md:mt-5 md:text-[1.35rem] md:leading-8 lg:mt-4 lg:max-w-[520px] lg:text-[1.1rem] lg:leading-7">
@@ -304,14 +304,14 @@ export function Hero() {
                           <ul className="mt-3 space-y-2 text-[0.95rem] leading-6 text-[#516b6d] md:mt-4 md:space-y-3 md:text-lg md:leading-7 lg:space-y-2 lg:text-[1rem] lg:leading-6">
                             {slide.points.map((point) => (
                               <li key={point} className="flex items-start gap-2.5">
-                                <span className="mt-0.5 text-[#f37021]">{"\u2022"}</span>
+                                <span className="mt-0.5 text-[#F7931E]">{"\u2022"}</span>
                                 <span>{point}</span>
                               </li>
                             ))}
                           </ul>
                         </div>
 
-                        <div className="mt-4 inline-flex items-center text-[12px] font-semibold uppercase tracking-[0.08em] text-[#0f8f7c] transition hover:text-[#f37021] md:mt-6 md:text-sm">
+                        <div className="mt-4 inline-flex items-center text-[12px] font-semibold uppercase tracking-[0.08em] text-[#F7931E] transition hover:text-[#F7931E] md:mt-6 md:text-sm">
                           View Package
                         </div>
                       </Link>
@@ -333,7 +333,7 @@ export function Hero() {
                   type="button"
                   onClick={() => setActive(index)}
                   aria-label={`Go to slide ${index + 1}`}
-                  className={`rounded-full transition ${index === active ? "h-2.5 w-7 bg-[#f37021]" : "h-2.5 w-2.5 bg-[#cfe0dd] hover:bg-[#9ec8c0]"}`}
+                  className={`rounded-full transition ${index === active ? "h-2.5 w-7 bg-[#F7931E]" : "h-2.5 w-2.5 bg-[#cfe0dd] hover:bg-[#9ec8c0]"}`}
                 />
               ))}
             </div>
@@ -356,7 +356,7 @@ export function Hero() {
             type="button"
             onClick={goPrev}
             aria-label="Previous slide"
-            className="absolute left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ebe7] bg-white text-[#2b4c4e] shadow-[0_8px_20px_rgba(16,24,40,0.08)] transition hover:border-[#ffd8bf] hover:text-[#f37021] md:flex"
+            className="absolute left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ebe7] bg-white text-[#2b4c4e] shadow-[0_8px_20px_rgba(16,24,40,0.08)] transition hover:border-[#ffd8bf] hover:text-[#F7931E] md:flex"
           >
             {"\u2039"}
           </button>
@@ -364,7 +364,7 @@ export function Hero() {
             type="button"
             onClick={goNext}
             aria-label="Next slide"
-            className="absolute right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ebe7] bg-white text-[#2b4c4e] shadow-[0_8px_20px_rgba(16,24,40,0.08)] transition hover:border-[#ffd8bf] hover:text-[#f37021] md:flex"
+            className="absolute right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ebe7] bg-white text-[#2b4c4e] shadow-[0_8px_20px_rgba(16,24,40,0.08)] transition hover:border-[#ffd8bf] hover:text-[#F7931E] md:flex"
           >
             {"\u203A"}
           </button>
@@ -373,5 +373,6 @@ export function Hero() {
     </section>
   );
 }
+
 
 

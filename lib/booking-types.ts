@@ -11,6 +11,7 @@ export type BookingCatalogItem = {
   discount: number;
   category: string;
   href: string;
+  searchAliases?: string[];
 };
 
 export type FamilyMemberInput = {

@@ -28,6 +28,7 @@ export const bookingTests: BookingCatalogItem[] = testsData.map((item) => ({
   mrp: item.mrp ?? item.price,
   discount: item.discount ?? 0,
   category: item.group,
+  searchAliases: item.searchAliases ?? [],
   href: `/tests?search=${encodeURIComponent(item.name)}`
 }));
 

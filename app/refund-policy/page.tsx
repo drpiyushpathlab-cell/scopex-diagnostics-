@@ -67,10 +67,10 @@ const sections = [
 export default function RefundPolicyPage() {
   return (
     <section className="container-px py-14 md:py-16">
-      <div className="section-wrap rounded-[32px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-10">
-        <p className="text-sm font-black uppercase tracking-[0.18em] text-[#0f8f7c]">ScopeX Diagnostics</p>
-        <h1 className="mt-3 text-3xl font-black text-[#102a2d] md:text-5xl">Refund &amp; Cancellation Policy</h1>
-        <p className="mt-3 text-sm font-semibold text-[#f37021]">Last Updated: June 2026</p>
+      <div className="section-wrap rounded-[32px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-10">
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-[#F7931E]">ScopeX Diagnostics</p>
+        <h1 className="mt-3 text-3xl font-black text-[#0D0D0D] md:text-5xl">Refund &amp; Cancellation Policy</h1>
+        <p className="mt-3 text-sm font-semibold text-[#F7931E]">Last Updated: June 2026</p>
         <p className="mt-5 max-w-5xl text-sm leading-8 text-[var(--muted)] md:text-base">
           At ScopeX Diagnostics, we strive to provide high-quality diagnostic services and a seamless customer
           experience. This Refund &amp; Cancellation Policy outlines the terms governing cancellations, refunds, and
@@ -80,30 +80,30 @@ export default function RefundPolicyPage() {
 
         <div className="mt-8 grid gap-4">
           {sections.map((section) => (
-            <article key={section.title} className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-              <h2 className="text-lg font-black text-[#102a2d] md:text-xl">{section.title}</h2>
+            <article key={section.title} className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+              <h2 className="text-lg font-black text-[#0D0D0D] md:text-xl">{section.title}</h2>
               <p className="mt-3 text-sm leading-8 text-[var(--muted)] md:text-base">{section.body}</p>
             </article>
           ))}
         </div>
 
-        <div className="mt-8 rounded-[24px] border border-[#deece9] bg-[#fff8f3] p-5">
-          <h2 className="text-xl font-black text-[#102a2d]">Contact Us</h2>
+        <div className="mt-8 rounded-[24px] border border-[#f1dfce] bg-[#fff8f3] p-5">
+          <h2 className="text-xl font-black text-[#0D0D0D]">Contact Us</h2>
           <p className="mt-3 text-sm leading-8 text-[var(--muted)] md:text-base">
             For refund, cancellation, or billing-related queries, contact ScopeX Diagnostics.
           </p>
-          <div className="mt-4 grid gap-2 text-sm font-semibold text-[#102a2d] md:text-base">
+          <div className="mt-4 grid gap-2 text-sm font-semibold text-[#0D0D0D] md:text-base">
             <p>ScopeX Diagnostics</p>
             <p>
               Email:{" "}
-              <a className="text-[#0f8f7c] underline-offset-4 hover:underline" href="mailto:scopexdiagnostic@gmail.com">
+              <a className="text-[#F7931E] underline-offset-4 hover:underline" href="mailto:scopexdiagnostic@gmail.com">
                 scopexdiagnostic@gmail.com
               </a>
             </p>
             <p>
               Website:{" "}
               <a
-                className="text-[#0f8f7c] underline-offset-4 hover:underline"
+                className="text-[#F7931E] underline-offset-4 hover:underline"
                 href="https://www.scopexdiagnostics.in"
                 target="_blank"
                 rel="noreferrer"

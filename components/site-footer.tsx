@@ -20,27 +20,27 @@ const healthPackages = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-[#deece9] bg-white py-12">
+    <footer className="mt-16 border-t border-[#f1dfce] bg-white py-12">
       <div className="section-wrap">
         <div className="grid gap-8 lg:grid-cols-5">
           <div className="lg:col-span-1">
-            <h2 className="text-2xl font-bold text-[#102a2d]">ScopeX Diagnostics</h2>
+            <h2 className="text-2xl font-bold text-[#0D0D0D]">ScopeX Diagnostics</h2>
             <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
               ScopeX Diagnostics is a tech-enabled diagnostic platform providing accurate blood tests and full body
               health checkups with home sample collection. We ensure reliable, fast, and affordable diagnostic services
               with advanced lab technology.
             </p>
             <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-              Currently serving <strong>Lucknow</strong>. Expanding rapidly across India.
+              Serving customers through a growing Pan India diagnostic network across major Indian cities.
             </p>
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-[#102a2d]">Popular Tests</h3>
+            <h3 className="text-lg font-bold text-[#0D0D0D]">Popular Tests</h3>
             <ul className="mt-4 space-y-2.5 text-sm leading-7 text-[var(--muted)]">
               {popularTests.map((item) => (
                 <li key={item.label}>
-                  <Link href={item.href} className="hover:text-[#0f8f7c]">
+                  <Link href={item.href} className="hover:text-[#F7931E]">
                     {item.label}
                   </Link>
                 </li>
@@ -49,11 +49,11 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-[#102a2d]">Health Packages</h3>
+            <h3 className="text-lg font-bold text-[#0D0D0D]">Health Packages</h3>
             <ul className="mt-4 space-y-2.5 text-sm leading-7 text-[var(--muted)]">
               {healthPackages.map((item) => (
                 <li key={item.label}>
-                  <Link href={item.href} className="hover:text-[#0f8f7c]">
+                  <Link href={item.href} className="hover:text-[#F7931E]">
                     {item.label}
                   </Link>
                 </li>
@@ -62,47 +62,58 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-[#102a2d]">Service Locations</h3>
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-              <strong>Available in:</strong>
-              <br />
-              <Link href="/" className="hover:text-[#0f8f7c]">
-                Lucknow
-              </Link>
-            </p>
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-              <strong>Launching Soon:</strong>
-              <br />
-              Pune / Kanpur / Gorakhpur / Raipur / Nagpur / Varanasi
-            </p>
+            <h3 className="text-lg font-bold text-[#0D0D0D]">Service Coverage</h3>
+            <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
+              <p>
+                <strong>Available Across Major Indian Cities</strong>
+              </p>
+              <p>
+                <strong>Serving Across India</strong>
+              </p>
+              <p>
+                <strong>Available in:</strong>
+                <br />
+                All Major Cities Across India
+              </p>
+              <p>
+                <strong>Including:</strong>
+                <br />
+                Delhi NCR • Mumbai • Bengaluru • Hyderabad • Chennai • Pune • Ahmedabad • Kolkata • Jaipur • Lucknow • Kanpur • Indore • Bhopal • Nagpur • Surat • Chandigarh • Kochi • Patna • Bhubaneswar • Guwahati • Raipur • Varanasi • Vijayawada • Visakhapatnam &amp; More
+              </p>
+              <p>
+                <strong>Need service in your city?</strong>
+                <br />
+                Contact our team for availability.
+              </p>
+            </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-[#102a2d]">Contact</h3>
+            <h3 className="text-lg font-bold text-[#0D0D0D]">Contact</h3>
             <div className="mt-4 space-y-2 text-sm leading-7 text-[var(--muted)]">
               <p>+91-8989273440</p>
               <p>support@scopexdiagnostics.in</p>
-              <p>Lucknow, India</p>
+              <p>Serving Across India</p>
             </div>
 
-            <h4 className="mt-5 text-base font-bold text-[#102a2d]">Book Test</h4>
+            <h4 className="mt-5 text-base font-bold text-[#0D0D0D]">Book Test</h4>
             <Link href="/book-home-collection" className="cta-btn mt-3 w-full justify-center text-center">
               Book Now
             </Link>
           </div>
         </div>
 
-        <div className="mt-10 rounded-[26px] border border-[#deece9] bg-[#f7fbfa] p-6">
-          <h3 className="text-xl font-bold text-[#102a2d]">Book Blood Test at Home in Lucknow</h3>
+        <div className="mt-10 rounded-[26px] border border-[#f1dfce] bg-[#FFF8F2] p-6">
+          <h3 className="text-xl font-bold text-[#0D0D0D]">Book Blood Test at Home Across India</h3>
           <p className="mt-3 text-sm leading-8 text-[var(--muted)] md:text-base">
-            Book blood tests and full body health checkups at home in Lucknow with ScopeX Diagnostics. Our trained
+            Book blood tests and full body health checkups at home across major Indian cities with ScopeX Diagnostics. Our trained
             phlebotomists ensure safe sample collection with fast report delivery. Choose from a wide range of
             diagnostic tests including CBC, thyroid, diabetes, vitamin tests, and preventive health packages.
           </p>
         </div>
 
-        <div className="mt-8 flex flex-col gap-4 border-t border-[#deece9] pt-6 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between">
-          <p>© 2026 ScopeX Diagnostics. All Rights Reserved.</p>
+        <div className="mt-8 flex flex-col gap-4 border-t border-[#f1dfce] pt-6 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between">
+          <p>Â© 2026 ScopeX Diagnostics. All Rights Reserved.</p>
           <div className="flex flex-wrap gap-4">
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
@@ -115,5 +126,7 @@ export function SiteFooter() {
     </footer>
   );
 }
+
+
 
 

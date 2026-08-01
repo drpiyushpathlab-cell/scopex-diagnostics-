@@ -6,6 +6,9 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/"
     },
-    sitemap: "https://www.scopexdiagnostics.in/sitemap.xml"
+    sitemap: [
+      "https://www.scopexdiagnostics.in/sitemap.xml",
+      "https://www.scopexdiagnostics.in/image-sitemap.xml"
+    ]
   };
 }

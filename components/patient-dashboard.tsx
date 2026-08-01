@@ -175,6 +175,7 @@ export function PatientDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [profileFlowMessage, setProfileFlowMessage] = useState("");
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -251,8 +252,16 @@ export function PatientDashboard() {
   }
 
   async function saveProfile() {
-    if (!canSaveProfile) return;
+    if (!requiredPersonalComplete) {
+      setProfileFlowMessage("Please complete required personal details first.");
+      return;
+    }
+    if (!consent) {
+      setProfileFlowMessage("Please tick the consent checkbox before saving.");
+      return;
+    }
     setSavingProfile(true);
+    setProfileFlowMessage("");
     try {
       const response = await backendFetch("/user/profile", {
         method: "PATCH",
@@ -276,9 +285,12 @@ export function PatientDashboard() {
       setShowProfileFlow(false);
       setProfileStep(1);
       setConsent(false);
+      setProfileFlowMessage("Profile saved successfully.");
       setMessage("Profile saved. Future bookings will be faster.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save profile.");
+      const nextMessage = error instanceof Error ? error.message : "Unable to save profile.";
+      setProfileFlowMessage(nextMessage);
+      setMessage(nextMessage);
     } finally {
       setSavingProfile(false);
     }
@@ -286,10 +298,12 @@ export function PatientDashboard() {
 
   async function saveFamilyMember() {
     if (!familyForm.name.trim() || !familyForm.relation || (!familyForm.age && !familyForm.dob) || !familyForm.gender) {
+      setProfileFlowMessage("Add name, relation, age/DOB, and gender for the family member.");
       setMessage("Add name, relation, age/DOB, and gender for the family member.");
       return;
     }
     setFamilySaving(true);
+    setProfileFlowMessage("");
     try {
       const endpoint = familyForm.id ? `/family/${familyForm.id}` : "/family/add";
       const response = await backendFetch(endpoint, {
@@ -307,11 +321,23 @@ export function PatientDashboard() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Unable to save family member.");
+      const savedMember = data.familyMember as FamilyMember | undefined;
+      if (savedMember) {
+        setFamilyMembers((current) => {
+          const withoutSaved = current.filter((member) => member.id !== savedMember.id);
+          const normalized = savedMember.is_default ? withoutSaved.map((member) => ({ ...member, is_default: false })) : withoutSaved;
+          return [savedMember, ...normalized];
+        });
+      }
       await loadFamilyMembers();
       setFamilyForm(emptyFamilyForm);
-      setMessage(familyForm.id ? "Family member updated." : "Family member saved.");
+      const nextMessage = familyForm.id ? "Family member updated." : "Family member saved.";
+      setProfileFlowMessage(nextMessage);
+      setMessage(nextMessage);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save family member.");
+      const nextMessage = error instanceof Error ? error.message : "Unable to save family member.";
+      setProfileFlowMessage(nextMessage);
+      setMessage(nextMessage);
     } finally {
       setFamilySaving(false);
     }
@@ -319,7 +345,7 @@ export function PatientDashboard() {
 
   async function loadFamilyMembers() {
     const response = await backendFetch("/family/list");
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     if (response.ok) setFamilyMembers(data.familyMembers ?? []);
   }
 
@@ -327,12 +353,18 @@ export function PatientDashboard() {
     const response = await backendFetch(`/family/${id}`, { method: "DELETE" });
     if (response.ok) {
       setFamilyMembers((current) => current.filter((member) => member.id !== id));
+      setProfileFlowMessage("Family member deleted.");
+      setMessage("Family member deleted.");
     }
   }
 
   async function makeDefault(id: string) {
     const response = await backendFetch(`/family/${id}/default`, { method: "POST" });
-    if (response.ok) await loadFamilyMembers();
+    if (response.ok) {
+      await loadFamilyMembers();
+      setProfileFlowMessage("Default family member updated.");
+      setMessage("Default family member updated.");
+    }
   }
 
   async function logoutPatient() {
@@ -410,7 +442,7 @@ export function PatientDashboard() {
   if (loading) {
     return (
       <section className="section-wrap py-14">
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 text-[#5a7273] shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 text-[#5f6868] shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           Loading your patient dashboard...
         </div>
       </section>
@@ -420,9 +452,9 @@ export function PatientDashboard() {
   if (!getStoredAuthToken()) {
     return (
       <section className="section-wrap py-14">
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-          <h1 className="text-3xl font-bold text-[#102a2d]">Login required</h1>
-          <p className="mt-3 text-[#5a7273]">{message}</p>
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+          <h1 className="text-3xl font-bold text-[#0D0D0D]">Login required</h1>
+          <p className="mt-3 text-[#5f6868]">{message}</p>
           <Link href="/patient/login" className="cta-btn mt-5 inline-flex">Login</Link>
         </div>
       </section>
@@ -432,10 +464,10 @@ export function PatientDashboard() {
   return (
     <section className="section-wrap pb-28 pt-8 md:py-12">
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[30px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Patient Dashboard</p>
-          <h1 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-5xl">Welcome, {patientName(profile)}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5a7273] md:text-base">
+        <div className="rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Patient Dashboard</p>
+          <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-5xl">Welcome, {patientName(profile)}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5f6868] md:text-base">
             Manage patient details, saved family members, home collection bookings, and reports from one clean workspace.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -449,7 +481,7 @@ export function PatientDashboard() {
             <button
               type="button"
               onClick={logoutPatient}
-              className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#f37021] transition hover:bg-[#fff3ea]"
+              className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:bg-[#fff3ea]"
             >
               Logout
             </button>
@@ -467,20 +499,20 @@ export function PatientDashboard() {
             </div>
           ) : null}
 
-          {message ? <p className="mt-4 text-sm font-medium text-[#0f8f7c]">{message}</p> : null}
+          {message ? <p className="mt-4 text-sm font-medium text-[#F7931E]">{message}</p> : null}
 
-          <div className="mt-6 rounded-[26px] border border-[#deece9] bg-[#f7fbfa] p-5">
+          <div className="mt-6 rounded-[26px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
             <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0f8f7c]">Selected package</p>
-                <h2 className="mt-2 text-2xl font-bold text-[#102a2d]">{featuredPackage.name}</h2>
-                <p className="mt-1 text-sm text-[#5a7273]">{featuredPackage.tagline}</p>
-                <p className="mt-3 text-sm text-[#5a7273]">{featuredPackage.overview.length} included tests</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Selected package</p>
+                <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">{featuredPackage.name}</h2>
+                <p className="mt-1 text-sm text-[#5f6868]">{featuredPackage.tagline}</p>
+                <p className="mt-3 text-sm text-[#5f6868]">{featuredPackage.overview.length} included tests</p>
               </div>
               <div className="rounded-[22px] bg-white p-4 text-left shadow-sm md:text-right">
                 <p className="text-3xl font-black text-[#ff6a00]">{rupee(featuredPackage.price)}</p>
                 <p className="text-xs text-[#7c8f90] line-through">MRP {rupee(featuredPackage.mrp)}</p>
-                <p className="text-xs font-bold text-[#0f8f7c]">{featuredPackage.discount}% OFF</p>
+                <p className="text-xs font-bold text-[#F7931E]">{featuredPackage.discount}% OFF</p>
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -490,38 +522,38 @@ export function PatientDashboard() {
           </div>
         </div>
 
-        <div className="rounded-[30px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+        <div className="rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0f8f7c]">Saved patients</p>
-              <h2 className="mt-2 text-2xl font-bold text-[#102a2d]">Family members</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Saved patients</p>
+              <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">Family members</h2>
             </div>
-            <span className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#0f8f7c]">{familyMembers.length}/10</span>
+            <span className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#F7931E]">{familyMembers.length}/10</span>
           </div>
 
           <div className="mt-5 grid gap-3">
-            <article className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4">
+            <article className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-bold text-[#102a2d]">Self</p>
-                  <p className="text-sm text-[#5a7273]">{profile?.mobile || "Mobile saved after login"}</p>
+                  <p className="font-bold text-[#0D0D0D]">Self</p>
+                  <p className="text-sm text-[#5f6868]">{profile?.mobile || "Mobile saved after login"}</p>
                 </div>
-                {profile?.is_profile_complete ? <span className="rounded-full bg-[#e8f7f3] px-3 py-1 text-xs font-bold text-[#0f8f7c]">Ready</span> : null}
+                {profile?.is_profile_complete ? <span className="rounded-full bg-[#e8f7f3] px-3 py-1 text-xs font-bold text-[#F7931E]">Ready</span> : null}
               </div>
             </article>
             {familyMembers.map((member) => (
-              <article key={member.id} className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4">
+              <article key={member.id} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="font-bold text-[#102a2d]">{member.name} {member.is_default ? <span className="text-xs text-[#0f8f7c]">Default</span> : null}</p>
-                    <p className="text-sm text-[#5a7273]">
+                    <p className="font-bold text-[#0D0D0D]">{member.name} {member.is_default ? <span className="text-xs text-[#F7931E]">Default</span> : null}</p>
+                    <p className="text-sm text-[#5f6868]">
                       {member.relation} - {member.age ? `${member.age} yrs` : member.dob || "Age pending"} - {member.gender || "Gender pending"}
                     </p>
                     {member.health_note ? <p className="mt-1 text-xs text-[#7c8f90]">{member.health_note}</p> : null}
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.12em]">
-                    <button type="button" onClick={() => setFamilyForm({ id: member.id, name: member.name, relation: member.relation, dob: member.dob || "", age: member.age ? String(member.age) : "", gender: member.gender || "", mobile: member.mobile || "", healthNote: member.health_note || "", isDefault: Boolean(member.is_default) })} className="text-[#0f8f7c]">Edit</button>
-                    <button type="button" onClick={() => makeDefault(member.id)} className="text-[#0f8f7c]">Default</button>
+                    <button type="button" onClick={() => setFamilyForm({ id: member.id, name: member.name, relation: member.relation, dob: member.dob || "", age: member.age ? String(member.age) : "", gender: member.gender || "", mobile: member.mobile || "", healthNote: member.health_note || "", isDefault: Boolean(member.is_default) })} className="text-[#F7931E]">Edit</button>
+                    <button type="button" onClick={() => makeDefault(member.id)} className="text-[#F7931E]">Default</button>
                     <button type="button" onClick={() => deleteFamilyMember(member.id)} className="text-red-500">Delete</button>
                   </div>
                 </div>
@@ -531,11 +563,11 @@ export function PatientDashboard() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-[30px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+      <div className="mt-6 rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0f8f7c]">Add Family Member</p>
-            <h2 className="mt-2 text-2xl font-bold text-[#102a2d]">Reuse saved details in future bookings</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Add Family Member</p>
+            <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">Reuse saved details in future bookings</h2>
           </div>
           {familyForm.id ? <button type="button" onClick={() => setFamilyForm(emptyFamilyForm)} className="secondary-btn w-fit">Cancel edit</button> : null}
         </div>
@@ -553,7 +585,7 @@ export function PatientDashboard() {
           <input value={familyForm.mobile} onChange={(event) => setFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="form-field" />
           <input value={familyForm.healthNote} onChange={(event) => setFamilyForm((current) => ({ ...current, healthNote: event.target.value }))} placeholder="Health note optional" className="form-field md:col-span-2" />
         </div>
-        <label className="mt-4 flex items-center gap-3 text-sm text-[#5a7273]">
+        <label className="mt-4 flex items-center gap-3 text-sm text-[#5f6868]">
           <input type="checkbox" checked={familyForm.isDefault} onChange={(event) => setFamilyForm((current) => ({ ...current, isDefault: event.target.checked }))} />
           Mark as default patient
         </label>
@@ -562,11 +594,11 @@ export function PatientDashboard() {
         </button>
       </div>
 
-      <div className="mt-6 rounded-[30px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+      <div className="mt-6 rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0f8f7c]">History & Reports</p>
-            <h2 className="mt-2 text-2xl font-bold text-[#102a2d]">Member-wise records</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">History & Reports</p>
+            <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">Member-wise records</h2>
           </div>
           <select value={selectedPatientFilter} onChange={(event) => setSelectedPatientFilter(event.target.value)} className="form-field max-w-xs">
             <option value="self">Self</option>
@@ -576,29 +608,29 @@ export function PatientDashboard() {
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
-          <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-            <h3 className="text-xl font-bold text-[#102a2d]">Previous bookings</h3>
+          <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+            <h3 className="text-xl font-bold text-[#0D0D0D]">Previous bookings</h3>
             <div className="mt-4 grid gap-3">
-              {filteredBookings.length === 0 ? <p className="text-sm text-[#5a7273]">No bookings found for this patient yet.</p> : null}
+              {filteredBookings.length === 0 ? <p className="text-sm text-[#5f6868]">No bookings found for this patient yet.</p> : null}
               {filteredBookings.map((booking) => (
-                <article key={booking.id} className="rounded-[22px] border border-[#deece9] bg-white p-4 shadow-[0_10px_22px_rgba(16,42,45,0.04)]">
+                <article key={booking.id} className="rounded-[22px] border border-[#f1dfce] bg-white p-4 shadow-[0_10px_22px_rgba(16,42,45,0.04)]">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="font-bold text-[#102a2d]">{booking.booking_id || `Booking #${booking.id.slice(0, 8)}`}</p>
-                      <p className="mt-1 text-sm text-[#5a7273]">{booking.preferred_date || "Date pending"} - {booking.preferred_time || "Slot pending"}</p>
+                      <p className="font-bold text-[#0D0D0D]">{booking.booking_id || `Booking #${booking.id.slice(0, 8)}`}</p>
+                      <p className="mt-1 text-sm text-[#5f6868]">{booking.preferred_date || "Date pending"} - {booking.preferred_time || "Slot pending"}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-[#effaf7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#0f8f7c]">{formatStatus(booking.booking_status)}</span>
-                      <span className="rounded-full bg-[#fff3ea] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#f37021]">{formatStatus(booking.payment_status || "payment pending")}</span>
+                      <span className="rounded-full bg-[#effaf7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#F7931E]">{formatStatus(booking.booking_status)}</span>
+                      <span className="rounded-full bg-[#fff3ea] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#F7931E]">{formatStatus(booking.payment_status || "payment pending")}</span>
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-2xl bg-[#f7fbfa] p-3">
+                  <div className="mt-4 rounded-2xl bg-[#FFF8F2] p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#0f8f7c]">Selected items</p>
-                      <p className="font-black text-[#f37021]">{rupee(booking.payable_amount)}</p>
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#F7931E]">Selected items</p>
+                      <p className="font-black text-[#F7931E]">{rupee(booking.payable_amount)}</p>
                     </div>
-                    <p className="mt-2 text-sm text-[#5a7273]">
+                    <p className="mt-2 text-sm text-[#5f6868]">
                       {booking.booking_items?.map((item) => item.item_name).filter(Boolean).join(", ") || "Items pending"}
                     </p>
                   </div>
@@ -607,7 +639,7 @@ export function PatientDashboard() {
                     <button
                       type="button"
                       onClick={() => toggleTracking(booking.id)}
-                      className="rounded-full border border-[#cfe5e1] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#0f8f7c] transition hover:border-[#0f8f7c] hover:bg-[#effaf7]"
+                      className="rounded-full border border-[#f7d7bb] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:border-[#F7931E] hover:bg-[#effaf7]"
                     >
                       {busyBookingId === booking.id && expandedTrackingId === booking.id ? "Loading..." : expandedTrackingId === booking.id ? "Hide Tracking" : "Track Order"}
                     </button>
@@ -616,24 +648,24 @@ export function PatientDashboard() {
                         href={reportLinkFromBooking(booking)}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-full border border-[#cfe5e1] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#0f8f7c] transition hover:border-[#0f8f7c] hover:bg-[#effaf7]"
+                        className="rounded-full border border-[#f7d7bb] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:border-[#F7931E] hover:bg-[#effaf7]"
                       >
                         View Report
                       </a>
                     ) : (
-                      <span className="rounded-full border border-[#deece9] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
+                      <span className="rounded-full border border-[#f1dfce] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
                         Report Pending
                       </span>
                     )}
                     {isBookingModifiable(booking) ? (
                       <Link
                         href={`/book-home-collection?modifyBookingId=${booking.id}`}
-                        className="rounded-full border border-[#cfe5e1] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#0f8f7c] transition hover:border-[#0f8f7c] hover:bg-[#effaf7]"
+                        className="rounded-full border border-[#f7d7bb] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:border-[#F7931E] hover:bg-[#effaf7]"
                       >
                         Modify
                       </Link>
                     ) : (
-                      <span className="rounded-full border border-[#deece9] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
+                      <span className="rounded-full border border-[#f1dfce] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
                         Locked
                       </span>
                     )}
@@ -642,28 +674,28 @@ export function PatientDashboard() {
                         type="button"
                         onClick={() => cancelBooking(booking)}
                         disabled={busyBookingId === booking.id}
-                        className="rounded-full border border-[#ffd6bf] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#f37021] transition hover:bg-[#fff3ea] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-[#ffd6bf] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:bg-[#fff3ea] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {busyBookingId === booking.id ? "Please wait..." : "Cancel"}
                       </button>
                     ) : (
-                      <span className="rounded-full border border-[#deece9] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
+                      <span className="rounded-full border border-[#f1dfce] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
                         Cancel Closed
                       </span>
                     )}
                   </div>
 
                   {expandedTrackingId === booking.id ? (
-                    <div className="mt-4 rounded-[18px] border border-[#deece9] bg-[#fbfefe] p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0f8f7c]">Order Timeline</p>
+                    <div className="mt-4 rounded-[18px] border border-[#f1dfce] bg-[#fbfefe] p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#F7931E]">Order Timeline</p>
                       <div className="mt-3 space-y-3">
                         {(tracking[booking.id]?.length ? tracking[booking.id] : [{ status: booking.booking_status || "confirmed", note: "Current order status" }]).map((event, index) => (
                           <div key={`${booking.id}-${event.id || index}`} className="flex gap-3">
-                            <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${index === (tracking[booking.id]?.length || 1) - 1 ? "bg-[#f37021]" : "bg-[#0f8f7c]"}`} />
+                            <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${index === (tracking[booking.id]?.length || 1) - 1 ? "bg-[#F7931E]" : "bg-[#F7931E]"}`} />
                             <div>
-                              <p className="text-sm font-bold text-[#102a2d]">{formatStatus(event.status)}</p>
-                              {event.note ? <p className="text-xs text-[#5a7273]">{event.note}</p> : null}
-                              {event.eta_minutes ? <p className="text-xs font-semibold text-[#0f8f7c]">ETA: {event.eta_minutes} minutes</p> : null}
+                              <p className="text-sm font-bold text-[#0D0D0D]">{formatStatus(event.status)}</p>
+                              {event.note ? <p className="text-xs text-[#5f6868]">{event.note}</p> : null}
+                              {event.eta_minutes ? <p className="text-xs font-semibold text-[#F7931E]">ETA: {event.eta_minutes} minutes</p> : null}
                               {event.created_at ? <p className="text-[11px] text-[#7c8f90]">{new Date(event.created_at).toLocaleString("en-IN")}</p> : null}
                             </div>
                           </div>
@@ -675,15 +707,15 @@ export function PatientDashboard() {
               ))}
             </div>
           </div>
-          <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-            <h3 className="text-xl font-bold text-[#102a2d]">Reports</h3>
+          <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+            <h3 className="text-xl font-bold text-[#0D0D0D]">Reports</h3>
             <div className="mt-4 grid gap-3">
-              {filteredReports.length === 0 ? <p className="text-sm text-[#5a7273]">Reports will appear here after lab processing.</p> : null}
+              {filteredReports.length === 0 ? <p className="text-sm text-[#5f6868]">Reports will appear here after lab processing.</p> : null}
               {filteredReports.map((report) => (
-                <article key={report.id} className="rounded-2xl border border-[#deece9] bg-white p-4">
-                  <p className="font-bold text-[#102a2d]">{report.file_name || report.bookings?.booking_id || "Diagnostic Report"}</p>
-                  <p className="mt-1 text-sm text-[#5a7273]">{report.status || "pending"}</p>
-                  {report.report_url ? <a href={report.report_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-bold text-[#0f8f7c]">View / Download</a> : null}
+                <article key={report.id} className="rounded-2xl border border-[#f1dfce] bg-white p-4">
+                  <p className="font-bold text-[#0D0D0D]">{report.file_name || report.bookings?.booking_id || "Diagnostic Report"}</p>
+                  <p className="mt-1 text-sm text-[#5f6868]">{report.status || "pending"}</p>
+                  {report.report_url ? <a href={report.report_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-bold text-[#F7931E]">View / Download</a> : null}
                 </article>
               ))}
             </div>
@@ -692,20 +724,20 @@ export function PatientDashboard() {
       </div>
 
       {showProfileFlow ? (
-        <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#102a2d]/45 px-4 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#0D0D0D]/45 px-4 py-6 backdrop-blur-sm">
           <div className="mx-auto max-w-4xl rounded-[30px] bg-white p-5 shadow-2xl md:p-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0f8f7c]">Step {profileStep} of 3</p>
-                <h2 className="mt-2 text-3xl font-bold text-[#102a2d]">Complete Your Health Profile</h2>
-                <p className="mt-2 text-sm leading-7 text-[#5a7273]">Save your personal and family details once for faster bookings in future.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Step {profileStep} of 3</p>
+                <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D]">Complete Your Health Profile</h2>
+                <p className="mt-2 text-sm leading-7 text-[#5f6868]">Save your personal and family details once for faster bookings in future.</p>
               </div>
-              <button type="button" onClick={() => setShowProfileFlow(false)} className="rounded-full border border-[#deece9] px-5 py-2 text-sm font-bold text-[#102a2d]">Skip for now</button>
+              <button type="button" onClick={() => setShowProfileFlow(false)} className="rounded-full border border-[#f1dfce] px-5 py-2 text-sm font-bold text-[#0D0D0D]">Skip for now</button>
             </div>
 
             <div className="mt-6 grid gap-2 sm:grid-cols-3">
               {["Personal Details", "Family Members", "Save & Continue"].map((label, index) => (
-                <button key={label} type="button" onClick={() => setProfileStep(index + 1)} className={`rounded-full px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] ${profileStep === index + 1 ? "bg-[#0f8f7c] text-white" : "bg-[#effaf7] text-[#0f8f7c]"}`}>
+                <button key={label} type="button" onClick={() => setProfileStep(index + 1)} className={`rounded-full px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] ${profileStep === index + 1 ? "bg-[#F7931E] text-white" : "bg-[#effaf7] text-[#F7931E]"}`}>
                   {label}
                 </button>
               ))}
@@ -733,13 +765,48 @@ export function PatientDashboard() {
 
             {profileStep === 2 ? (
               <div className="mt-6">
-                <p className="text-sm leading-7 text-[#5a7273]">Add family members now or skip this step. You can always add them before future bookings.</p>
+                <p className="text-sm leading-7 text-[#5f6868]">Add family members now or skip this step. You can always add them before future bookings.</p>
+
+                <div className="mt-4 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="text-lg font-bold text-[#0D0D0D]">{familyForm.id ? "Edit family member" : "Add family member"}</h3>
+                    {familyForm.id ? <button type="button" onClick={() => setFamilyForm(emptyFamilyForm)} className="secondary-btn w-fit">Cancel edit</button> : null}
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <input value={familyForm.name} onChange={(event) => setFamilyForm((current) => ({ ...current, name: event.target.value }))} placeholder="Name *" className="form-field" />
+                    <select value={familyForm.relation} onChange={(event) => setFamilyForm((current) => ({ ...current, relation: event.target.value }))} className="form-field">
+                      {relationOptions.map((relation) => <option key={relation}>{relation}</option>)}
+                    </select>
+                    <input value={familyForm.age} onChange={(event) => setFamilyForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age *" inputMode="numeric" className="form-field" />
+                    <select value={familyForm.gender} onChange={(event) => setFamilyForm((current) => ({ ...current, gender: event.target.value }))} className="form-field">
+                      <option value="">Gender *</option>
+                      {genderOptions.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
+                    </select>
+                    <input value={familyForm.dob} onChange={(event) => setFamilyForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="form-field" />
+                    <input value={familyForm.mobile} onChange={(event) => setFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="form-field" />
+                    <input value={familyForm.healthNote} onChange={(event) => setFamilyForm((current) => ({ ...current, healthNote: event.target.value }))} placeholder="Health note optional" className="form-field md:col-span-2" />
+                  </div>
+                  <label className="mt-4 flex items-center gap-3 text-sm text-[#5f6868]">
+                    <input type="checkbox" checked={familyForm.isDefault} onChange={(event) => setFamilyForm((current) => ({ ...current, isDefault: event.target.checked }))} />
+                    Mark as default patient
+                  </label>
+                  <button type="button" onClick={saveFamilyMember} disabled={familySaving} className="cta-btn mt-4 w-full sm:w-auto">
+                    {familySaving ? "Saving..." : familyForm.id ? "Update Family Member" : "Add Family Member"}
+                  </button>
+                </div>
+
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {familyMembers.length === 0 ? <p className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4 text-sm text-[#5a7273]">No family members saved yet.</p> : null}
+                  {familyMembers.length === 0 ? <p className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4 text-sm text-[#5f6868]">No family members saved yet.</p> : null}
                   {familyMembers.map((member) => (
-                    <article key={member.id} className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4">
-                      <p className="font-bold text-[#102a2d]">{member.name}</p>
-                      <p className="text-sm text-[#5a7273]">{member.relation} - {member.age || member.dob || "Age pending"}</p>
+                    <article key={member.id} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-[#0D0D0D]">{member.name}</p>
+                          <p className="text-sm text-[#5f6868]">{member.relation} - {member.age || member.dob || "Age pending"}</p>
+                          {member.is_default ? <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#F7931E]">Default</p> : null}
+                        </div>
+                        <button type="button" onClick={() => setFamilyForm({ id: member.id, name: member.name, relation: member.relation, dob: member.dob || "", age: member.age ? String(member.age) : "", gender: member.gender || "", mobile: member.mobile || "", healthNote: member.health_note || "", isDefault: Boolean(member.is_default) })} className="text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">Edit</button>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -747,23 +814,25 @@ export function PatientDashboard() {
             ) : null}
 
             {profileStep === 3 ? (
-              <div className="mt-6 rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-                <h3 className="text-xl font-bold text-[#102a2d]">Ready to save</h3>
-                <p className="mt-2 text-sm leading-7 text-[#5a7273]">Your details will be reused for future bookings, patient selection, reports, and family member history.</p>
+              <div className="mt-6 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+                <h3 className="text-xl font-bold text-[#0D0D0D]">Ready to save</h3>
+                <p className="mt-2 text-sm leading-7 text-[#5f6868]">Your details will be reused for future bookings, patient selection, reports, and family member history.</p>
                 {!requiredPersonalComplete ? <p className="mt-3 text-sm font-semibold text-red-600">Please complete required personal details first.</p> : null}
-                <label className="mt-4 flex items-start gap-3 text-sm leading-6 text-[#5a7273]">
+                <label className="mt-4 flex items-start gap-3 text-sm leading-6 text-[#5f6868]">
                   <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1" />
                   I consent to securely save my personal and family health details for future bookings.
                 </label>
               </div>
             ) : null}
 
+            {profileFlowMessage ? <p className="mt-4 text-sm font-semibold text-[#F7931E]">{profileFlowMessage}</p> : null}
+
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
               <button type="button" onClick={() => setProfileStep((step) => Math.max(1, step - 1))} className="secondary-btn" disabled={profileStep === 1}>Back</button>
               {profileStep < 3 ? (
                 <button type="button" onClick={() => setProfileStep((step) => Math.min(3, step + 1))} className="cta-btn">Continue</button>
               ) : (
-                <button type="button" onClick={saveProfile} disabled={!canSaveProfile || savingProfile} className="cta-btn disabled:cursor-not-allowed disabled:opacity-50">
+                <button type="button" onClick={saveProfile} disabled={savingProfile} className="cta-btn disabled:cursor-not-allowed disabled:opacity-50">
                   {savingProfile ? "Saving..." : "Save & Continue"}
                 </button>
               )}

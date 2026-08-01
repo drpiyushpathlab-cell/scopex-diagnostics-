@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { backendFetch, getStoredAuthUser } from "@/lib/backend-client";
@@ -206,33 +206,33 @@ export function AdminRolesPermissions() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Admin - Roles & Permissions</p>
+      <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Admin - Roles & Permissions</p>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-black text-[#102a2d] md:text-4xl">Dynamic permissions</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5a7273] md:text-base">Create roles, clone defaults, assign permissions, and customize individual admin access.</p>
+            <h1 className="text-3xl font-black text-[#0D0D0D] md:text-4xl">Dynamic permissions</h1>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">Create roles, clone defaults, assign permissions, and customize individual admin access.</p>
           </div>
           <button type="button" onClick={() => setSelectedRole(blankRole())} className="cta-btn">Create New Role</button>
         </div>
-        {message ? <p className="mt-4 rounded-2xl bg-[#eef8f5] p-3 text-sm font-bold text-[#0f8f7c]">{message}</p> : null}
+        {message ? <p className="mt-4 rounded-2xl bg-[#eef8f5] p-3 text-sm font-bold text-[#F7931E]">{message}</p> : null}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-        <aside className="rounded-[28px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-          <h2 className="text-xl font-black text-[#102a2d]">Roles</h2>
+        <aside className="rounded-[28px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+          <h2 className="text-xl font-black text-[#0D0D0D]">Roles</h2>
           <div className="mt-4 space-y-3">
             {roles.map((role) => (
-              <button key={role.id} type="button" onClick={() => selectRole(role)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedRole.id === role.id ? "border-[#0f8f7c] bg-[#eef8f5]" : "border-[#deece9] bg-[#f7fbfa] hover:border-[#0f8f7c]"}`}>
-                <span className="block font-black text-[#102a2d]">{role.display_name || role.role}</span>
-                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[#0f8f7c]">{role.role} {role.is_system ? "- System" : "- Custom"}</span>
-                <span className="mt-2 block text-sm text-[#5a7273]">{rolePermissions(role).includes("*") ? "Full access" : `${rolePermissions(role).length} permissions`}</span>
+              <button key={role.id} type="button" onClick={() => selectRole(role)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedRole.id === role.id ? "border-[#F7931E] bg-[#eef8f5]" : "border-[#f1dfce] bg-[#FFF8F2] hover:border-[#F7931E]"}`}>
+                <span className="block font-black text-[#0D0D0D]">{role.display_name || role.role}</span>
+                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[#F7931E]">{role.role} {role.is_system ? "- System" : "- Custom"}</span>
+                <span className="mt-2 block text-sm text-[#5f6868]">{rolePermissions(role).includes("*") ? "Full access" : `${rolePermissions(role).length} permissions`}</span>
               </button>
             ))}
           </div>
         </aside>
 
-        <section className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+        <section className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
           <div className="grid gap-3 md:grid-cols-2">
             <input className="form-field" value={selectedRole.display_name || ""} onChange={(event) => setSelectedRole({ ...selectedRole, display_name: event.target.value })} placeholder="Role display name" />
             <input className="form-field" value={selectedRole.role || ""} onChange={(event) => setSelectedRole({ ...selectedRole, role: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} placeholder="role_code" disabled={Boolean(selectedRole.id && selectedRole.is_system)} />
@@ -241,11 +241,11 @@ export function AdminRolesPermissions() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {catalog.map((group) => (
-              <div key={group.group} className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4">
-                <h3 className="font-black uppercase tracking-[0.14em] text-[#0f8f7c]">{group.group}</h3>
+              <div key={group.group} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
+                <h3 className="font-black uppercase tracking-[0.14em] text-[#F7931E]">{group.group}</h3>
                 <div className="mt-3 grid gap-2">
                   {group.permissions.map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#102a2d]">
+                    <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#0D0D0D]">
                       <input type="checkbox" checked={selectedRolePermissions.has("*") || selectedRolePermissions.has(key)} disabled={selectedRolePermissions.has("*") || !isSuperAdmin} onChange={(event) => setRolePermission(key, event.target.checked)} />
                       {label}
                     </label>
@@ -258,17 +258,17 @@ export function AdminRolesPermissions() {
           <div className="mt-6 flex flex-wrap gap-3">
             <button type="button" onClick={saveRole} className="cta-btn">Save Role</button>
             {selectedRole.id ? <button type="button" onClick={() => cloneRole(selectedRole)} className="secondary-btn">Clone Existing Role</button> : null}
-            {selectedRole.id && !selectedRole.is_system ? <button type="button" onClick={() => deleteRole(selectedRole)} className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#f37021]">Delete Role</button> : null}
+            {selectedRole.id && !selectedRole.is_system ? <button type="button" onClick={() => deleteRole(selectedRole)} className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#F7931E]">Delete Role</button> : null}
           </div>
         </section>
       </div>
 
-      <section className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+      <section className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">User Creation Form</p>
-            <h2 className="mt-2 text-2xl font-black text-[#102a2d]">Create admin user</h2>
-            <p className="mt-2 text-sm text-[#5a7273]">Assign a default role, or enable custom permissions for this user from day one.</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">User Creation Form</p>
+            <h2 className="mt-2 text-2xl font-black text-[#0D0D0D]">Create admin user</h2>
+            <p className="mt-2 text-sm text-[#5f6868]">Assign a default role, or enable custom permissions for this user from day one.</p>
           </div>
           <button type="button" onClick={createStaffUser} className="cta-btn">Create User</button>
         </div>
@@ -287,7 +287,7 @@ export function AdminRolesPermissions() {
           </select>
         </div>
 
-        <label className="mt-4 flex items-center gap-3 rounded-2xl bg-[#eef8f5] p-4 font-bold text-[#102a2d]">
+        <label className="mt-4 flex items-center gap-3 rounded-2xl bg-[#eef8f5] p-4 font-bold text-[#0D0D0D]">
           <input type="checkbox" checked={staffForm.custom_permissions_enabled} disabled={!isSuperAdmin} onChange={(event) => setStaffForm({ ...staffForm, custom_permissions_enabled: event.target.checked })} />
           Enable Custom Permissions
         </label>
@@ -295,11 +295,11 @@ export function AdminRolesPermissions() {
         {staffForm.custom_permissions_enabled ? (
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {catalog.map((group) => (
-              <div key={group.group} className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4">
-                <h3 className="font-black uppercase tracking-[0.14em] text-[#0f8f7c]">{group.group}</h3>
+              <div key={group.group} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
+                <h3 className="font-black uppercase tracking-[0.14em] text-[#F7931E]">{group.group}</h3>
                 <div className="mt-3 grid gap-2">
                   {group.permissions.map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#102a2d]">
+                    <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#0D0D0D]">
                       <input type="checkbox" checked={staffSet.has(key)} disabled={!isSuperAdmin} onChange={(event) => setStaffPermission(key, event.target.checked)} />
                       {label}
                     </label>
@@ -312,17 +312,17 @@ export function AdminRolesPermissions() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-          <h2 className="text-2xl font-black text-[#102a2d]">Assign users to role</h2>
-          <p className="mt-2 text-sm text-[#5a7273]">Select one or more admin users and assign the currently selected role.</p>
+        <section className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+          <h2 className="text-2xl font-black text-[#0D0D0D]">Assign users to role</h2>
+          <p className="mt-2 text-sm text-[#5f6868]">Select one or more admin users and assign the currently selected role.</p>
           <input className="form-field mt-5" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search admin users" />
           <div className="mt-4 max-h-[420px] space-y-3 overflow-y-auto pr-2">
             {filteredUsers.map((user) => (
-              <label key={user.id} className="flex items-start gap-3 rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4">
+              <label key={user.id} className="flex items-start gap-3 rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
                 <input type="checkbox" checked={selectedUsers.includes(user.id)} onChange={(event) => setSelectedUsers((current) => event.target.checked ? [...current, user.id] : current.filter((id) => id !== user.id))} />
                 <span>
-                  <span className="block font-black text-[#102a2d]">{user.name || user.email}</span>
-                  <span className="text-sm text-[#5a7273]">{user.email} - {user.role} {user.custom_permissions_enabled ? "- Custom permissions" : ""}</span>
+                  <span className="block font-black text-[#0D0D0D]">{user.name || user.email}</span>
+                  <span className="text-sm text-[#5f6868]">{user.email} - {user.role} {user.custom_permissions_enabled ? "- Custom permissions" : ""}</span>
                 </span>
               </label>
             ))}
@@ -330,24 +330,24 @@ export function AdminRolesPermissions() {
           <button type="button" onClick={assignUsersToRole} className="cta-btn mt-5">Assign Selected Users</button>
         </section>
 
-        <section className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-          <h2 className="text-2xl font-black text-[#102a2d]">Custom permission mode</h2>
-          <p className="mt-2 text-sm text-[#5a7273]">Override role permissions for one user. Useful for examples like view/edit bookings without delete rights.</p>
+        <section className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+          <h2 className="text-2xl font-black text-[#0D0D0D]">Custom permission mode</h2>
+          <p className="mt-2 text-sm text-[#5f6868]">Override role permissions for one user. Useful for examples like view/edit bookings without delete rights.</p>
           <select className="form-field mt-5" value={customUserId} onChange={(event) => { const user = users.find((item) => item.id === event.target.value); if (user) openCustomUser(user); else setCustomUserId(""); }}>
             <option value="">Select admin user</option>
             {users.map((user) => <option key={user.id} value={user.id}>{user.name || user.email} - {user.role}</option>)}
           </select>
-          <label className="mt-4 flex items-center gap-3 rounded-2xl bg-[#eef8f5] p-4 font-bold text-[#102a2d]">
+          <label className="mt-4 flex items-center gap-3 rounded-2xl bg-[#eef8f5] p-4 font-bold text-[#0D0D0D]">
             <input type="checkbox" checked={customMode} onChange={(event) => setCustomMode(event.target.checked)} />
             Enable Custom Permissions
           </label>
           <div className="mt-4 max-h-[420px] space-y-4 overflow-y-auto pr-2">
             {catalog.map((group) => (
-              <div key={group.group} className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4">
-                <h3 className="font-black uppercase tracking-[0.14em] text-[#0f8f7c]">{group.group}</h3>
+              <div key={group.group} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
+                <h3 className="font-black uppercase tracking-[0.14em] text-[#F7931E]">{group.group}</h3>
                 <div className="mt-3 grid gap-2">
                   {group.permissions.map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#102a2d]">
+                    <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#0D0D0D]">
                       <input type="checkbox" checked={customSet.has(key)} disabled={!customMode || !isSuperAdmin} onChange={(event) => setCustomPermission(key, event.target.checked)} />
                       {label}
                     </label>

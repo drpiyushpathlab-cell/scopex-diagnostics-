@@ -73,7 +73,7 @@ export function PackageCard({ item }: { item: PackageItem }) {
         <button
           type="button"
           onClick={() => setShowDetails((prev) => !prev)}
-          className="mt-3 self-start text-xs font-medium text-[#8a9b9d] transition hover:text-[#5d7476]"
+          className="mt-3 self-start text-xs font-medium text-[#8a9b9d] transition hover:text-[#5f6868]"
         >
           {showDetails ? "Hide Details" : hasMoreDetails ? "View Details →" : "View Details →"}
         </button>

@@ -45,10 +45,10 @@ export function AdminOverview() {
   }, []);
 
   return (
-    <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Admin Panel</p>
-      <h1 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">Booking operations overview</h1>
-      <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5a7273] md:text-base">
+    <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Admin Panel</p>
+      <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Booking operations overview</h1>
+      <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">
         This admin shell is connected to the InsForge-backed bookings and payments APIs. Use it for order review, payment reconciliation, callback assignment, and report fulfillment workflows.
       </p>
 
@@ -68,57 +68,57 @@ export function AdminOverview() {
             <Link
               key={metric.title}
               href={href}
-              className="group rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5 transition hover:-translate-y-1 hover:border-[#0f8f7c] hover:shadow-[0_18px_40px_rgba(15,143,124,0.12)]"
+              className="group rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5 transition hover:-translate-y-1 hover:border-[#F7931E] hover:shadow-[0_18px_40px_rgba(15,143,124,0.12)]"
             >
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#0f8f7c]">{metric.title}</p>
-              <p className="mt-3 text-3xl font-bold text-[#102a2d]">{metric.value}</p>
-              <p className="mt-2 text-sm leading-7 text-[#5a7273]">{metric.note}</p>
-              <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-[#f37021] opacity-0 transition group-hover:opacity-100">Open records</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#F7931E]">{metric.title}</p>
+              <p className="mt-3 text-3xl font-bold text-[#0D0D0D]">{metric.value}</p>
+              <p className="mt-2 text-sm leading-7 text-[#5f6868]">{metric.note}</p>
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] opacity-0 transition group-hover:opacity-100">Open records</p>
             </Link>
           );
         })}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-          <h2 className="text-xl font-bold text-[#102a2d]">Recent bookings</h2>
+        <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+          <h2 className="text-xl font-bold text-[#0D0D0D]">Recent bookings</h2>
           <div className="mt-4 space-y-3">
-            {recentBookings.length === 0 ? <p className="text-sm text-[#5a7273]">No bookings yet.</p> : null}
+            {recentBookings.length === 0 ? <p className="text-sm text-[#5f6868]">No bookings yet.</p> : null}
             {recentBookings.map((item) => (
               <article key={String(item.id)} className="rounded-2xl bg-white p-3">
-                <p className="font-bold text-[#102a2d]">{String(item.booking_id || item.id)}</p>
-                <p className="text-sm text-[#5a7273]">{String(item.contact_name || "Patient")} - {String(item.booking_status || "pending")}</p>
+                <p className="font-bold text-[#0D0D0D]">{String(item.booking_id || item.id)}</p>
+                <p className="text-sm text-[#5f6868]">{String(item.contact_name || "Patient")} - {String(item.booking_status || "pending")}</p>
               </article>
             ))}
           </div>
         </div>
-        <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-          <h2 className="text-xl font-bold text-[#102a2d]">Recent uploads</h2>
+        <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+          <h2 className="text-xl font-bold text-[#0D0D0D]">Recent uploads</h2>
           <div className="mt-4 space-y-3">
-            {recentUploads.length === 0 ? <p className="text-sm text-[#5a7273]">No report uploads yet.</p> : null}
+            {recentUploads.length === 0 ? <p className="text-sm text-[#5f6868]">No report uploads yet.</p> : null}
             {recentUploads.map((item) => (
               <article key={String(item.id)} className="rounded-2xl bg-white p-3">
-                <p className="font-bold text-[#102a2d]">{String(item.file_name || "PDF Report")}</p>
-                <p className="text-sm text-[#5a7273]">{String(item.patient_name || "Patient")} - {String(item.mobile_number || "")}</p>
+                <p className="font-bold text-[#0D0D0D]">{String(item.file_name || "PDF Report")}</p>
+                <p className="text-sm text-[#5f6868]">{String(item.patient_name || "Patient")} - {String(item.mobile_number || "")}</p>
               </article>
             ))}
           </div>
         </div>
-        <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-          <h2 className="text-xl font-bold text-[#102a2d]">Recent activities</h2>
+        <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+          <h2 className="text-xl font-bold text-[#0D0D0D]">Recent activities</h2>
           <div className="mt-4 space-y-3">
-            {recentActivities.length === 0 ? <p className="text-sm text-[#5a7273]">No activity logs yet.</p> : null}
+            {recentActivities.length === 0 ? <p className="text-sm text-[#5f6868]">No activity logs yet.</p> : null}
             {recentActivities.map((item) => (
               <article key={String(item.id)} className="rounded-2xl bg-white p-3">
-                <p className="font-bold text-[#102a2d]">{String(item.action || "Activity")}</p>
-                <p className="text-sm text-[#5a7273]">{String(item.entity_type || "System")} - {String(item.role || "admin")}</p>
+                <p className="font-bold text-[#0D0D0D]">{String(item.action || "Activity")}</p>
+                <p className="text-sm text-[#5f6868]">{String(item.entity_type || "System")} - {String(item.role || "admin")}</p>
               </article>
             ))}
           </div>
         </div>
       </div>
 
-      {message ? <p className="mt-4 text-sm text-[#5a7273]">{message}</p> : null}
+      {message ? <p className="mt-4 text-sm text-[#5f6868]">{message}</p> : null}
     </div>
   );
 }

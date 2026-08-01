@@ -77,7 +77,7 @@ export function TestsCatalog() {
           const matchesFocusGroup = !focusGroup || item.group === focusGroup;
           const matchesGroup = item.group === group;
           const matchesFilter = filter === "All" || item.category === filter;
-          const haystack = [item.name, ...(item.components ?? [])].join(" ").toLowerCase();
+          const haystack = [item.name, ...(item.components ?? []), ...(item.searchAliases ?? [])].join(" ").toLowerCase();
           const matchesSearch =
             needle.length === 0 ||
             haystack.includes(needle) ||

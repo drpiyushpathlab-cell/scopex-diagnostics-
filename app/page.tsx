@@ -1,13 +1,17 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
+import { HealthLibrary } from "@/components/seo/seo-components";
+import { StructuredData } from "@/components/seo/structured-data";
 import { HealthAdvisorSection } from "@/components/health-advisor-section";
 import { Hero } from "@/components/hero";
-import { packagesData } from "@/lib/data";
+import { packagesData, testsData } from "@/lib/data";
+import { organizationSchemas } from "@/lib/seo-schemas";
+import { getSeoCities, getTestSeoSlug, slugify } from "@/lib/seo-platform";
 
 export const metadata: Metadata = {
   title: "Book Blood Test at Home | ScopeX Diagnostics India",
   description:
-    "Book blood tests at home with ScopeX Diagnostics. Accurate reports, home sample collection, and preventive health packages. Now live in Lucknow and expanding across India."
+    "Book blood tests at home with ScopeX Diagnostics across major Indian cities. Accurate reports, home sample collection, and preventive health packages through a growing Pan India diagnostic network."
 };
 
 type CategoryCard = {
@@ -160,7 +164,7 @@ const homepagePackageOrder = [
 ] as const;
 
 const homepageBadgeClassMap: Record<string, string> = {
-  "Most Popular": "bg-[#fff1e8] text-[#f37021] border border-[#ffd8bf]",
+  "Most Popular": "bg-[#fff1e8] text-[#F7931E] border border-[#ffd8bf]",
   Recommended: "bg-[#fff8d9] text-[#9a7600] border border-[#f6e294]",
   Advanced: "bg-[#f3ebff] text-[#7c3aed] border border-[#dac8ff]",
   Specialized: "bg-[#fff0e4] text-[#9a5a20] border border-[#f3d0ad]",
@@ -175,16 +179,19 @@ export default function HomePage() {
   const featuredPackages = homepagePackageOrder
     .map((id) => packagesData.find((item) => item.id === id))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const cityLinks = getSeoCities().slice(0, 8);
+  const popularSeoTests = testsData.slice(0, 8);
 
   return (
     <>
+      <StructuredData data={organizationSchemas()} />
       <Hero />
 
       <section className="container-px pt-8 md:pt-10">
-        <div className="section-wrap rounded-[28px] border border-[#d9ebe7] bg-[#f7fbfa] p-6 shadow-[0_12px_30px_rgba(16,24,40,0.05)]">
+        <div className="section-wrap rounded-[28px] border border-[#d9ebe7] bg-[#FFF8F2] p-6 shadow-[0_12px_30px_rgba(16,24,40,0.05)]">
           <div className="max-w-4xl">
-            <h2 className="text-2xl font-bold text-[#102a2d] md:text-3xl">Book tests, packages, and home collection with confidence</h2>
-            <p className="mt-3 text-sm leading-8 text-[#4f6b6d] md:text-base">
+            <h2 className="text-2xl font-bold text-[#0D0D0D] md:text-3xl">Book tests, packages, and home collection with confidence</h2>
+            <p className="mt-3 text-sm leading-8 text-[#5f6868] md:text-base">
               ScopeX Diagnostics is building a cleaner, digital-first diagnostic experience for patients and families.
               From routine blood tests to preventive health packages, our platform is designed for simple booking,
               transparent pricing, and dependable home sample collection.
@@ -204,10 +211,10 @@ export default function HomePage() {
         <div className="section-wrap">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Popular Packages</p>
-              <h2 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">Preventive packages with clear pricing</h2>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Popular Packages</p>
+              <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Preventive packages with clear pricing</h2>
             </div>
-            <Link href="/packages" className="hidden text-sm font-semibold text-[#0f8f7c] md:inline-flex">
+            <Link href="/packages" className="hidden text-sm font-semibold text-[#F7931E] md:inline-flex">
               View all packages
             </Link>
           </div>
@@ -215,7 +222,7 @@ export default function HomePage() {
           <div className="mt-4 md:hidden">
             <Link
               href="/packages"
-              className="inline-flex items-center text-sm font-semibold text-[#0f8f7c] underline-offset-4 transition hover:text-[#f37021] hover:underline"
+              className="inline-flex items-center text-sm font-semibold text-[#F7931E] underline-offset-4 transition hover:text-[#F7931E] hover:underline"
             >
               View all packages
             </Link>
@@ -223,33 +230,33 @@ export default function HomePage() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {featuredPackages.map((item) => (
-              <article key={item.id} className="rounded-[28px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] transition hover:-translate-y-1 hover:shadow-[0_22px_46px_rgba(16,24,40,0.11)]">
+              <article key={item.id} className="rounded-[28px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] transition hover:-translate-y-1 hover:shadow-[0_22px_46px_rgba(16,24,40,0.11)]">
                 <Link
                   href={`/packages/${item.id}`}
                   aria-label={`${item.name} package details`}
-                  className="group block cursor-pointer rounded-[20px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0f8f7c]"
+                  className="group block cursor-pointer rounded-[20px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F7931E]"
                 >
                   <div className="flex items-start justify-between gap-3">
-                  <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${homepageBadgeClassMap[item.badge] ?? "bg-[#ecfbf8] text-[#0f8f7c] border border-[#d9ebe7]"}`}>
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${homepageBadgeClassMap[item.badge] ?? "bg-[#fff3e5] text-[#F7931E] border border-[#d9ebe7]"}`}>
                     {item.badge}
                   </span>
-                  <span className="text-xs font-semibold text-[#0f8f7c]">{item.discount}% OFF</span>
+                  <span className="text-xs font-semibold text-[#F7931E]">{item.discount}% OFF</span>
                   </div>
-                  <h3 className="mt-4 text-xl font-bold text-[#102a2d] transition group-hover:text-[#0f8f7c]">{item.name}</h3>
-                  <p className="mt-2 text-sm leading-7 text-[#5a7273]">{item.tagline}</p>
+                  <h3 className="mt-4 text-xl font-bold text-[#0D0D0D] transition group-hover:text-[#F7931E]">{item.name}</h3>
+                  <p className="mt-2 text-sm leading-7 text-[#5f6868]">{item.tagline}</p>
                   <div className="mt-5 flex items-end gap-3">
-                    <p className="text-4xl font-extrabold text-[#102a2d]">{"\u20B9"}{formatPrice(item.price)}</p>
+                    <p className="text-4xl font-extrabold text-[#0D0D0D]">{"\u20B9"}{formatPrice(item.price)}</p>
                     <div className="pb-1">
                       <p className="text-xs text-[#7c8f90] line-through">MRP {"\u20B9"}{formatPrice(item.mrp)}</p>
-                      <p className="text-xs font-semibold text-[#0f8f7c]">Save {"\u20B9"}{formatPrice(item.mrp - item.price)}</p>
+                      <p className="text-xs font-semibold text-[#F7931E]">Save {"\u20B9"}{formatPrice(item.mrp - item.price)}</p>
                     </div>
                   </div>
-                  <ul className="mt-5 space-y-2 text-sm leading-7 text-[#4f6b6d]">
+                  <ul className="mt-5 space-y-2 text-sm leading-7 text-[#5f6868]">
                     {item.overview.slice(0, 3).map((test) => (
                       <li key={test}>{"\u2022"} {test}</li>
                     ))}
                   </ul>
-                  <span className="mt-4 inline-flex text-sm font-semibold text-[#0f8f7c] transition group-hover:text-[#f37021]">
+                  <span className="mt-4 inline-flex text-sm font-semibold text-[#F7931E] transition group-hover:text-[#F7931E]">
                     View package details
                   </span>
                 </Link>
@@ -263,7 +270,7 @@ export default function HomePage() {
           <div className="mt-5 flex justify-center">
             <Link
               href="/packages"
-              className="inline-flex items-center text-sm font-semibold text-[#0f8f7c] underline-offset-4 transition hover:text-[#f37021] hover:underline"
+              className="inline-flex items-center text-sm font-semibold text-[#F7931E] underline-offset-4 transition hover:text-[#F7931E] hover:underline"
             >
               View all other packages
             </Link>
@@ -274,22 +281,22 @@ export default function HomePage() {
       <section className="container-px pt-12 md:pt-14">
         <div className="section-wrap">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Categories</p>
-            <h2 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">Choose diagnostics by health need</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Categories</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Choose diagnostics by health need</h2>
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {categories.map((item) => (
               <Link
                 key={item.title}
                 href={item.href}
-                className="group rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.05)] transition duration-300 hover:-translate-y-1 hover:border-[#cfe4df] hover:shadow-[0_22px_46px_rgba(16,24,40,0.11)]"
+                className="group rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.05)] transition duration-300 hover:-translate-y-1 hover:border-[#cfe4df] hover:shadow-[0_22px_46px_rgba(16,24,40,0.11)]"
               >
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#dcebe8] bg-[#f4fbf9] text-[#0f8f7c] transition-all duration-300 group-hover:border-[#ffd8bf] group-hover:bg-[#fff7f1] group-hover:text-[#f37021]">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#f7d7bb] bg-[#fff3e5] text-[#F7931E] transition-all duration-300 group-hover:border-[#ffd8bf] group-hover:bg-[#fff7f1] group-hover:text-[#F7931E]">
                   {item.icon}
                 </div>
-                <h3 className="text-[1.9rem] font-bold leading-tight text-[#102a2d] md:text-[2rem]">{item.title}</h3>
-                <p className="mt-3 max-w-[32ch] text-base leading-8 text-[#5a7273]">{item.blurb}</p>
-                <span className="mt-5 inline-flex text-sm font-semibold uppercase tracking-[0.12em] text-[#0f8f7c] transition-colors duration-300 group-hover:text-[#f37021]">
+                <h3 className="text-[1.9rem] font-bold leading-tight text-[#0D0D0D] md:text-[2rem]">{item.title}</h3>
+                <p className="mt-3 max-w-[32ch] text-base leading-8 text-[#5f6868]">{item.blurb}</p>
+                <span className="mt-5 inline-flex text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E] transition-colors duration-300 group-hover:text-[#F7931E]">
                   Explore
                 </span>
               </Link>
@@ -301,17 +308,17 @@ export default function HomePage() {
       <section id="why-scopex" className="container-px pt-12 md:pt-14">
         <div className="section-wrap">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Why ScopeX</p>
-            <h2 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">Designed for modern home diagnostics</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Why ScopeX</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Designed for modern home diagnostics</h2>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {trustPoints.map((item) => (
-              <article key={item.title} className="rounded-[26px] border border-[#deece9] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.05)]">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[#dcebe8] bg-[#f4fbf9] text-[#0f8f7c]">
+              <article key={item.title} className="rounded-[26px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.05)]">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[#f7d7bb] bg-[#fff3e5] text-[#F7931E]">
                   {item.icon}
                 </div>
-                <h3 className="text-xl font-bold text-[#102a2d]">{item.title}</h3>
-                <p className="mt-2 text-sm leading-7 text-[#5a7273]">{item.value}</p>
+                <h3 className="text-xl font-bold text-[#0D0D0D]">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[#5f6868]">{item.value}</p>
               </article>
             ))}
           </div>
@@ -320,16 +327,77 @@ export default function HomePage() {
 
       <HealthAdvisorSection />
 
+      <section className="container-px pt-12 md:pt-14">
+        <div className="section-wrap rounded-[30px] border border-[#f1dfce] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Pan India Diagnostics</p>
+              <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">A scalable platform for blood tests at home across India</h2>
+              <p className="mt-4 text-sm leading-8 text-[#5f6868] md:text-base">
+                ScopeX Diagnostics is structured for city-wise home sample collection, preventive health checkups,
+                individual lab tests, corporate wellness, and healthcare partnerships. Explore popular city pages and
+                diagnostic categories built for fast discovery and easy booking.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {cityLinks.map((city) => (
+                <Link key={city} href={`/blood-test-in-${slugify(city)}`} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] px-4 py-3 text-sm font-semibold text-[#5f6868] transition hover:border-[#F7931E] hover:bg-[#fff7f1] hover:text-[#F7931E]">
+                  Blood Test in {city}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="container-px pt-12 md:pt-14">
+        <div className="section-wrap">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Popular Tests</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">High-intent lab test pages</h2>
+          </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {popularSeoTests.map((test) => (
+              <Link key={test.id} href={`/${getTestSeoSlug(test)}`} className="rounded-[22px] border border-[#f1dfce] bg-white p-4 shadow-[0_12px_28px_rgba(16,24,40,0.05)] transition hover:-translate-y-1 hover:border-[#F7931E]">
+                <h3 className="text-base font-bold text-[#0D0D0D]">{test.name}</h3>
+                <p className="mt-2 text-sm text-[#5f6868]">Book test at home</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="container-px pt-12 md:pt-14">
+        <div className="section-wrap grid gap-5 lg:grid-cols-2">
+          <Link href="/ai-health-insights" className="rounded-[30px] border border-[#f1dfce] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] transition hover:-translate-y-1 md:p-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">AI Health Insights</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D]">Understand reports with future-ready guidance</h2>
+            <p className="mt-3 text-sm leading-8 text-[#5f6868]">
+              Explore report interpretation and patient-friendly health education pages prepared for future AI workflows.
+            </p>
+          </Link>
+          <Link href="/corporate-health-checkup" className="rounded-[30px] border border-[#f1dfce] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] transition hover:-translate-y-1 md:p-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Corporate Health</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D]">Employee wellness and occupational health programs</h2>
+            <p className="mt-3 text-sm leading-8 text-[#5f6868]">
+              Build annual checkups, pre-employment medicals, industrial screening, and health camp programs with ScopeX.
+            </p>
+          </Link>
+        </div>
+      </section>
+
+      <HealthLibrary />
+
       <section className="container-px pb-10 pt-12 md:pb-14 md:pt-14">
-        <div className="section-wrap rounded-[30px] border border-[#deece9] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] md:p-8">
+        <div className="section-wrap rounded-[30px] border border-[#f1dfce] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] md:p-8">
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">About ScopeX Diagnostics</p>
-              <h2 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">A cleaner diagnostic experience for patients and families</h2>
-              <p className="mt-4 text-sm leading-8 text-[#5a7273] md:text-base">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">About ScopeX Diagnostics</p>
+              <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">A cleaner diagnostic experience for patients and families</h2>
+              <p className="mt-4 text-sm leading-8 text-[#5f6868] md:text-base">
                 ScopeX Diagnostics helps patients book blood tests at home, access preventive health packages, and get
-                digital reports with less friction. We are live in Lucknow today and building a broader D2C diagnostic
-                platform for more cities across India. Our focus is simple: easy booking, reliable collection,
+                digital reports with less friction. We operate through a growing Pan India diagnostic
+                network across major Indian cities. Our focus is simple: easy booking, reliable collection,
                 transparent pricing, and a healthcare experience that feels modern and trustworthy.
               </p>
             </div>
@@ -340,7 +408,7 @@ export default function HomePage() {
                 "Common tests like CBC, thyroid, sugar, vitamins, liver, and kidney profiles",
                 "Built for mobile-first discovery and fast conversion"
               ].map((item) => (
-                <div key={item} className="rounded-2xl bg-[#f7fbfa] px-4 py-3 text-sm leading-7 text-[#4f6b6d]">
+                <div key={item} className="rounded-2xl bg-[#FFF8F2] px-4 py-3 text-sm leading-7 text-[#5f6868]">
                   {"\u2714"} {item}
                 </div>
               ))}
@@ -351,3 +419,6 @@ export default function HomePage() {
     </>
   );
 }
+
+
+

@@ -1,0 +1,10 @@
+alter table leads add column if not exists company_name text;
+alter table leads add column if not exists contact_person text;
+alter table leads add column if not exists designation text;
+alter table leads add column if not exists official_email text;
+alter table leads add column if not exists company_website text;
+alter table leads add column if not exists state text;
+alter table leads add column if not exists business_type text;
+alter table leads add column if not exists expected_monthly_volume text;
+alter table leads add column if not exists message text;
+alter table leads add column if not exists consent boolean;

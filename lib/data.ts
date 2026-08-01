@@ -35,6 +35,7 @@ export type TestItem = {
   category: "Blood" | "Hormone" | "Profile";
   group: "Basic Tests" | "Profile Tests" | "Organ Function Tests" | "Hormone & Special Tests";
   components?: string[];
+  searchAliases?: string[];
   fastingHours?: string;
 };
 
@@ -334,7 +335,8 @@ export const testsData: TestItem[] = [
     mrp: 500,
     discount: 40,
     category: "Blood",
-    group: "Basic Tests"
+    group: "Basic Tests",
+    searchAliases: ["cbc", "complete blood count", "esr"],
   },
   {
     id: "hba1c",

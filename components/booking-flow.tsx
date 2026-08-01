@@ -192,9 +192,9 @@ function getPatientSubtotal(patient: BookingPatient) {
 function SectionTitle({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">{eyebrow}</p>
-      <h1 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">{title}</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5a7273] md:text-base">{description}</p>
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">{eyebrow}</p>
+      <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">{title}</h1>
+      <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5f6868] md:text-base">{description}</p>
     </div>
   );
 }
@@ -224,6 +224,7 @@ export function BookingFlow() {
   const [orderId, setOrderId] = useState("");
   const [paymentId, setPaymentId] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
+  const [detailsMessage, setDetailsMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [patientAuthId, setPatientAuthId] = useState<string | undefined>(undefined);
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null);
@@ -283,7 +284,7 @@ export function BookingFlow() {
     const source = catalogMode === "packages" ? bookingPackages : bookingTests;
     const q = search.trim().toLowerCase();
     if (!q) return source;
-    return source.filter((item) => `${item.name} ${item.description} ${item.category}`.toLowerCase().includes(q));
+    return source.filter((item) => `${item.name} ${item.description} ${item.category} ${(item.searchAliases ?? []).join(" ")}`.toLowerCase().includes(q));
   }, [catalogMode, search]);
 
   const allPatientItems = useMemo(() => bookingPatients.flatMap((patient) => getItemsForPatient(patient)), [bookingPatients]);
@@ -323,6 +324,7 @@ export function BookingFlow() {
 
   function updateCustomer<K extends keyof BookingCustomerInput>(key: K, value: BookingCustomerInput[K]) {
     setCustomer((prev) => ({ ...prev, [key]: value }));
+    setDetailsMessage("");
   }
 
   function addPreviousReports(files: FileList | File[]) {
@@ -658,7 +660,8 @@ export function BookingFlow() {
     setIsSubmitting(true);
     setSubmitMessage("");
     try {
-      const normalizedPatients = bookingPatients.length ? bookingPatients : [createSelfPatient(savedProfile, customer.phone || otpPhone, selectedIds)];
+      const bookingCustomer = normalizedCustomer;
+      const normalizedPatients = bookingPatients.length ? bookingPatients : [createSelfPatient(savedProfile, bookingCustomer.phone || otpPhone, selectedIds)];
       const bookingPatientsPayload: BookingPatientInput[] = normalizedPatients.map((patient) => ({
         patientId: patient.patientId,
         patientType: patient.patientType,
@@ -676,7 +679,7 @@ export function BookingFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer,
+          customer: bookingCustomer,
           patientAuthId,
           patientType: bookingPatientsPayload[0]?.patientType || "self",
           familyMemberId: bookingPatientsPayload[0]?.patientType === "family" ? bookingPatientsPayload[0].familyMemberId || null : null,
@@ -702,6 +705,7 @@ export function BookingFlow() {
       }
 
       setOrderId(data.orderId);
+      setCustomer(bookingCustomer);
       await uploadPreviousReports(data.orderId, data.bookingId);
       return data.orderId as string;
     } catch (error) {
@@ -717,17 +721,13 @@ export function BookingFlow() {
 
     let razorpayOrder: Record<string, unknown>;
     try {
-      const razorpayResponse = await backendFetch("/payment/create-order", {
+      const razorpayResponse = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: quote.payableAmount,
-          receipt: createdOrderId,
-          notes: {
-            orderId: createdOrderId,
-            customer: customer.fullName,
-            phone: customer.phone
-          }
+          amount: Math.round(quote.payableAmount * 100),
+          currency: "INR",
+          receipt: createdOrderId
         })
       });
 
@@ -771,11 +771,11 @@ export function BookingFlow() {
       name: "ScopeX Diagnostics",
       description: "Diagnostic booking",
       prefill: {
-        name: customer.fullName,
-        contact: customer.phone,
-        email: customer.email
+        name: normalizedCustomer.fullName,
+        contact: normalizedCustomer.phone,
+        email: normalizedCustomer.email
       },
-      theme: { color: "#0f8f7c" },
+      theme: { color: "#F7931E" },
       handler: async (response: Record<string, string>) => {
         setIsSubmitting(true);
         setSubmitMessage("Verifying payment...");
@@ -841,19 +841,58 @@ export function BookingFlow() {
     Boolean(newFamilyForm.age || newFamilyForm.dob) &&
     Boolean(newFamilyForm.gender);
 
-  const detailsValid =
-    patientSelectionValid && customer.fullName && customer.phone && customer.city && customer.address && customer.preferredDate && customer.preferredTime;
+  const normalizedCustomer = useMemo<BookingCustomerInput>(() => {
+    const cleanAddress = customer.address.trim();
+    const cleanCity =
+      customer.city.trim() ||
+      savedProfile?.city?.trim() ||
+      (cleanAddress.toLowerCase().includes("indore") ? "Indore" : "");
+
+    return {
+      fullName: customer.fullName.trim(),
+      phone: customer.phone.replace(/\D/g, "").slice(0, 10),
+      email: customer.email.trim(),
+      city: cleanCity,
+      address: cleanAddress,
+      preferredDate: customer.preferredDate,
+      preferredTime: customer.preferredTime
+    };
+  }, [customer, savedProfile]);
+
+  const missingDetailLabels = useMemo(() => {
+    const missing: string[] = [];
+    if (!patientSelectionValid) missing.push("complete patient details and selected tests");
+    if (!normalizedCustomer.fullName) missing.push("patient name");
+    if (!/^\d{10}$/.test(normalizedCustomer.phone)) missing.push("10-digit mobile number");
+    if (!normalizedCustomer.address) missing.push("collection address");
+    if (!normalizedCustomer.city) missing.push("city");
+    if (!normalizedCustomer.preferredDate) missing.push("collection date");
+    if (!normalizedCustomer.preferredTime) missing.push("collection time");
+    return missing;
+  }, [normalizedCustomer, patientSelectionValid]);
+
+  const detailsValid = missingDetailLabels.length === 0;
+
+  function continueToReview() {
+    if (!detailsValid) {
+      setDetailsMessage(`Please complete: ${missingDetailLabels.join(", ")}.`);
+      return;
+    }
+    setDetailsMessage("");
+    setCustomer(normalizedCustomer);
+    setStep("review");
+  }
 
   return (
     <div className="space-y-6">
       <Script id="razorpay-checkout-js" src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
 
       {step !== "auth" && isLoggedIn ? (
-        <div className="flex flex-col gap-4 rounded-[24px] border border-[#deece9] bg-white p-4 shadow-[0_12px_28px_rgba(16,24,40,0.05)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-[24px] border border-[#f1dfce] bg-white p-4 shadow-[0_12px_28px_rgba(16,24,40,0.05)] sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0f8f7c]">Logged in</p>
-            <h3 className="mt-1 text-xl font-bold text-[#102a2d]">Hi, {loggedInName}</h3>
-            {loggedInMobile ? <p className="mt-1 text-sm text-[#5a7273]">Mobile: {loggedInMobile}</p> : null}
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Logged in</p>
+            <h3 className="mt-1 text-xl font-bold text-[#0D0D0D]">Hi, {loggedInName}</h3>
+            {loggedInMobile ? <p className="mt-1 text-sm text-[#5f6868]">Mobile: {loggedInMobile}</p> : null}
           </div>
           <button type="button" onClick={logoutPatient} className="secondary-btn w-full sm:w-auto">
             Logout
@@ -862,7 +901,7 @@ export function BookingFlow() {
       ) : null}
 
       {step === "auth" ? (
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           <SectionTitle
             eyebrow="Patient Login"
             title="Login with OTP to start booking"
@@ -875,7 +914,7 @@ export function BookingFlow() {
               onChange={(event) => setOtpPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
               placeholder="10-digit mobile number"
               inputMode="numeric"
-              className="rounded-2xl border border-[#dbe9e7] bg-white px-4 py-3 text-sm text-[#102a2d] outline-none transition focus:border-[#0f8f7c]"
+              className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#F7931E]"
             />
             <div className="flex flex-col gap-3 sm:flex-row">
               <button type="button" onClick={requestOtp} className="cta-btn w-full sm:w-auto" disabled={authStatus === "loading"}>
@@ -887,7 +926,7 @@ export function BookingFlow() {
                   onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="Enter OTP"
                   inputMode="numeric"
-                  className="rounded-2xl border border-[#dbe9e7] bg-white px-4 py-3 text-sm text-[#102a2d] outline-none transition focus:border-[#0f8f7c]"
+                  className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#F7931E]"
                 />
               ) : null}
             </div>
@@ -896,13 +935,13 @@ export function BookingFlow() {
                 Verify OTP
               </button>
             ) : null}
-            {authMessage ? <p className={`text-sm ${authStatus === "error" ? "text-red-600" : "text-[#0f8f7c]"}`}>{authMessage}</p> : null}
+            {authMessage ? <p className={`text-sm ${authStatus === "error" ? "text-red-600" : "text-[#F7931E]"}`}>{authMessage}</p> : null}
           </div>
         </div>
       ) : null}
 
       {step === "select" ? (
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           <SectionTitle
             eyebrow="Step 1"
             title="Choose tests and packages"
@@ -915,7 +954,7 @@ export function BookingFlow() {
                 key={mode}
                 type="button"
                 onClick={() => setCatalogMode(mode)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${catalogMode === mode ? "bg-[#0f8f7c] text-white" : "bg-[#eef7f6] text-[#264547]"}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${catalogMode === mode ? "bg-[#F7931E] text-white" : "bg-[#eef7f6] text-[#264547]"}`}
               >
                 {mode}
               </button>
@@ -924,7 +963,7 @@ export function BookingFlow() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={`Search ${catalogMode}`}
-              className="min-w-[260px] flex-1 rounded-full border border-[#dbe9e7] px-4 py-2.5 text-sm outline-none focus:border-[#0f8f7c]"
+              className="min-w-[260px] flex-1 rounded-full border border-[#f1dfce] px-4 py-2.5 text-sm outline-none focus:border-[#F7931E]"
             />
           </div>
 
@@ -936,32 +975,32 @@ export function BookingFlow() {
                   key={item.id}
                   type="button"
                   onClick={() => toggleSelection(item.id)}
-                  className={`rounded-[24px] border p-5 text-left transition ${selected ? "border-[#0f8f7c] bg-[#f7fbfa] shadow-[0_16px_36px_rgba(15,143,124,0.08)]" : "border-[#deece9] bg-white hover:border-[#cfe4df]"}`}
+                  className={`rounded-[24px] border p-5 text-left transition ${selected ? "border-[#F7931E] bg-[#FFF8F2] shadow-[0_16px_36px_rgba(15,143,124,0.08)]" : "border-[#f1dfce] bg-white hover:border-[#cfe4df]"}`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0f8f7c]">{item.kind}</p>
-                      <h3 className="mt-2 text-xl font-bold text-[#102a2d]">{item.name}</h3>
-                      <p className="mt-2 text-sm leading-7 text-[#5a7273]">{item.description}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#F7931E]">{item.kind}</p>
+                      <h3 className="mt-2 text-xl font-bold text-[#0D0D0D]">{item.name}</h3>
+                      <p className="mt-2 text-sm leading-7 text-[#5f6868]">{item.description}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-extrabold text-[#f37021]">{formatInr(item.price)}</p>
+                      <p className="text-2xl font-extrabold text-[#F7931E]">{formatInr(item.price)}</p>
                       <p className="text-xs text-[#7c8f90] line-through">{formatInr(item.mrp)}</p>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="rounded-full bg-[#fff7f1] px-3 py-1 font-semibold text-[#f37021]">{item.discount}% OFF</span>
-                    <span className={`font-semibold ${selected ? "text-[#0f8f7c]" : "text-[#264547]"}`}>{selected ? "Selected" : "Tap to add"}</span>
+                    <span className="rounded-full bg-[#fff7f1] px-3 py-1 font-semibold text-[#F7931E]">{item.discount}% OFF</span>
+                    <span className={`font-semibold ${selected ? "text-[#F7931E]" : "text-[#264547]"}`}>{selected ? "Selected" : "Tap to add"}</span>
                   </div>
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5 md:flex-row md:items-center md:justify-between">
+          <div className="mt-6 flex flex-col gap-3 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-semibold text-[#102a2d]">{selectedItems.length} item(s) selected</p>
-              <p className="text-sm text-[#5a7273]">Subtotal: {formatInr(quote.subtotal)}</p>
+              <p className="text-sm font-semibold text-[#0D0D0D]">{selectedItems.length} item(s) selected</p>
+              <p className="text-sm text-[#5f6868]">Subtotal: {formatInr(quote.subtotal)}</p>
             </div>
             <button type="button" onClick={() => setStep("patient")} className="cta-btn w-full md:w-auto" disabled={!selectedItems.length}>
               Continue
@@ -971,18 +1010,18 @@ export function BookingFlow() {
       ) : null}
 
       {step === "patient" ? (
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           <SectionTitle
             eyebrow="Step 2"
             title="Select patients and tests"
             description="Choose Self or saved family members, then keep the same tests or assign different tests for each patient."
           />
 
-          <div className="mt-6 rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
+          <div className="mt-6 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-xl font-bold text-[#102a2d]">Patients in this booking</h3>
-                <p className="mt-1 text-sm text-[#5a7273]">Select multiple saved members without creating duplicates.</p>
+                <h3 className="text-xl font-bold text-[#0D0D0D]">Patients in this booking</h3>
+                <p className="mt-1 text-sm text-[#5f6868]">Select multiple saved members without creating duplicates.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button type="button" onClick={ensureSelfPatient} className="secondary-btn w-full sm:w-auto">Add Self</button>
@@ -991,7 +1030,7 @@ export function BookingFlow() {
             </div>
 
             {familyPickerOpen ? (
-              <div className="mt-5 rounded-[24px] border border-[#deece9] bg-white p-4">
+              <div className="mt-5 rounded-[24px] border border-[#f1dfce] bg-white p-4">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {savedFamilyMembers.map((member) => {
                     const selected = bookingPatients.some((patient) => patient.familyMemberId === member.id);
@@ -1000,20 +1039,20 @@ export function BookingFlow() {
                         key={member.id}
                         type="button"
                         onClick={() => toggleSavedFamilyMember(member)}
-                        className={`rounded-[20px] border p-4 text-left transition ${selected ? "border-[#0f8f7c] bg-[#effaf7]" : "border-[#deece9] bg-white hover:border-[#0f8f7c]"}`}
+                        className={`rounded-[20px] border p-4 text-left transition ${selected ? "border-[#F7931E] bg-[#effaf7]" : "border-[#f1dfce] bg-white hover:border-[#F7931E]"}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="font-bold text-[#102a2d]">{member.name}</p>
-                            <p className="mt-1 text-sm text-[#5a7273]">{member.relation} - {member.age ? `${member.age} yrs` : member.dob || "Age missing"} - {member.gender || "Gender missing"}</p>
+                            <p className="font-bold text-[#0D0D0D]">{member.name}</p>
+                            <p className="mt-1 text-sm text-[#5f6868]">{member.relation} - {member.age ? `${member.age} yrs` : member.dob || "Age missing"} - {member.gender || "Gender missing"}</p>
                           </div>
-                          {member.is_default ? <span className="rounded-full bg-[#e9fbf7] px-2 py-1 text-[10px] font-bold uppercase text-[#0f8f7c]">Default</span> : null}
+                          {member.is_default ? <span className="rounded-full bg-[#e9fbf7] px-2 py-1 text-[10px] font-bold uppercase text-[#F7931E]">Default</span> : null}
                         </div>
-                        <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#f37021]">{selected ? "Selected" : "Tap to select"}</p>
+                        <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#F7931E]">{selected ? "Selected" : "Tap to select"}</p>
                       </button>
                     );
                   })}
-                  {savedFamilyMembers.length === 0 ? <p className="rounded-[20px] border border-[#deece9] bg-[#f7fbfa] p-4 text-sm text-[#5a7273]">No saved family members yet.</p> : null}
+                  {savedFamilyMembers.length === 0 ? <p className="rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4 text-sm text-[#5f6868]">No saved family members yet.</p> : null}
                 </div>
 
                 <button type="button" onClick={() => setShowNewFamilyForm((current) => !current)} className="secondary-btn mt-4 w-full sm:w-auto">
@@ -1021,8 +1060,8 @@ export function BookingFlow() {
                 </button>
 
                 {showNewFamilyForm ? (
-                  <div className="mt-4 grid gap-3 rounded-[20px] border border-[#deece9] bg-[#f7fbfa] p-4 md:grid-cols-3">
-                    <input value={newFamilyForm.name} onChange={(event) => setNewFamilyForm((current) => ({ ...current, name: event.target.value }))} placeholder="Name" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
+                  <div className="mt-4 grid gap-3 rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4 md:grid-cols-3">
+                    <input value={newFamilyForm.name} onChange={(event) => setNewFamilyForm((current) => ({ ...current, name: event.target.value }))} placeholder="Name" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
                     <select
                       value={newFamilyForm.relation}
                       onChange={(event) => {
@@ -1033,23 +1072,23 @@ export function BookingFlow() {
                           gender: current.gender || genderFromRelation(relation)
                         }));
                       }}
-                      className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]"
+                      className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]"
                     >
                       {relationOptions.map((relation) => <option key={relation}>{relation}</option>)}
                     </select>
-                    <input value={newFamilyForm.age} onChange={(event) => setNewFamilyForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age" inputMode="numeric" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-                    <input value={newFamilyForm.dob} onChange={(event) => setNewFamilyForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-                    <select value={newFamilyForm.gender} onChange={(event) => setNewFamilyForm((current) => ({ ...current, gender: event.target.value }))} className={`rounded-2xl border px-4 py-3 text-sm outline-none focus:border-[#0f8f7c] ${newFamilyForm.gender ? "border-[#dbe9e7]" : "border-[#f37021] bg-[#fff8f3]"}`}>
+                    <input value={newFamilyForm.age} onChange={(event) => setNewFamilyForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age" inputMode="numeric" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+                    <input value={newFamilyForm.dob} onChange={(event) => setNewFamilyForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+                    <select value={newFamilyForm.gender} onChange={(event) => setNewFamilyForm((current) => ({ ...current, gender: event.target.value }))} className={`rounded-2xl border px-4 py-3 text-sm outline-none focus:border-[#F7931E] ${newFamilyForm.gender ? "border-[#f1dfce]" : "border-[#F7931E] bg-[#fff8f3]"}`}>
                       <option value="">Select gender</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="other">Other</option>
                     </select>
-                    <input value={newFamilyForm.mobile} onChange={(event) => setNewFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
+                    <input value={newFamilyForm.mobile} onChange={(event) => setNewFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
                     <button type="button" onClick={addNewFamilyMemberToBooking} disabled={!newFamilyMemberReady || savingFamilyMember} className="cta-btn md:col-span-3 disabled:cursor-not-allowed disabled:opacity-60">
                       {savingFamilyMember ? "Saving member..." : "Save and add to booking"}
                     </button>
-                    {!newFamilyMemberReady ? <p className="text-xs font-semibold text-[#f37021] md:col-span-3">Name, relation, age/DOB, and gender are required.</p> : null}
+                    {!newFamilyMemberReady ? <p className="text-xs font-semibold text-[#F7931E] md:col-span-3">Name, relation, age/DOB, and gender are required.</p> : null}
                   </div>
                 ) : null}
               </div>
@@ -1074,27 +1113,27 @@ export function BookingFlow() {
               const patientItems = getItemsForPatient(patient);
               const missingDetails = !patient.age && !patient.dob || !patient.gender;
               return (
-                <article key={patient.patientId} className="overflow-hidden rounded-[30px] border border-[#deece9] bg-white shadow-[0_14px_34px_rgba(16,24,40,0.06)]">
+                <article key={patient.patientId} className="overflow-hidden rounded-[30px] border border-[#f1dfce] bg-white shadow-[0_14px_34px_rgba(16,24,40,0.06)]">
                   <div className="border-b border-[#e5f0ee] bg-gradient-to-r from-[#f6fffc] via-white to-[#fff7f1] p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e9fbf7] text-xl font-black uppercase text-[#0f8f7c]">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e9fbf7] text-xl font-black uppercase text-[#F7931E]">
                           {(patient.name || patient.relation || "P").slice(0, 1)}
                         </div>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-[#e9fbf7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#0f8f7c]">{patient.relation}</span>
-                            {missingDetails ? <span className="rounded-full bg-[#fff3ea] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#f37021]">Details needed</span> : null}
+                            <span className="rounded-full bg-[#e9fbf7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#F7931E]">{patient.relation}</span>
+                            {missingDetails ? <span className="rounded-full bg-[#fff3ea] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#F7931E]">Details needed</span> : null}
                           </div>
-                          <h3 className="mt-2 text-2xl font-black text-[#102a2d]">{patient.name || "Patient name"}</h3>
+                          <h3 className="mt-2 text-2xl font-black text-[#0D0D0D]">{patient.name || "Patient name"}</h3>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <span className="rounded-full border border-[#deece9] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patientItems.length} selected item(s)</span>
-                            <span className="rounded-full border border-[#ffd8bf] bg-white px-3 py-1 text-xs font-bold text-[#f37021]">{formatInr(getPatientSubtotal(patient))}</span>
-                            <span className="rounded-full border border-[#deece9] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patient.mode === "same" ? "Same package" : "Custom tests"}</span>
+                            <span className="rounded-full border border-[#f1dfce] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patientItems.length} selected item(s)</span>
+                            <span className="rounded-full border border-[#ffd8bf] bg-white px-3 py-1 text-xs font-bold text-[#F7931E]">{formatInr(getPatientSubtotal(patient))}</span>
+                            <span className="rounded-full border border-[#f1dfce] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patient.mode === "same" ? "Same package" : "Custom tests"}</span>
                           </div>
                         </div>
                       </div>
-                      <button type="button" onClick={() => removeBookingPatient(patient.patientId)} className="rounded-full border border-[#ffd8bf] bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#f37021] transition hover:bg-[#fff3ea]">Remove</button>
+                      <button type="button" onClick={() => removeBookingPatient(patient.patientId)} className="rounded-full border border-[#ffd8bf] bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:bg-[#fff3ea]">Remove</button>
                     </div>
                   </div>
 
@@ -1102,19 +1141,19 @@ export function BookingFlow() {
                     <div className="grid gap-3 md:grid-cols-4">
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">Patient name</span>
-                        <input value={patient.name} onChange={(event) => updateBookingPatient(patient.patientId, { name: event.target.value })} placeholder="Patient name" className="w-full rounded-2xl border border-[#dbe9e7] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0f8f7c] focus:ring-4 focus:ring-[#e9fbf7]" />
+                        <input value={patient.name} onChange={(event) => updateBookingPatient(patient.patientId, { name: event.target.value })} placeholder="Patient name" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7]" />
                       </label>
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">Age</span>
-                        <input value={patient.age || ""} onChange={(event) => updateBookingPatient(patient.patientId, { age: event.target.value.replace(/\D/g, "").slice(0, 3) })} placeholder="Age" inputMode="numeric" className="w-full rounded-2xl border border-[#dbe9e7] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0f8f7c] focus:ring-4 focus:ring-[#e9fbf7]" />
+                        <input value={patient.age || ""} onChange={(event) => updateBookingPatient(patient.patientId, { age: event.target.value.replace(/\D/g, "").slice(0, 3) })} placeholder="Age" inputMode="numeric" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7]" />
                       </label>
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">DOB optional</span>
-                        <input value={patient.dob || ""} onChange={(event) => updateBookingPatient(patient.patientId, { dob: event.target.value })} type="date" className="w-full rounded-2xl border border-[#dbe9e7] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0f8f7c] focus:ring-4 focus:ring-[#e9fbf7]" />
+                        <input value={patient.dob || ""} onChange={(event) => updateBookingPatient(patient.patientId, { dob: event.target.value })} type="date" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7]" />
                       </label>
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">Gender</span>
-                        <select value={patient.gender || ""} onChange={(event) => updateBookingPatient(patient.patientId, { gender: event.target.value })} className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0f8f7c] focus:ring-4 focus:ring-[#e9fbf7] ${patient.gender ? "border-[#dbe9e7]" : "border-[#f37021]"}`}>
+                        <select value={patient.gender || ""} onChange={(event) => updateBookingPatient(patient.patientId, { gender: event.target.value })} className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7] ${patient.gender ? "border-[#f1dfce]" : "border-[#F7931E]"}`}>
                           <option value="">Select gender</option>
                           <option value="male">Male</option>
                           <option value="female">Female</option>
@@ -1125,48 +1164,48 @@ export function BookingFlow() {
                     {missingDetails ? <p className="mt-3 rounded-2xl bg-[#fff7f1] px-4 py-3 text-xs font-bold text-[#b4480f]">Complete age/DOB and gender before proceeding.</p> : null}
 
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <button type="button" onClick={() => setPatientMode(patient.patientId, "same")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "same" ? "border-[#0f8f7c] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#deece9] bg-white hover:border-[#0f8f7c]"}`}>
-                        <span className="text-sm font-black text-[#102a2d]">Apply same test/package</span>
-                        <span className="mt-1 block text-xs text-[#5a7273]">Copy selected main cart items</span>
+                      <button type="button" onClick={() => setPatientMode(patient.patientId, "same")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "same" ? "border-[#F7931E] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white hover:border-[#F7931E]"}`}>
+                        <span className="text-sm font-black text-[#0D0D0D]">Apply same test/package</span>
+                        <span className="mt-1 block text-xs text-[#5f6868]">Copy selected main cart items</span>
                       </button>
-                      <button type="button" onClick={() => setPatientMode(patient.patientId, "different")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "different" ? "border-[#0f8f7c] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#deece9] bg-white hover:border-[#0f8f7c]"}`}>
-                        <span className="text-sm font-black text-[#102a2d]">Choose different test/package</span>
-                        <span className="mt-1 block text-xs text-[#5a7273]">Assign custom items to this patient</span>
+                      <button type="button" onClick={() => setPatientMode(patient.patientId, "different")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "different" ? "border-[#F7931E] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white hover:border-[#F7931E]"}`}>
+                        <span className="text-sm font-black text-[#0D0D0D]">Choose different test/package</span>
+                        <span className="mt-1 block text-xs text-[#5f6868]">Assign custom items to this patient</span>
                       </button>
                     </div>
 
                     {patient.mode === "different" ? (
-                    <div className="mt-5 rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-4">
+                    <div className="mt-5 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
                       <div className="flex flex-col gap-3 md:flex-row">
                         <div className="flex gap-2">
                           {(["packages", "tests"] as CatalogMode[]).map((mode) => (
-                            <button key={mode} type="button" onClick={() => setPatientCatalogMode((current) => ({ ...current, [patient.patientId]: mode }))} className={`rounded-full px-4 py-2 text-sm font-black capitalize transition ${patientMode === mode ? "bg-[#0f8f7c] text-white shadow-[0_8px_18px_rgba(15,143,124,0.16)]" : "bg-white text-[#0f8f7c] hover:bg-[#effaf7]"}`}>{mode}</button>
+                            <button key={mode} type="button" onClick={() => setPatientCatalogMode((current) => ({ ...current, [patient.patientId]: mode }))} className={`rounded-full px-4 py-2 text-sm font-black capitalize transition ${patientMode === mode ? "bg-[#F7931E] text-white shadow-[0_8px_18px_rgba(15,143,124,0.16)]" : "bg-white text-[#F7931E] hover:bg-[#effaf7]"}`}>{mode}</button>
                           ))}
                         </div>
-                        <input value={patientSearch[patient.patientId] || ""} onChange={(event) => setPatientSearch((current) => ({ ...current, [patient.patientId]: event.target.value }))} placeholder="Search tests or packages" className="min-w-0 flex-1 rounded-full border border-[#dbe9e7] px-4 py-2.5 text-sm outline-none focus:border-[#0f8f7c]" />
+                        <input value={patientSearch[patient.patientId] || ""} onChange={(event) => setPatientSearch((current) => ({ ...current, [patient.patientId]: event.target.value }))} placeholder="Search tests or packages" className="min-w-0 flex-1 rounded-full border border-[#f1dfce] px-4 py-2.5 text-sm outline-none focus:border-[#F7931E]" />
                       </div>
                       <div className="mt-4 grid max-h-72 gap-3 overflow-y-auto pr-1 md:grid-cols-2">
                         {patientCatalog.map((item) => {
                           const picked = patient.itemIds.includes(item.id);
                           const saving = Math.max(0, item.mrp - item.price);
                           return (
-                            <button key={item.id} type="button" onClick={() => togglePatientItem(patient.patientId, item.id)} className={`rounded-2xl border p-4 text-left transition hover:border-[#0f8f7c] ${picked ? "border-[#0f8f7c] bg-white shadow-[0_10px_22px_rgba(15,143,124,0.12)]" : "border-[#deece9] bg-white/80"}`}>
+                            <button key={item.id} type="button" onClick={() => togglePatientItem(patient.patientId, item.id)} className={`rounded-2xl border p-4 text-left transition hover:border-[#F7931E] ${picked ? "border-[#F7931E] bg-white shadow-[0_10px_22px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white/80"}`}>
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <p className="font-bold text-[#102a2d]">{item.name}</p>
-                                  <p className="mt-1 text-xs text-[#5a7273]">{item.kind} - {item.category}</p>
+                                  <p className="font-bold text-[#0D0D0D]">{item.name}</p>
+                                  <p className="mt-1 text-xs text-[#5f6868]">{item.kind} - {item.category}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="font-black text-[#f37021]">{formatInr(item.price)}</p>
+                                  <p className="font-black text-[#F7931E]">{formatInr(item.price)}</p>
                                   {saving > 0 ? <p className="text-[11px] font-semibold text-[#7c8f90] line-through">{formatInr(item.mrp)}</p> : null}
                                 </div>
                               </div>
                               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex flex-wrap gap-2">
-                                  {item.discount > 0 ? <span className="rounded-full bg-[#fff3ea] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#f37021]">{item.discount}% OFF</span> : null}
-                                  {saving > 0 ? <span className="rounded-full bg-[#e9fbf7] px-2.5 py-1 text-[11px] font-bold text-[#0f8f7c]">Save {formatInr(saving)}</span> : null}
+                                  {item.discount > 0 ? <span className="rounded-full bg-[#fff3ea] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#F7931E]">{item.discount}% OFF</span> : null}
+                                  {saving > 0 ? <span className="rounded-full bg-[#e9fbf7] px-2.5 py-1 text-[11px] font-bold text-[#F7931E]">Save {formatInr(saving)}</span> : null}
                                 </div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#0f8f7c]">{picked ? "Selected" : "Add"}</p>
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">{picked ? "Selected" : "Add"}</p>
                               </div>
                             </button>
                           );
@@ -1187,7 +1226,7 @@ export function BookingFlow() {
         </div>
       ) : null}
       {step === "details" ? (
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           <SectionTitle
             eyebrow="Step 2"
             title="Slot and home collection address"
@@ -1195,25 +1234,25 @@ export function BookingFlow() {
           />
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <input value={customer.fullName} onChange={(e) => updateCustomer("fullName", e.target.value)} placeholder="Full Name" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-            <input value={customer.phone} onChange={(e) => updateCustomer("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Mobile Number" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-            <input value={customer.email} onChange={(e) => updateCustomer("email", e.target.value)} placeholder="Email" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-            <input value={customer.city} onChange={(e) => updateCustomer("city", e.target.value)} placeholder="City" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-            <input value={customer.preferredDate} onChange={(e) => updateCustomer("preferredDate", e.target.value)} type="date" min={new Date().toISOString().split("T")[0]} className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-            <select value={customer.preferredTime} onChange={(e) => updateCustomer("preferredTime", e.target.value)} className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]">
+            <input value={customer.fullName} onChange={(e) => updateCustomer("fullName", e.target.value)} placeholder="Full Name" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+            <input value={customer.phone} onChange={(e) => updateCustomer("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Mobile Number" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+            <input value={customer.email} onChange={(e) => updateCustomer("email", e.target.value)} placeholder="Email" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+            <input value={customer.city} onChange={(e) => updateCustomer("city", e.target.value)} placeholder="City" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+            <input value={customer.preferredDate} onChange={(e) => updateCustomer("preferredDate", e.target.value)} type="date" min={new Date().toISOString().split("T")[0]} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+            <select value={customer.preferredTime} onChange={(e) => updateCustomer("preferredTime", e.target.value)} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]">
               <option value="">Preferred collection time</option>
               {slotOptions.map((slot) => (
                 <option key={slot} value={slot}>{slot}</option>
               ))}
             </select>
-            <input value={customer.address} onChange={(e) => updateCustomer("address", e.target.value)} placeholder="Address" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c] md:col-span-2" />
+            <input value={customer.address} onChange={(e) => updateCustomer("address", e.target.value)} placeholder="Address" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E] md:col-span-2" />
           </div>
 
-          <div className="mt-6 rounded-[24px] border border-dashed border-[#bddbd6] bg-[#f7fbfa] p-5">
+          <div className="mt-6 rounded-[24px] border border-dashed border-[#bddbd6] bg-[#FFF8F2] p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-xl font-bold text-[#102a2d]">Upload previous medical reports</h3>
-                <p className="mt-1 text-sm text-[#5a7273]">Optional. PDF only, up to 10 MB each. Multiple uploads allowed.</p>
+                <h3 className="text-xl font-bold text-[#0D0D0D]">Upload previous medical reports</h3>
+                <p className="mt-1 text-sm text-[#5f6868]">Optional. PDF only, up to 10 MB each. Multiple uploads allowed.</p>
               </div>
               <label className="secondary-btn cursor-pointer">
                 Choose PDFs
@@ -1230,7 +1269,7 @@ export function BookingFlow() {
               </label>
             </div>
             <div
-              className="mt-4 rounded-[20px] border border-dashed border-[#cfe5e1] bg-white px-4 py-6 text-center text-sm text-[#5a7273]"
+              className="mt-4 rounded-[20px] border border-dashed border-[#f7d7bb] bg-white px-4 py-6 text-center text-sm text-[#5f6868]"
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
@@ -1242,58 +1281,60 @@ export function BookingFlow() {
             {previousReports.length ? (
               <div className="mt-4 grid gap-3">
                 {previousReports.map((report) => (
-                  <div key={report.id} className="rounded-2xl border border-[#deece9] bg-white p-3">
+                  <div key={report.id} className="rounded-2xl border border-[#f1dfce] bg-white p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-bold text-[#102a2d]">{report.file.name}</p>
+                        <p className="text-sm font-bold text-[#0D0D0D]">{report.file.name}</p>
                         <p className="text-xs text-[#7c8f90]">{(report.file.size / (1024 * 1024)).toFixed(2)} MB - {report.status}</p>
                       </div>
-                      <button type="button" onClick={() => removePreviousReport(report.id)} className="text-xs font-black uppercase tracking-[0.12em] text-[#f37021]">Remove</button>
+                      <button type="button" onClick={() => removePreviousReport(report.id)} className="text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">Remove</button>
                     </div>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e7f2f0]">
-                      <div className="h-full rounded-full bg-[#0f8f7c] transition-all" style={{ width: `${report.progress}%` }} />
+                      <div className="h-full rounded-full bg-[#F7931E] transition-all" style={{ width: `${report.progress}%` }} />
                     </div>
                     {report.message ? <p className="mt-2 text-xs text-red-600">{report.message}</p> : null}
                   </div>
                 ))}
               </div>
             ) : null}
-            {reportUploadMessage ? <p className="mt-3 text-sm font-semibold text-[#0f8f7c]">{reportUploadMessage}</p> : null}
+            {reportUploadMessage ? <p className="mt-3 text-sm font-semibold text-[#F7931E]">{reportUploadMessage}</p> : null}
           </div>
 
-          <div className="mt-8 rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
+          <div className="mt-8 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-xl font-bold text-[#102a2d]">Selected patients</h3>
-                <p className="mt-1 text-sm text-[#5a7273]">Review patient-wise test count and price before payment.</p>
+                <h3 className="text-xl font-bold text-[#0D0D0D]">Selected patients</h3>
+                <p className="mt-1 text-sm text-[#5f6868]">Review patient-wise test count and price before payment.</p>
               </div>
               <button type="button" onClick={() => setStep("patient")} className="secondary-btn w-full sm:w-auto">Edit patients/tests</button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {bookingPatients.map((patient) => (
-                <article key={patient.patientId} className="rounded-[20px] border border-[#deece9] bg-white p-4">
+                <article key={patient.patientId} className="rounded-[20px] border border-[#f1dfce] bg-white p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-bold text-[#102a2d]">{patient.name}</p>
-                      <p className="mt-1 text-sm text-[#5a7273]">{patient.relation} - {patient.age || patient.dob} - {patient.gender}</p>
+                      <p className="font-bold text-[#0D0D0D]">{patient.name}</p>
+                      <p className="mt-1 text-sm text-[#5f6868]">{patient.relation} - {patient.age || patient.dob} - {patient.gender}</p>
                     </div>
-                    <p className="font-bold text-[#f37021]">{formatInr(getPatientSubtotal(patient))}</p>
+                    <p className="font-bold text-[#F7931E]">{formatInr(getPatientSubtotal(patient))}</p>
                   </div>
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#0f8f7c]">{getItemsForPatient(patient).length} selected item(s)</p>
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#F7931E]">{getItemsForPatient(patient).length} selected item(s)</p>
                 </article>
               ))}
             </div>
           </div>
 
+          {detailsMessage ? <p className="mt-4 text-sm font-semibold text-red-600">{detailsMessage}</p> : null}
+
           <div className="mt-6 flex justify-between gap-3">
             <button type="button" onClick={() => setStep("patient")} className="secondary-btn w-full sm:w-auto">Back</button>
-            <button type="button" onClick={() => setStep("review")} className="cta-btn w-full sm:w-auto" disabled={!detailsValid}>Review & Pay</button>
+            <button type="button" onClick={continueToReview} className="cta-btn w-full sm:w-auto">Review & Pay</button>
           </div>
         </div>
       ) : null}
 
       {step === "review" ? (
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           <SectionTitle
             eyebrow="Step 3"
             title="Review booking and payment"
@@ -1302,21 +1343,21 @@ export function BookingFlow() {
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4">
-              <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-                <h3 className="text-xl font-bold text-[#102a2d]">Patient-wise selected items</h3>
+              <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+                <h3 className="text-xl font-bold text-[#0D0D0D]">Patient-wise selected items</h3>
                 <div className="mt-4 space-y-3">
                   {bookingPatients.map((patient) => (
                     <div key={patient.patientId} className="rounded-2xl bg-white px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-[#102a2d]">{patient.name}</p>
-                          <p className="text-sm text-[#5a7273]">{patient.relation} - {getItemsForPatient(patient).length} item(s)</p>
+                          <p className="font-semibold text-[#0D0D0D]">{patient.name}</p>
+                          <p className="text-sm text-[#5f6868]">{patient.relation} - {getItemsForPatient(patient).length} item(s)</p>
                         </div>
-                        <p className="font-bold text-[#f37021]">{formatInr(getPatientSubtotal(patient))}</p>
+                        <p className="font-bold text-[#F7931E]">{formatInr(getPatientSubtotal(patient))}</p>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {getItemsForPatient(patient).map((item) => (
-                          <span key={`${patient.patientId}-${item.id}`} className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#0f8f7c]">{item.name}</span>
+                          <span key={`${patient.patientId}-${item.id}`} className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#F7931E]">{item.name}</span>
                         ))}
                       </div>
                     </div>
@@ -1324,46 +1365,46 @@ export function BookingFlow() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-                <h3 className="text-xl font-bold text-[#102a2d]">Payment method</h3>
+              <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+                <h3 className="text-xl font-bold text-[#0D0D0D]">Payment method</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <button type="button" onClick={() => setPaymentMethod("online")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "online" ? "border-[#0f8f7c] bg-white" : "border-[#deece9] bg-white"}`}>
-                    <p className="font-semibold text-[#102a2d]">Pay Online</p>
-                    <p className="mt-1 text-sm text-[#5a7273]">UPI, cards, net banking via Razorpay</p>
+                  <button type="button" onClick={() => setPaymentMethod("online")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "online" ? "border-[#F7931E] bg-white" : "border-[#f1dfce] bg-white"}`}>
+                    <p className="font-semibold text-[#0D0D0D]">Pay Online</p>
+                    <p className="mt-1 text-sm text-[#5f6868]">UPI, cards, net banking via Razorpay</p>
                   </button>
-                  <button type="button" onClick={() => setPaymentMethod("cod")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "cod" ? "border-[#0f8f7c] bg-white" : "border-[#deece9] bg-white"}`}>
-                    <p className="font-semibold text-[#102a2d]">Pay at Home</p>
-                    <p className="mt-1 text-sm text-[#5a7273]">Confirm booking now, pay at collection time</p>
+                  <button type="button" onClick={() => setPaymentMethod("cod")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "cod" ? "border-[#F7931E] bg-white" : "border-[#f1dfce] bg-white"}`}>
+                    <p className="font-semibold text-[#0D0D0D]">Pay at Home</p>
+                    <p className="mt-1 text-sm text-[#5f6868]">Confirm booking now, pay at collection time</p>
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
-              <h3 className="text-xl font-bold text-[#102a2d]">Order summary</h3>
-              <div className="mt-4 space-y-3 text-sm text-[#4f6b6d]">
+            <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
+              <h3 className="text-xl font-bold text-[#0D0D0D]">Order summary</h3>
+              <div className="mt-4 space-y-3 text-sm text-[#5f6868]">
                 <div className="flex justify-between"><span>Total MRP</span><span>{formatInr(totalMrp)}</span></div>
                 {packageDiscountTotal > 0 ? (
-                  <div className="flex justify-between text-[#0f8f7c]"><span>Package/Test discount</span><span>- {formatInr(packageDiscountTotal)}</span></div>
+                  <div className="flex justify-between text-[#F7931E]"><span>Package/Test discount</span><span>- {formatInr(packageDiscountTotal)}</span></div>
                 ) : null}
                 <div className="flex justify-between"><span>Subtotal after discount</span><span>{formatInr(quote.subtotal)}</span></div>
                 {quote.appliedOffers.map((offer) => (
-                  <div key={offer.code} className="flex justify-between text-[#0f8f7c]"><span>{offer.title}</span><span>- {formatInr(offer.discountAmount)}</span></div>
+                  <div key={offer.code} className="flex justify-between text-[#F7931E]"><span>{offer.title}</span><span>- {formatInr(offer.discountAmount)}</span></div>
                 ))}
                 {specialDiscountTotal > 0 ? (
-                  <div className="flex justify-between font-semibold text-[#0f8f7c]"><span>Special discount total</span><span>- {formatInr(specialDiscountTotal)}</span></div>
+                  <div className="flex justify-between font-semibold text-[#F7931E]"><span>Special discount total</span><span>- {formatInr(specialDiscountTotal)}</span></div>
                 ) : null}
-                <div className="border-t border-[#deece9] pt-3 flex justify-between text-base font-bold text-[#102a2d]"><span>Payable</span><span>{formatInr(quote.payableAmount)}</span></div>
+                <div className="border-t border-[#f1dfce] pt-3 flex justify-between text-base font-bold text-[#0D0D0D]"><span>Payable</span><span>{formatInr(quote.payableAmount)}</span></div>
                 {totalSavings > 0 ? (
-                  <div className="rounded-2xl bg-[#e9fbf7] px-4 py-3 text-center font-black text-[#0f8f7c]">You save {formatInr(totalSavings)} on this booking</div>
+                  <div className="rounded-2xl bg-[#e9fbf7] px-4 py-3 text-center font-black text-[#F7931E]">You save {formatInr(totalSavings)} on this booking</div>
                 ) : null}
               </div>
 
-              <div className="mt-4 rounded-2xl bg-white p-4 text-sm text-[#5a7273]">
-                <p><span className="font-semibold text-[#102a2d]">Patient:</span> {customer.fullName}</p>
-                <p className="mt-1"><span className="font-semibold text-[#102a2d]">Collection:</span> {customer.preferredDate} - {customer.preferredTime}</p>
-                <p className="mt-1"><span className="font-semibold text-[#102a2d]">Address:</span> {customer.address}, {customer.city}</p>
-                <p className="mt-1"><span className="font-semibold text-[#102a2d]">Patients covered:</span> {bookingPatients.length}</p>
+              <div className="mt-4 rounded-2xl bg-white p-4 text-sm text-[#5f6868]">
+                <p><span className="font-semibold text-[#0D0D0D]">Patient:</span> {normalizedCustomer.fullName}</p>
+                <p className="mt-1"><span className="font-semibold text-[#0D0D0D]">Collection:</span> {normalizedCustomer.preferredDate} - {normalizedCustomer.preferredTime}</p>
+                <p className="mt-1"><span className="font-semibold text-[#0D0D0D]">Address:</span> {normalizedCustomer.address}, {normalizedCustomer.city}</p>
+                <p className="mt-1"><span className="font-semibold text-[#0D0D0D]">Patients covered:</span> {bookingPatients.length}</p>
               </div>
 
               <div className="mt-5 flex flex-col gap-3">
@@ -1385,24 +1426,24 @@ export function BookingFlow() {
       ) : null}
 
       {step === "success" ? (
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
           <SectionTitle
             eyebrow="Booking confirmed"
             title="Your ScopeX booking is created"
             description="We have saved your booking. Our operations team will coordinate collection, and your patient dashboard can track the order status."
           />
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-[20px] border border-[#deece9] bg-[#f7fbfa] p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#0f8f7c]">Order ID</p>
-              <p className="mt-2 text-xl font-bold text-[#102a2d]">{orderId}</p>
+            <div className="rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E]">Order ID</p>
+              <p className="mt-2 text-xl font-bold text-[#0D0D0D]">{orderId}</p>
             </div>
-            <div className="rounded-[20px] border border-[#deece9] bg-[#f7fbfa] p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#0f8f7c]">Payment</p>
-              <p className="mt-2 text-xl font-bold text-[#102a2d]">{paymentMethod === "online" ? "Paid online" : "Pay at home"}</p>
+            <div className="rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E]">Payment</p>
+              <p className="mt-2 text-xl font-bold text-[#0D0D0D]">{paymentMethod === "online" ? "Paid online" : "Pay at home"}</p>
             </div>
-            <div className="rounded-[20px] border border-[#deece9] bg-[#f7fbfa] p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#0f8f7c]">Reference</p>
-              <p className="mt-2 text-xl font-bold text-[#102a2d]">{paymentId || "Pending"}</p>
+            <div className="rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E]">Reference</p>
+              <p className="mt-2 text-xl font-bold text-[#0D0D0D]">{paymentId || "Pending"}</p>
             </div>
           </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">

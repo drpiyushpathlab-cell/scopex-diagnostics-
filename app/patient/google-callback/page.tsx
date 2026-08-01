@@ -56,10 +56,10 @@ function extractOAuthUser(source: any) {
 function CallbackShell({ message, error }: { message?: string; error?: string }) {
   return (
     <section className="section-wrap py-14">
-      <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Google Login</p>
-        <h1 className="mt-2 text-3xl font-black text-[#102a2d] md:text-4xl">Signing you in securely</h1>
-        {message ? <p className="mt-4 text-[#5a7273]">{message}</p> : null}
+      <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Google Login</p>
+        <h1 className="mt-2 text-3xl font-black text-[#0D0D0D] md:text-4xl">Signing you in securely</h1>
+        {message ? <p className="mt-4 text-[#5f6868]">{message}</p> : null}
         {error ? (
           <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             <p className="font-bold">Google login could not be completed.</p>

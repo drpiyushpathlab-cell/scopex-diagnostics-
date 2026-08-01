@@ -67,6 +67,16 @@ export async function storeLeadInInsForge(payload: LeadPayload) {
     address: payload.address ?? null,
     preferred_time: payload.preferredTime ?? null,
     purpose: payload.purpose ?? null,
+    company_name: payload.companyName ?? null,
+    contact_person: payload.contactPerson ?? null,
+    designation: payload.designation ?? null,
+    official_email: payload.officialEmail ?? null,
+    company_website: payload.companyWebsite ?? null,
+    state: payload.state ?? null,
+    business_type: payload.businessType ?? null,
+    expected_monthly_volume: payload.expectedMonthlyVolume ?? null,
+    message: payload.message ?? null,
+    consent: payload.consent ?? null,
     source: "website",
     created_at: now.toISOString()
   };
@@ -83,9 +93,41 @@ export async function storeLeadInInsForge(payload: LeadPayload) {
 
   let create = await createLead(insertPayload);
 
-  if (create.error && /collection_date|family_members|column/i.test(create.error.message)) {
-    const { collection_date: _collectionDate, family_members: _familyMembers, ...legacyPayload } = insertPayload;
-    create = await createLead(legacyPayload);
+  if (create.error && /collection_date|family_members|company_name|contact_person|designation|official_email|company_website|business_type|expected_monthly_volume|message|consent|state|column/i.test(create.error.message)) {
+    const {
+      collection_date: _collectionDate,
+      family_members: _familyMembers,
+      company_name: _companyName,
+      contact_person: _contactPerson,
+      designation: _designation,
+      official_email: _officialEmail,
+      company_website: _companyWebsite,
+      state: _state,
+      business_type: _businessType,
+      expected_monthly_volume: _expectedMonthlyVolume,
+      message: _message,
+      consent: _consent,
+      ...legacyPayload
+    } = insertPayload;
+    create = await createLead({
+      ...legacyPayload,
+      address:
+        payload.leadType === "growth_partner"
+          ? [
+              payload.companyName ? `Company: ${payload.companyName}` : undefined,
+              payload.designation ? `Designation: ${payload.designation}` : undefined,
+              payload.officialEmail ? `Email: ${payload.officialEmail}` : undefined,
+              payload.companyWebsite ? `Website: ${payload.companyWebsite}` : undefined,
+              payload.city ? `City: ${payload.city}` : undefined,
+              payload.state ? `State: ${payload.state}` : undefined,
+              payload.businessType ? `Business Type: ${payload.businessType}` : undefined,
+              payload.expectedMonthlyVolume ? `Expected Monthly Volume: ${payload.expectedMonthlyVolume}` : undefined,
+              payload.message ? `Message: ${payload.message}` : undefined
+            ]
+              .filter(Boolean)
+              .join(" | ")
+          : legacyPayload.address
+    });
   }
 
   if (create.error) {

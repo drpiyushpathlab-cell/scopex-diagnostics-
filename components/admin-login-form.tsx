@@ -91,24 +91,24 @@ export function AdminLoginForm() {
   }
 
   return (
-    <form method="post" action="/api/admin/login" onSubmit={onSubmit} className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Admin Login</p>
-      <h1 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">Operations and booking dashboard</h1>
-      <p className="mt-3 max-w-xl text-sm leading-7 text-[#5a7273] md:text-base">
+    <form method="post" action="/api/admin/login" onSubmit={onSubmit} className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Admin Login</p>
+      <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Operations and booking dashboard</h1>
+      <p className="mt-3 max-w-xl text-sm leading-7 text-[#5f6868] md:text-base">
         Sign in with your admin credentials to review bookings, payments, advisor callbacks, and booking conversions.
       </p>
 
       <div className="mt-6 grid gap-4 md:max-w-md">
-        <input suppressHydrationWarning name="email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Admin email" autoComplete="username" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
-        <input suppressHydrationWarning name="password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Password" autoComplete="current-password" className="rounded-2xl border border-[#dbe9e7] px-4 py-3 text-sm outline-none focus:border-[#0f8f7c]" />
+        <input suppressHydrationWarning name="email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Admin email" autoComplete="username" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+        <input suppressHydrationWarning name="password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Password" autoComplete="current-password" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
         <button type="submit" className="cta-btn w-full sm:w-fit" disabled={status === "loading"}>
           {status === "loading" ? "Signing in..." : "Sign in"}
         </button>
-        {message ? <p className={`text-sm ${status === "error" ? "text-red-600" : "text-[#0f8f7c]"}`}>{message}</p> : null}
+        {message ? <p className={`text-sm ${status === "error" ? "text-red-600" : "text-[#F7931E]"}`}>{message}</p> : null}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-[#cfe3df] bg-[#f7fbfa] p-4 text-xs leading-6 text-[#45666a]">
-        <p className="font-bold uppercase tracking-[0.16em] text-[#0f8f7c]">Temporary Auth Debug</p>
+      <div className="mt-6 rounded-2xl border border-dashed border-[#cfe3df] bg-[#FFF8F2] p-4 text-xs leading-6 text-[#45666a]">
+        <p className="font-bold uppercase tracking-[0.16em] text-[#F7931E]">Temporary Auth Debug</p>
         <p>Clicked: {String(debug.clicked)}</p>
         <p>API: {debug.apiStatus}</p>
         <p>User: {debug.userEmail}</p>

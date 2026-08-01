@@ -63,10 +63,10 @@ export function AdminAuditLogs() {
   }
 
   return (
-    <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Audit Logs</p>
-      <h1 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">Activity and admin actions</h1>
-      <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5a7273] md:text-base">
+    <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Audit Logs</p>
+      <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Activity and admin actions</h1>
+      <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">
         Track booking updates, report uploads/downloads, user activity, login events, and admin actions.
       </p>
 
@@ -77,27 +77,27 @@ export function AdminAuditLogs() {
         <button type="button" onClick={exportCsv} className="secondary-btn text-center">Export CSV</button>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-[22px] border border-[#deece9]">
-        <div className="grid grid-cols-5 gap-3 bg-[#f7fbfa] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-[#0f8f7c]">
+      <div className="mt-6 overflow-hidden rounded-[22px] border border-[#f1dfce]">
+        <div className="grid grid-cols-5 gap-3 bg-[#FFF8F2] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">
           <span>Time</span>
           <span>Role</span>
           <span>Action</span>
           <span>Entity</span>
           <span>IP / Device</span>
         </div>
-        {logs.length === 0 ? <p className="p-4 text-sm text-[#5a7273]">{message || "No audit logs found."}</p> : null}
+        {logs.length === 0 ? <p className="p-4 text-sm text-[#5f6868]">{message || "No audit logs found."}</p> : null}
         {logs.map((log) => (
-          <div key={log.id} className="grid grid-cols-1 gap-2 border-t border-[#deece9] px-4 py-3 text-sm text-[#5a7273] md:grid-cols-5">
+          <div key={log.id} className="grid grid-cols-1 gap-2 border-t border-[#f1dfce] px-4 py-3 text-sm text-[#5f6868] md:grid-cols-5">
             <span>{log.created_at ? new Date(log.created_at).toLocaleString("en-IN") : "-"}</span>
             <span>{log.role || "-"}</span>
-            <span className="font-bold text-[#102a2d]">{log.action || "-"}</span>
+            <span className="font-bold text-[#0D0D0D]">{log.action || "-"}</span>
             <span>{log.entity_type || "-"} {log.entity_id ? `#${String(log.entity_id).slice(0, 8)}` : ""}</span>
             <span className="truncate" title={log.user_agent || ""}>{log.ip_address || "-"} / {log.user_agent || "-"}</span>
           </div>
         ))}
       </div>
 
-      {message && logs.length ? <p className="mt-4 text-sm text-[#5a7273]">{message}</p> : null}
+      {message && logs.length ? <p className="mt-4 text-sm text-[#5f6868]">{message}</p> : null}
     </div>
   );
 }

@@ -76,7 +76,7 @@ export function RazorpayCheckoutButton({
         name: "ScopeX Diagnostics",
         description: "Diagnostic booking payment",
         prefill: customer,
-        theme: { color: "#f37021" },
+        theme: { color: "#F7931E" },
         handler: async (response: Record<string, string>) => {
           const verifyResponse = await fetch("/api/verify-payment", {
             method: "POST",

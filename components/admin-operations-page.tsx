@@ -154,7 +154,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
   function printRows(targetRows = sortedRows) {
     const printWindow = window.open("", "_blank", "width=1100,height=800");
     if (!printWindow) return;
-    printWindow.document.write(`<!doctype html><html><head><title>ScopeX ${title}</title><style>body{font-family:Arial;padding:24px;color:#102a2d}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d8e8e4;padding:8px;text-align:left;font-size:12px}th{background:#eef8f5}</style></head><body><h1>${title}</h1>${printableRows(targetRows, mode)}</body></html>`);
+    printWindow.document.write(`<!doctype html><html><head><title>ScopeX ${title}</title><style>body{font-family:Arial;padding:24px;color:#0D0D0D}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d8e8e4;padding:8px;text-align:left;font-size:12px}th{background:#eef8f5}</style></head><body><h1>${title}</h1>${printableRows(targetRows, mode)}</body></html>`);
     printWindow.document.close();
     printWindow.print();
   }
@@ -276,14 +276,14 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Operations Management</p>
+      <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Operations Management</p>
         <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#102a2d] md:text-4xl">{title}</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5a7273] md:text-base">{subtitle}</p>
+            <h1 className="text-3xl font-bold text-[#0D0D0D] md:text-4xl">{title}</h1>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">{subtitle}</p>
           </div>
-          {mode === "revenue" ? <p className="rounded-2xl bg-[#eef8f5] px-5 py-3 text-xl font-black text-[#0f8f7c]">Total {money(totalRevenue)}</p> : null}
+          {mode === "revenue" ? <p className="rounded-2xl bg-[#eef8f5] px-5 py-3 text-xl font-black text-[#F7931E]">Total {money(totalRevenue)}</p> : null}
         </div>
 
         <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto_auto]">
@@ -299,31 +299,31 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
           <button type="button" onClick={() => printRows()} className="secondary-btn text-center">Print</button>
         </div>
 
-        <div className="mt-6 overflow-hidden rounded-[24px] border border-[#deece9]">
-          <div className="hidden bg-[#f7fbfa] text-xs font-black uppercase tracking-[0.12em] text-[#0f8f7c] lg:grid" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
+        <div className="mt-6 overflow-hidden rounded-[24px] border border-[#f1dfce]">
+          <div className="hidden bg-[#FFF8F2] text-xs font-black uppercase tracking-[0.12em] text-[#F7931E] lg:grid" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
             {cols.map((col) => <button key={col} type="button" onClick={() => changeSort(col)} className="p-4 text-left uppercase">{col.replace(/_/g, " ")}</button>)}
             <span className="p-4">Actions</span>
           </div>
-          {pageRows.length === 0 ? <p className="p-5 text-sm text-[#5a7273]">{message || "No records found."}</p> : null}
+          {pageRows.length === 0 ? <p className="p-5 text-sm text-[#5f6868]">{message || "No records found."}</p> : null}
           {pageRows.map((row) => (
-            <article key={String(row.id)} className="grid gap-3 border-t border-[#deece9] bg-white p-4 text-sm text-[#5a7273] lg:items-center" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
-              {cols.map((col) => <div key={col}><span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#0f8f7c] lg:hidden">{col.replace(/_/g, " ")}</span><span className={col.includes("amount") || col === "payable_amount" ? "font-black text-[#f37021]" : ""}>{col.includes("amount") || col === "payable_amount" ? money(row[col]) : label(row[col])}</span></div>)}
+            <article key={String(row.id)} className="grid gap-3 border-t border-[#f1dfce] bg-white p-4 text-sm text-[#5f6868] lg:items-center" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
+              {cols.map((col) => <div key={col}><span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#F7931E] lg:hidden">{col.replace(/_/g, " ")}</span><span className={col.includes("amount") || col === "payable_amount" ? "font-black text-[#F7931E]" : ""}>{col.includes("amount") || col === "payable_amount" ? money(row[col]) : label(row[col])}</span></div>)}
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => setSelected(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#0f8f7c]">View</button>
+                <button type="button" onClick={() => setSelected(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">View</button>
                 {mode === "bookings" ? (
                   <>
                     <select value={String(row.booking_status || "")} onChange={(event) => updateBooking(String(row.id), { booking_status: event.target.value })} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-bold">
                       {bookingStatuses.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
                     </select>
-                    <button type="button" onClick={() => printRows([row])} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#0f8f7c]">Print</button>
-                    <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#f37021]">Delete</button>
+                    <button type="button" onClick={() => printRows([row])} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">Print</button>
+                    <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#F7931E]">Delete</button>
                   </>
                 ) : null}
                 {mode === "users" ? (
                   <>
-                    <button type="button" onClick={() => toggleUser(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#0f8f7c]">{row.is_active ? "Deactivate" : "Activate"}</button>
-                    <button type="button" onClick={() => showLoginHistory(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#0f8f7c]">Login History</button>
-                    {isSuperAdmin ? <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#f37021]">Delete</button> : null}
+                    <button type="button" onClick={() => toggleUser(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">{row.is_active ? "Deactivate" : "Activate"}</button>
+                    <button type="button" onClick={() => showLoginHistory(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">Login History</button>
+                    {isSuperAdmin ? <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#F7931E]">Delete</button> : null}
                   </>
                 ) : null}
               </div>
@@ -332,19 +332,19 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-[#5a7273]">Page {page} of {pageCount} • {sortedRows.length} records</p>
+          <p className="text-sm text-[#5f6868]">Page {page} of {pageCount} • {sortedRows.length} records</p>
           <div className="flex gap-2">
             <button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="secondary-btn disabled:opacity-40">Previous</button>
             <button type="button" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="secondary-btn disabled:opacity-40">Next</button>
           </div>
         </div>
-        {message ? <p className="mt-4 text-sm font-bold text-[#0f8f7c]">{message}</p> : null}
+        {message ? <p className="mt-4 text-sm font-bold text-[#F7931E]">{message}</p> : null}
       </div>
 
       {mode === "users" ? (
-        <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-          <h2 className="text-2xl font-bold text-[#102a2d]">Admin and staff users</h2>
-          <p className="mt-2 text-sm text-[#5a7273]">Create Booking Manager, Report Manager, Finance Manager, and Customer Support accounts.</p>
+        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+          <h2 className="text-2xl font-bold text-[#0D0D0D]">Admin and staff users</h2>
+          <p className="mt-2 text-sm text-[#5f6868]">Create Booking Manager, Report Manager, Finance Manager, and Customer Support accounts.</p>
           {isSuperAdmin ? (
             <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_220px_160px]">
               <input value={staffForm.email} onChange={(event) => setStaffForm({ ...staffForm, email: event.target.value })} className="form-field" placeholder="Email" />
@@ -355,13 +355,13 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
               <button type="button" onClick={createStaffUser} disabled={creatingStaff} className="cta-btn disabled:opacity-60">{creatingStaff ? "Creating..." : "Create User"}</button>
             </div>
           ) : null}
-          {staffMessage ? <p className={`mt-4 rounded-2xl p-3 text-sm font-bold ${staffMessage.includes("success") ? "bg-[#eef8f5] text-[#0f8f7c]" : "bg-[#fff4ee] text-[#f37021]"}`}>{staffMessage}</p> : null}
+          {staffMessage ? <p className={`mt-4 rounded-2xl p-3 text-sm font-bold ${staffMessage.includes("success") ? "bg-[#eef8f5] text-[#F7931E]" : "bg-[#fff4ee] text-[#F7931E]"}`}>{staffMessage}</p> : null}
           {isSuperAdmin ? (
-            <div className="mt-6 rounded-[24px] border border-[#deece9] bg-[#f7fbfa] p-5">
+            <div className="mt-6 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
               <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h3 className="text-xl font-black text-[#102a2d]">Change Super Admin Password</h3>
-                  <p className="mt-1 text-sm text-[#5a7273]">Available after Super Admin login. Confirm your current password before changing it.</p>
+                  <h3 className="text-xl font-black text-[#0D0D0D]">Change Super Admin Password</h3>
+                  <p className="mt-1 text-sm text-[#5f6868]">Available after Super Admin login. Confirm your current password before changing it.</p>
                 </div>
               </div>
               <div className="mt-4 grid gap-3 lg:grid-cols-3">
@@ -371,17 +371,17 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
               </div>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button type="button" onClick={changeSuperAdminPassword} disabled={changingPassword} className="cta-btn disabled:opacity-60">{changingPassword ? "Changing..." : "Change Password"}</button>
-                {passwordMessage ? <p className={`text-sm font-bold ${passwordMessage.includes("success") || passwordMessage.includes("changed") ? "text-[#0f8f7c]" : "text-red-600"}`}>{passwordMessage}</p> : null}
+                {passwordMessage ? <p className={`text-sm font-bold ${passwordMessage.includes("success") || passwordMessage.includes("changed") ? "text-[#F7931E]" : "text-red-600"}`}>{passwordMessage}</p> : null}
               </div>
             </div>
           ) : null}
 
           <div className="mt-5 grid gap-3">
             {adminUsers.map((user) => (
-              <article key={String(user.id)} className="flex flex-col gap-3 rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4 md:flex-row md:items-center md:justify-between">
+              <article key={String(user.id)} className="flex flex-col gap-3 rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="font-black text-[#102a2d]">{label(user.email)}</p>
-                  <p className="text-sm text-[#5a7273]">{label(user.role)} • {label(user.is_active)} • Last login {label(user.last_login_at)}</p>
+                  <p className="font-black text-[#0D0D0D]">{label(user.email)}</p>
+                  <p className="text-sm text-[#5f6868]">{label(user.role)} • {label(user.is_active)} • Last login {label(user.last_login_at)}</p>
                 </div>
                 {isSuperAdmin ? <div className="flex flex-wrap gap-2"><button type="button" onClick={() => toggleStaffUser(user)} className="secondary-btn text-xs">{user.is_active ? "Deactivate" : "Activate"}</button><button type="button" onClick={() => resetStaffPassword(user)} className="secondary-btn text-xs">Reset Password</button></div> : null}
               </article>
@@ -391,10 +391,10 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
       ) : null}
 
       {selected ? (
-        <aside className="fixed inset-y-0 right-0 z-[80] w-full max-w-xl overflow-y-auto border-l border-[#deece9] bg-white p-6 shadow-2xl">
+        <aside className="fixed inset-y-0 right-0 z-[80] w-full max-w-xl overflow-y-auto border-l border-[#f1dfce] bg-white p-6 shadow-2xl">
           <button type="button" onClick={() => { setSelected(null); setHistory([]); }} className="secondary-btn text-xs">Close</button>
-          <h2 className="mt-6 text-2xl font-black text-[#102a2d]">Record details</h2>
-          <pre className="mt-4 overflow-x-auto rounded-2xl bg-[#f7fbfa] p-4 text-xs text-[#102a2d]">{JSON.stringify(selected, null, 2)}</pre>
+          <h2 className="mt-6 text-2xl font-black text-[#0D0D0D]">Record details</h2>
+          <pre className="mt-4 overflow-x-auto rounded-2xl bg-[#FFF8F2] p-4 text-xs text-[#0D0D0D]">{JSON.stringify(selected, null, 2)}</pre>
           {mode === "bookings" ? (
             <div className="mt-4 grid gap-3">
               <button type="button" onClick={() => updateBooking(String(selected.id), { booking_status: "confirmed" })} className="cta-btn">Confirm Booking</button>
@@ -404,7 +404,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
               <button type="button" onClick={() => printRows([selected])} className="secondary-btn">Print Booking</button>
             </div>
           ) : null}
-          {history.length ? <div className="mt-5"><h3 className="font-black text-[#102a2d]">Login history</h3>{history.map((item) => <p key={String(item.id)} className="mt-2 rounded-xl bg-[#f7fbfa] p-3 text-sm text-[#5a7273]">{label(item.created_at)} • {label(item.ip_address)} • {label(item.user_agent)}</p>)}</div> : null}
+          {history.length ? <div className="mt-5"><h3 className="font-black text-[#0D0D0D]">Login history</h3>{history.map((item) => <p key={String(item.id)} className="mt-2 rounded-xl bg-[#FFF8F2] p-3 text-sm text-[#5f6868]">{label(item.created_at)} • {label(item.ip_address)} • {label(item.user_agent)}</p>)}</div> : null}
         </aside>
       ) : null}
     </div>

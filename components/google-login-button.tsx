@@ -35,7 +35,7 @@ export function GoogleLoginButton() {
         type="button"
         onClick={continueWithGoogle}
         disabled={status === "loading"}
-        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#dbe9e7] bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-[#102a2d] shadow-[0_12px_24px_rgba(16,24,40,0.05)] transition hover:border-[#0f8f7c] hover:bg-[#f7fbfa] disabled:cursor-wait disabled:opacity-70"
+        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#f1dfce] bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-[#0D0D0D] shadow-[0_12px_24px_rgba(16,24,40,0.05)] transition hover:border-[#F7931E] hover:bg-[#FFF8F2] disabled:cursor-wait disabled:opacity-70"
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-[0_4px_12px_rgba(16,24,40,0.10)]">
           <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">

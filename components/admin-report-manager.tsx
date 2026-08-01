@@ -64,10 +64,10 @@ export function AdminReportManager() {
   }
 
   return (
-    <div className="rounded-[28px] border border-[#deece9] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#0f8f7c]">Report Upload Management</p>
-      <h1 className="mt-2 text-3xl font-bold text-[#102a2d] md:text-4xl">Uploaded previous reports</h1>
-      <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5a7273] md:text-base">
+    <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Report Upload Management</p>
+      <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Uploaded previous reports</h1>
+      <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">
         Search by patient name, mobile number, booking ID, or date. Download PDFs for clinical review.
       </p>
 
@@ -78,14 +78,14 @@ export function AdminReportManager() {
       </div>
 
       <div className="mt-6 grid gap-4">
-        {filteredReports.length === 0 ? <p className="rounded-2xl border border-[#deece9] bg-[#f7fbfa] p-4 text-sm text-[#5a7273]">{message || "No uploaded reports found."}</p> : null}
+        {filteredReports.length === 0 ? <p className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4 text-sm text-[#5f6868]">{message || "No uploaded reports found."}</p> : null}
         {filteredReports.map((report) => (
-          <article key={report.id} className="rounded-[22px] border border-[#deece9] bg-[#f7fbfa] p-4">
+          <article key={report.id} className="rounded-[22px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0f8f7c]">{report.booking_code || report.booking_id || "Booking pending"}</p>
-                <h2 className="mt-1 text-xl font-bold text-[#102a2d]">{report.patient_name || "Patient"}</h2>
-                <p className="mt-1 text-sm text-[#5a7273]">{report.mobile_number} - {report.file_name} - {mb(report.file_size)}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#F7931E]">{report.booking_code || report.booking_id || "Booking pending"}</p>
+                <h2 className="mt-1 text-xl font-bold text-[#0D0D0D]">{report.patient_name || "Patient"}</h2>
+                <p className="mt-1 text-sm text-[#5f6868]">{report.mobile_number} - {report.file_name} - {mb(report.file_size)}</p>
                 <p className="mt-1 text-xs text-[#7c8f90]">{report.created_at ? new Date(report.created_at).toLocaleString("en-IN") : ""}</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -95,7 +95,7 @@ export function AdminReportManager() {
                   </a>
                 ) : null}
                 {canDelete ? (
-                  <button type="button" onClick={() => deleteReport(report.id)} className="rounded-full border border-[#ffd6bf] px-5 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#f37021]">
+                  <button type="button" onClick={() => deleteReport(report.id)} className="rounded-full border border-[#ffd6bf] px-5 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E]">
                     Delete
                   </button>
                 ) : null}
@@ -105,7 +105,7 @@ export function AdminReportManager() {
         ))}
       </div>
 
-      {message && filteredReports.length ? <p className="mt-4 text-sm text-[#5a7273]">{message}</p> : null}
+      {message && filteredReports.length ? <p className="mt-4 text-sm text-[#5f6868]">{message}</p> : null}
     </div>
   );
 }

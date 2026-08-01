@@ -382,6 +382,16 @@ create table if not exists leads (
   address text,
   preferred_time text,
   purpose text,
+  company_name text,
+  contact_person text,
+  designation text,
+  official_email text,
+  company_website text,
+  state text,
+  business_type text,
+  expected_monthly_volume text,
+  message text,
+  consent boolean,
   source text not null default 'website',
   created_at timestamptz not null default now()
 );
