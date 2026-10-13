@@ -23,7 +23,7 @@ const nextConfig = {
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob:",
           "font-src 'self' data:",
-          "connect-src 'self' http://localhost:4000 https://api.razorpay.com https://*.insforge.app https://formsubmit.co",
+          "connect-src 'self' http://localhost:4000 https://api.razorpay.com https://*.supabase.co https://formsubmit.co",
           "frame-src https://api.razorpay.com https://checkout.razorpay.com",
           "frame-ancestors 'none'",
           "base-uri 'self'",

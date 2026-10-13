@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getInsForgeBrowserClient } from "@/lib/insforge-browser";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export function GoogleLoginButton() {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -12,11 +12,11 @@ export function GoogleLoginButton() {
     setMessage("");
 
     try {
-      const client = await getInsForgeBrowserClient();
+      const client = getSupabaseBrowserClient();
       const redirectTo = `${window.location.origin}/patient/google-callback`;
       const { error } = await client.auth.signInWithOAuth({
         provider: "google",
-        redirectTo
+        options: { redirectTo }
       });
 
       if (error) {

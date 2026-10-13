@@ -49,7 +49,7 @@ export function AdminOverview() {
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Admin Panel</p>
       <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Booking operations overview</h1>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">
-        This admin shell is connected to the InsForge-backed bookings and payments APIs. Use it for order review, payment reconciliation, callback assignment, and report fulfillment workflows.
+        This admin shell is connected to the ScopeX backend APIs. Use it for order review, payment reconciliation, callback assignment, and report fulfillment workflows.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">

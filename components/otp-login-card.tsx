@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { storeVerifiedMobile } from "@/lib/otp-client";
 import { storeAuthToken } from "@/lib/backend-client";
-import { GoogleLoginButton } from "@/components/google-login-button";
 
 type OtpLoginCardProps = {
   title?: string;
@@ -105,18 +104,7 @@ export function OtpLoginCard({
       <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">{title}</h1>
       <p className="mt-3 max-w-xl text-sm leading-7 text-[#5f6868] md:text-base">{description}</p>
 
-      {mode === "patient" ? (
-        <div className="mt-6 grid gap-3 md:max-w-md">
-          <GoogleLoginButton />
-          <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.14em] text-[#8aa1a2]">
-            <span className="h-px flex-1 bg-[#f1dfce]" />
-            or continue with mobile OTP
-            <span className="h-px flex-1 bg-[#f1dfce]" />
-          </div>
-        </div>
-      ) : null}
-
-      <div className={`${mode === "patient" ? "mt-4" : "mt-6"} grid gap-4 md:max-w-md`}>
+      <div className="mt-6 grid gap-4 md:max-w-md">
         <input
           value={phone}
           onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}

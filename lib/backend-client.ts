@@ -77,17 +77,7 @@ export async function logoutAuthSession() {
     // Client cleanup must still happen even if the backend is unavailable.
   }
 
-  try {
-    if (typeof window !== "undefined") {
-      const { getInsForgeBrowserClient } = await import("@/lib/insforge-browser");
-      const insforge = await getInsForgeBrowserClient();
-      await insforge.auth.signOut();
-    }
-  } catch {
-    // Google/InsForge logout is best-effort; ScopeX session cleanup remains mandatory.
-  } finally {
-    clearClientSession();
-  }
+  clearClientSession();
 }
 
 export function getStoredAuthUser(): StoredAuthUser | null {
