@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { submitLead } from "@/lib/lead-submit";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
@@ -21,11 +21,16 @@ export function HealthAdvisorForm({
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
+  const [minDate, setMinDate] = useState("");
   const [gender, setGender] = useState<AdvisorGender>("male");
   const [mobileNumber, setMobileNumber] = useState("");
   const [purpose, setPurpose] = useState<AdvisorPurpose>("before_test");
   const [status, setStatus] = useState<SubmitState>("idle");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setMinDate(new Date().toISOString().split("T")[0]);
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,9 +133,10 @@ export function HealthAdvisorForm({
           <input
             required
             type="date"
+            suppressHydrationWarning
             value={appointmentDate}
             onChange={(e) => setAppointmentDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
+            min={minDate || undefined}
             className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#F7931E]"
           />
           <input

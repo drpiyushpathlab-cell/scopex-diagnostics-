@@ -3,7 +3,6 @@ import { z } from "zod";
 import { createRazorpayOrder, getRazorpayKeyId } from "@/lib/razorpay";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { calculatePayablePaise } from "@/lib/supabase-booking";
-import { requirePatientAuth } from "@/lib/supabase-patient";
 
 export const runtime = "nodejs";
 
@@ -18,18 +17,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "bookingId is required." }, { status: 400 });
     }
 
-    const auth = requirePatientAuth(request);
     const supabase = getSupabaseServiceClient();
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("id, booking_number, booking_id, payable_amount, payment_status, user_id")
+      .select("id, booking_number, payable_amount, payment_status")
       .eq("id", parsed.data.bookingId)
       .single();
 
     if (bookingError) throw bookingError;
-    if (booking.user_id !== auth.userId) {
-      return NextResponse.json({ success: false, message: "Booking not found for this account." }, { status: 404 });
-    }
     if (booking.payment_status === "PAID") {
       return NextResponse.json({ success: false, message: "This booking is already paid." }, { status: 409 });
     }
@@ -38,7 +33,7 @@ export async function POST(request: Request) {
     const order = await createRazorpayOrder({
       amount,
       currency: "INR",
-      receipt: booking.booking_number || booking.booking_id || booking.id
+      receipt: booking.booking_number || booking.id
     });
 
     const { error: paymentError } = await supabase.from("payments").insert({

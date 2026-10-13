@@ -1,16 +1,22 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { HealthAdvisorForm } from "@/components/health-advisor-form";
 
 export function HealthAdvisorPopup() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const withinHours = useMemo(() => {
+    if (!mounted) return true;
     const now = new Date();
     const hour = now.getHours();
     return hour >= 10 && hour < 18;
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
     const openModal = () => setOpen(true);

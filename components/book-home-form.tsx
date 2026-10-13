@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { homeCollectionTimeSlots } from "@/lib/validation";
 import { submitLead } from "@/lib/lead-submit";
 
@@ -12,12 +12,17 @@ export function BookHomeForm() {
   const [age, setAge] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [collectionDate, setCollectionDate] = useState("");
+  const [minDate, setMinDate] = useState("");
   const [familyMembers, setFamilyMembers] = useState("Self only");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
   const [status, setStatus] = useState<SubmitState>("idle");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setMinDate(new Date().toISOString().split("T")[0]);
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -91,9 +96,10 @@ export function BookHomeForm() {
         <input
           required
           type="date"
+          suppressHydrationWarning
           value={collectionDate}
           onChange={(e) => setCollectionDate(e.target.value)}
-          min={new Date().toISOString().split("T")[0]}
+          min={minDate || undefined}
           className="rounded-lg border border-black/15 bg-transparent px-4 py-3 text-sm dark:border-white/20"
         />
         <select

@@ -1,9 +1,10 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { HealthLibrary } from "@/components/seo/seo-components";
 import { StructuredData } from "@/components/seo/structured-data";
 import { HealthAdvisorSection } from "@/components/health-advisor-section";
 import { Hero } from "@/components/hero";
+import { LabQualitySection } from "@/components/lab-quality-section";
 import { packagesData, testsData } from "@/lib/data";
 import { organizationSchemas } from "@/lib/seo-schemas";
 import { getSeoCities, getTestSeoSlug, slugify } from "@/lib/seo-platform";
@@ -207,15 +208,17 @@ export default function HomePage() {
         <div className="section-wrap">
           <div className="grid gap-4 md:grid-cols-4">
             {bookingSteps.map(([title, text], index) => (
-              <article key={title} className="rounded-lg border border-[#E8E2DC] bg-white p-5 shadow-[0_14px_34px_rgba(13,13,13,0.04)]">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#F7931E]">0{index + 1}</p>
-                <h2 className="mt-3 text-2xl font-black text-[#0D0D0D]">{title}</h2>
-                <p className="mt-2 text-sm leading-7 text-[#5f6868]">{text}</p>
+              <article key={title} className="rounded-2xl border border-[#E8E2DC] bg-white p-6 shadow-[0_12px_30px_rgba(13,13,13,0.03)] transition hover:-translate-y-0.5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Step 0{index + 1}</p>
+                <h2 className="mt-2 text-xl font-bold text-[#0D0D0D]">{title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#5f6868]">{text}</p>
               </article>
             ))}
           </div>
         </div>
       </section>
+
+      <LabQualitySection />
 
       <section className="bg-white py-12 md:py-16">
         <div className="section-wrap grid gap-8 lg:grid-cols-[0.85fr_1fr] lg:items-start">

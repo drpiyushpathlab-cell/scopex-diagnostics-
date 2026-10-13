@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
@@ -60,16 +60,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="light" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className={`${poppins.variable} ${montserrat.variable} font-[var(--font-poppins)]`}>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function () {
-                document.documentElement.classList.add('light');
-              })();
-            `
-          }}
-        />
+      <body suppressHydrationWarning className={`${poppins.variable} ${montserrat.variable} font-[var(--font-poppins)]`}>
         <SiteHeader />
         <main className="pb-28 md:pb-24">{children}</main>
         <SiteFooter />

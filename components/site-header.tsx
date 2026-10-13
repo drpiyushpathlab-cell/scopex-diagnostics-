@@ -8,8 +8,8 @@ import { getDashboardHrefForRole, getStoredAuthUser, onAuthChange, type StoredAu
 
 const links = [
   { href: "/#hero", label: "Home" },
-  { href: "/#packages", label: "Packages" },
-  { href: "/#why-scopex", label: "Trust" },
+  { href: "/packages", label: "Packages" },
+  { href: "/tests", label: "Tests" },
   { href: "/growth-partners", label: "Growth Partners" }
 ];
 
@@ -33,7 +33,7 @@ export function SiteHeader() {
         <div className={`section-wrap text-center text-[12px] font-semibold sm:text-[13px] ${isGrowthPartnersPage ? "text-white" : "text-[#F7931E]"}`}>
           {isGrowthPartnersPage
             ? "Pan India Network • Enterprise Solutions • Dedicated Business Support"
-            : "Real Prices | Bundle Savings | Free Home Collection Above ₹600"}
+            : "Real Prices | Bundle Savings | Free Home Collection*"}
         </div>
       </div>
 

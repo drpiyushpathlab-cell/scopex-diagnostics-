@@ -5,8 +5,6 @@ import { bookingItemSchema, getUtmPayload, indianMobileSchema, normalizeMoney, p
 
 export const runtime = "nodejs";
 
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
-
 const bookingSchema = z.object({
   sessionId: z.string().trim().min(8).max(160),
   patient: z.object({
@@ -60,12 +58,11 @@ async function loadPricedItems(
       const unitPrice = normalizeMoney(test.discounted_price || test.price);
       return {
         item_type: "test",
-        item_ref: requested.id,
-        test_id: uuidRegex.test(requested.id) ? requested.id : null,
+        item_id: requested.id,
         item_name: test.name,
         quantity: requested.quantity,
         unit_price: unitPrice,
-        total_price: unitPrice * requested.quantity
+        line_total: unitPrice * requested.quantity
       };
     }
 
@@ -74,12 +71,11 @@ async function loadPricedItems(
     const unitPrice = normalizeMoney(packageItem.selling_price);
     return {
       item_type: "package",
-      item_ref: requested.id,
-      package_id: uuidRegex.test(requested.id) ? requested.id : null,
+      item_id: requested.id,
       item_name: packageItem.name,
       quantity: requested.quantity,
       unit_price: unitPrice,
-      total_price: unitPrice * requested.quantity
+      line_total: unitPrice * requested.quantity
     };
   });
 }
@@ -114,7 +110,7 @@ export async function POST(request: Request) {
     }
 
     const pricedItems = await loadPricedItems(supabase, parsed.data.items);
-    const subtotal = pricedItems.reduce((sum, item) => sum + Number(item.total_price), 0);
+    const subtotal = pricedItems.reduce((sum, item) => sum + Number(item.line_total), 0);
     const discountTotal = 0;
     const payableAmount = subtotal - discountTotal;
 
@@ -122,7 +118,6 @@ export async function POST(request: Request) {
       .from("patients")
       .upsert(
         {
-          name: parsed.data.patient.fullName,
           full_name: parsed.data.patient.fullName,
           mobile: parsed.data.patient.mobile,
           email: parsed.data.patient.email || null,

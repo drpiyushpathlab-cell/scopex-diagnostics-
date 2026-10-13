@@ -11,15 +11,6 @@ import {
   updateFamilyMember,
   updatePatientProfile
 } from "@/lib/supabase-patient";
-import {
-  cancelSupabaseBooking,
-  createSupabaseLegacyBooking,
-  listSupabaseBookings,
-  listSupabaseReports,
-  trackSupabaseBooking,
-  uploadSupabaseReports,
-  verifySupabasePayment
-} from "@/lib/supabase-live-backend";
 
 type Context = {
   params: Promise<{ path?: string[] }>;
@@ -71,34 +62,8 @@ async function supabaseFallback(request: Request, path: string[]) {
       return NextResponse.json({ success: true });
     }
 
-    if (request.method === "POST" && joined === "/booking/create") {
-      return NextResponse.json(await createSupabaseLegacyBooking(auth, await jsonBody(request)), { status: 201 });
-    }
-
-    if (request.method === "GET" && joined === "/booking/history") {
-      return NextResponse.json({ bookings: await listSupabaseBookings(auth) });
-    }
-
-    const trackingMatch = joined.match(/^\/booking\/track\/([^/]+)$/);
-    if (request.method === "GET" && trackingMatch) {
-      return NextResponse.json(await trackSupabaseBooking(auth, decodeURIComponent(trackingMatch[1])));
-    }
-
-    const cancelMatch = joined.match(/^\/booking\/([^/]+)\/cancel$/);
-    if (request.method === "PATCH" && cancelMatch) {
-      return NextResponse.json({ success: true, booking: await cancelSupabaseBooking(auth, decodeURIComponent(cancelMatch[1])) });
-    }
-
-    if (request.method === "GET" && joined === "/reports/user") {
-      return NextResponse.json({ reports: await listSupabaseReports(auth) });
-    }
-
-    if (request.method === "POST" && joined === "/report/uploads") {
-      return NextResponse.json({ success: true, reports: await uploadSupabaseReports(auth, await jsonBody(request)) }, { status: 201 });
-    }
-
-    if (request.method === "POST" && joined === "/payment/verify") {
-      return NextResponse.json(await verifySupabasePayment(auth, await jsonBody(request)));
+    if (request.method === "GET" && (joined === "/booking/history" || joined === "/reports/user")) {
+      return NextResponse.json(joined === "/booking/history" ? { bookings: [] } : { reports: [] });
     }
 
     return missingBackendUrlResponse();
@@ -107,23 +72,9 @@ async function supabaseFallback(request: Request, path: string[]) {
   }
 }
 
-function shouldUseSupabaseBackend(path: string[]) {
-  const joined = `/${path.join("/")}`;
-  return (
-    joined === "/auth/logout" ||
-    joined.startsWith("/user/") ||
-    joined.startsWith("/family/") ||
-    joined.startsWith("/booking/") ||
-    joined.startsWith("/reports/") ||
-    joined.startsWith("/report/") ||
-    joined.startsWith("/payment/")
-  );
-}
-
 async function proxyBackend(request: NextRequest, context: Context) {
   const backendUrl = getBackendBaseUrl();
   const { path = [] } = await context.params;
-  if (shouldUseSupabaseBackend(path)) return supabaseFallback(request, path);
   if (!backendUrl) return supabaseFallback(request, path);
 
   const targetUrl = new URL(`/${path.join("/")}`, backendUrl);

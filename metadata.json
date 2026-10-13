@@ -1,0 +1,8 @@
+{
+  "name": "ScopeX Diagnostics",
+  "description": "Book blood tests at home, preventive health packages, and diagnostic services across India.",
+  "version": "1.0.0",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

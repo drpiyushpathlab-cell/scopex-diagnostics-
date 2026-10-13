@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
 import { getSupabaseServiceClient } from "@/lib/supabase";
-import { requirePatientAuth } from "@/lib/supabase-patient";
 
 export const runtime = "nodejs";
 
@@ -20,7 +19,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Missing payment verification fields." }, { status: 400 });
     }
 
-    const auth = requirePatientAuth(request);
     const isValid = verifyRazorpaySignature({
       razorpayOrderId: parsed.data.razorpay_order_id,
       razorpayPaymentId: parsed.data.razorpay_payment_id,
@@ -32,24 +30,13 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseServiceClient();
-    const { data: booking, error: bookingLookupError } = await supabase
-      .from("bookings")
-      .select("id, user_id")
-      .eq("id", parsed.data.bookingId)
-      .maybeSingle();
-    if (bookingLookupError) throw bookingLookupError;
-    if (!booking || booking.user_id !== auth.userId) {
-      return NextResponse.json({ success: false, message: "Booking not found for this account." }, { status: 404 });
-    }
-
     const { error: paymentError } = await supabase
       .from("payments")
       .update({
         provider_payment_id: parsed.data.razorpay_payment_id,
         provider_signature: parsed.data.razorpay_signature,
         status: "PAID",
-        raw_payload: parsed.data,
-        updated_at: new Date().toISOString()
+        paid_at: new Date().toISOString()
       })
       .eq("booking_id", parsed.data.bookingId)
       .eq("provider_order_id", parsed.data.razorpay_order_id);

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { AdminMetricCard } from "@/lib/booking-types";
 import { backendFetch } from "@/lib/backend-client";
-
+import { AdminAnalyticsChart } from "@/components/admin-analytics-chart";
+import { AdminStatusSummary } from "@/components/admin-status-summary";
 
 const metricLinks: Record<string, string> = {
   "Total users": "/admin/users",
@@ -15,30 +16,40 @@ const metricLinks: Record<string, string> = {
   "Active users": "/admin/sessions",
   "Paid revenue": "/admin/revenue"
 };
+
 export function AdminOverview() {
   const [metrics, setMetrics] = useState<AdminMetricCard[]>([]);
   const [recentActivities, setRecentActivities] = useState<Array<Record<string, unknown>>>([]);
   const [recentBookings, setRecentBookings] = useState<Array<Record<string, unknown>>>([]);
+  const [allBookings, setAllBookings] = useState<Array<Record<string, unknown>>>([]);
   const [recentUploads, setRecentUploads] = useState<Array<Record<string, unknown>>>([]);
   const [message, setMessage] = useState("Loading overview...");
 
   useEffect(() => {
     async function load() {
-      backendFetch("/admin/dashboard")
-        .then(async (response) => {
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.message || "Unable to load overview.");
-          }
+      try {
+        const [dashRes, bookingsRes] = await Promise.all([
+          backendFetch("/admin/dashboard").catch(() => null),
+          backendFetch("/admin/bookings-management").catch(() => null)
+        ]);
+
+        if (dashRes && dashRes.ok) {
+          const data = await dashRes.json();
           setMetrics(data.metrics ?? []);
           setRecentActivities(data.recentActivities ?? []);
           setRecentBookings(data.recentBookings ?? []);
           setRecentUploads(data.recentUploads ?? []);
-          setMessage("");
-        })
-        .catch((error) => {
-          setMessage(error instanceof Error ? error.message : "Unable to load overview.");
-        });
+        }
+
+        if (bookingsRes && bookingsRes.ok) {
+          const bData = await bookingsRes.json();
+          setAllBookings(bData.rows ?? []);
+        }
+
+        setMessage("");
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Unable to load overview.");
+      }
     }
 
     void load();
@@ -79,7 +90,11 @@ export function AdminOverview() {
         })}
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <AdminStatusSummary bookings={allBookings.length > 0 ? allBookings : recentBookings} metrics={metrics} />
+
+      <AdminAnalyticsChart initialBookings={allBookings.length > 0 ? allBookings : recentBookings} />
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
           <h2 className="text-xl font-bold text-[#0D0D0D]">Recent bookings</h2>
           <div className="mt-4 space-y-3">

@@ -222,7 +222,6 @@ export function BookingFlow() {
   const [familyMembers, setFamilyMembers] = useState<FamilyMemberInput[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("online");
   const [orderId, setOrderId] = useState("");
-  const [bookingId, setBookingId] = useState("");
   const [paymentId, setPaymentId] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
   const [detailsMessage, setDetailsMessage] = useState("");
@@ -413,7 +412,6 @@ export function BookingFlow() {
     setSubmitMessage("");
     setPatientMessage("");
     setOrderId("");
-    setBookingId("");
     setPaymentId("");
     setPreviousReports([]);
     setReportUploadMessage("");
@@ -706,10 +704,9 @@ export function BookingFlow() {
       }
 
       setOrderId(data.orderId);
-      setBookingId(data.bookingId || "");
       setCustomer(bookingCustomer);
       await uploadPreviousReports(data.orderId, data.bookingId);
-      return { orderId: data.orderId as string, bookingId: data.bookingId as string };
+      return data.orderId as string;
     } catch (error) {
       setIsSubmitting(false);
       setSubmitMessage(error instanceof Error ? error.message : "Unable to create order. Please try again.");
@@ -718,18 +715,19 @@ export function BookingFlow() {
   }
 
   async function handleOnlinePayment() {
-    const createdOrder = await createOrder();
-    if (!createdOrder?.bookingId) return;
+    const createdOrderId = await createOrder();
+    if (!createdOrderId) return;
 
     let razorpayOrder: Record<string, unknown>;
     try {
-      const razorpayResponse = await fetch("/api/supabase/payments/create-order", {
+      const razorpayResponse = await fetch("/api/create-order", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getStoredAuthToken()}`
-        },
-        body: JSON.stringify({ bookingId: createdOrder.bookingId })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Math.round(quote.payableAmount * 100),
+          currency: "INR",
+          receipt: createdOrderId
+        })
       });
 
       razorpayOrder = await razorpayResponse.json().catch(() => ({}));
@@ -784,10 +782,11 @@ export function BookingFlow() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            bookingId: createdOrder.bookingId,
-            razorpay_order_id: response.razorpay_order_id || razorpayOrder.id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature
+            orderId: createdOrderId,
+            razorpayOrderId: response.razorpay_order_id || razorpayOrder.id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+            amount: quote.payableAmount
           })
         });
 
@@ -826,8 +825,8 @@ export function BookingFlow() {
   }
 
   async function handleCodConfirmation() {
-    const createdOrder = await createOrder();
-    if (!createdOrder) return;
+    const createdOrderId = await createOrder();
+    if (!createdOrderId) return;
     setIsSubmitting(false);
     setStep("success");
   }
@@ -1236,7 +1235,7 @@ export function BookingFlow() {
             <input value={customer.phone} onChange={(e) => updateCustomer("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Mobile Number" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
             <input value={customer.email} onChange={(e) => updateCustomer("email", e.target.value)} placeholder="Email" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
             <input value={customer.city} onChange={(e) => updateCustomer("city", e.target.value)} placeholder="City" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-            <input value={customer.preferredDate} onChange={(e) => updateCustomer("preferredDate", e.target.value)} type="date" min={new Date().toISOString().split("T")[0]} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+            <input suppressHydrationWarning value={customer.preferredDate} onChange={(e) => updateCustomer("preferredDate", e.target.value)} type="date" min={new Date().toISOString().split("T")[0]} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
             <select value={customer.preferredTime} onChange={(e) => updateCustomer("preferredTime", e.target.value)} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]">
               <option value="">Preferred collection time</option>
               {slotOptions.map((slot) => (

@@ -3,6 +3,9 @@ import Link from "next/link";
 import { PackageCard } from "@/components/package-card";
 import { packagesData } from "@/lib/data";
 
+import Image from "next/image";
+import { Sparkles, ShieldCheck, CheckCircle2 } from "lucide-react";
+
 export const metadata: Metadata = {
   title: "Packages",
   description: "Explore SCOPEX premium health packages with strong pricing visibility, savings, and home collection support."
@@ -22,14 +25,50 @@ export default function PackagesPage() {
   };
 
   return (
-    <section id="packages" className="premium-section relative overflow-hidden pb-28 pt-10 md:pb-14 md:pt-12 scroll-mt-32">
+    <section id="packages" className="relative overflow-hidden pb-28 pt-8 md:pb-16 md:pt-10 scroll-mt-32 bg-gradient-to-b from-[#FFFDFB] via-white to-[#FBF8F5]">
       <div className="section-wrap relative z-10">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#FF6A00]">Premium Wellness Plans</p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">Premium Preventive Care. Precision Screening.</h1>
-          <p className="premium-muted mt-4 text-base leading-7 md:text-lg">
-            Clean pricing, trusted processing, and home collection convenience across every SCOPEX package.
-          </p>
+        <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] mb-12">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#f1dfce] bg-[#FFF8F2] px-3.5 py-1 text-xs font-semibold text-[#F7931E]">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Comprehensive Health Screening</span>
+            </div>
+            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0D0D0D] sm:text-4xl md:text-5xl">
+              Preventive care and precision screening for your family.
+            </h1>
+            <p className="mt-4 text-base leading-relaxed text-[#5f6868] sm:text-lg">
+              Clear prices with bundle savings applied automatically. Enjoy doorstep sample collection and certified NABL laboratory processing across every package.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-4 text-xs font-medium text-[#404040]">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>Zero hidden fees</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>NABL standard labs</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>Digital reports in 10-12 hrs</span>
+              </div>
+            </div>
+          </div>
+          <div className="relative aspect-[16/10] w-full overflow-hidden rounded-3xl border border-[#E8E2DC] shadow-[0_16px_40px_rgba(13,13,13,0.06)] bg-[#f7f3ee]">
+            <Image
+              src="/images/family-health.jpg"
+              alt="ScopeX preventive health checkups for the whole family"
+              fill
+              priority
+              className="object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs font-medium">
+              <span>Trusted by 10,000+ Indian Families</span>
+              <span className="rounded-md bg-white/20 px-2 py-0.5 backdrop-blur-sm">Home Collection</span>
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 space-y-10">
