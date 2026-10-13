@@ -222,6 +222,7 @@ export function BookingFlow() {
   const [familyMembers, setFamilyMembers] = useState<FamilyMemberInput[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("online");
   const [orderId, setOrderId] = useState("");
+  const [bookingId, setBookingId] = useState("");
   const [paymentId, setPaymentId] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
   const [detailsMessage, setDetailsMessage] = useState("");
@@ -412,6 +413,7 @@ export function BookingFlow() {
     setSubmitMessage("");
     setPatientMessage("");
     setOrderId("");
+    setBookingId("");
     setPaymentId("");
     setPreviousReports([]);
     setReportUploadMessage("");
@@ -704,9 +706,10 @@ export function BookingFlow() {
       }
 
       setOrderId(data.orderId);
+      setBookingId(data.bookingId || "");
       setCustomer(bookingCustomer);
       await uploadPreviousReports(data.orderId, data.bookingId);
-      return data.orderId as string;
+      return { orderId: data.orderId as string, bookingId: data.bookingId as string };
     } catch (error) {
       setIsSubmitting(false);
       setSubmitMessage(error instanceof Error ? error.message : "Unable to create order. Please try again.");
@@ -715,19 +718,18 @@ export function BookingFlow() {
   }
 
   async function handleOnlinePayment() {
-    const createdOrderId = await createOrder();
-    if (!createdOrderId) return;
+    const createdOrder = await createOrder();
+    if (!createdOrder?.bookingId) return;
 
     let razorpayOrder: Record<string, unknown>;
     try {
-      const razorpayResponse = await fetch("/api/create-order", {
+      const razorpayResponse = await fetch("/api/supabase/payments/create-order", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: Math.round(quote.payableAmount * 100),
-          currency: "INR",
-          receipt: createdOrderId
-        })
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getStoredAuthToken()}`
+        },
+        body: JSON.stringify({ bookingId: createdOrder.bookingId })
       });
 
       razorpayOrder = await razorpayResponse.json().catch(() => ({}));
@@ -782,11 +784,10 @@ export function BookingFlow() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            orderId: createdOrderId,
-            razorpayOrderId: response.razorpay_order_id || razorpayOrder.id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-            amount: quote.payableAmount
+            bookingId: createdOrder.bookingId,
+            razorpay_order_id: response.razorpay_order_id || razorpayOrder.id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
           })
         });
 
@@ -825,8 +826,8 @@ export function BookingFlow() {
   }
 
   async function handleCodConfirmation() {
-    const createdOrderId = await createOrder();
-    if (!createdOrderId) return;
+    const createdOrder = await createOrder();
+    if (!createdOrder) return;
     setIsSubmitting(false);
     setStep("success");
   }
