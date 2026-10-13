@@ -312,11 +312,10 @@ export function BookingFlow() {
       }),
     [allPatientItems, bookingFamilyMembers, selectedItems]
   );
-  const orderItemsForSummary = allPatientItems.length ? allPatientItems : selectedItems;
-  const totalMrp = orderItemsForSummary.reduce((sum, item) => sum + (item.mrp || item.price), 0);
-  const packageDiscountTotal = Math.max(0, totalMrp - quote.subtotal);
-  const specialDiscountTotal = quote.discountTotal;
-  const totalSavings = packageDiscountTotal + specialDiscountTotal;
+  const realPriceSubtotal = quote.realPriceSubtotal ?? quote.subtotal;
+  const bundleSaving = quote.bundleSaving ?? quote.discountTotal;
+  const collectionCharge = quote.collectionCharge ?? 0;
+  const freeCollectionThreshold = quote.freeCollectionThreshold ?? 600;
 
   function toggleSelection(itemId: string) {
     setSelectedIds((prev) => (prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]));
@@ -945,7 +944,7 @@ export function BookingFlow() {
           <SectionTitle
             eyebrow="Step 1"
             title="Choose tests and packages"
-            description="Select one or more packages or tests. We will automatically apply first-time and family discounts at checkout."
+            description="Select one or more packages or tests. ScopeX real prices are shown upfront, with additional bundle savings applied at checkout."
           />
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -985,11 +984,11 @@ export function BookingFlow() {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-extrabold text-[#F7931E]">{formatInr(item.price)}</p>
-                      <p className="text-xs text-[#7c8f90] line-through">{formatInr(item.mrp)}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7c8f90]">ScopeX real price</p>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="rounded-full bg-[#fff7f1] px-3 py-1 font-semibold text-[#F7931E]">{item.discount}% OFF</span>
+                    <span className="rounded-full bg-[#fff7f1] px-3 py-1 font-semibold text-[#F7931E]">Transparent pricing</span>
                     <span className={`font-semibold ${selected ? "text-[#F7931E]" : "text-[#264547]"}`}>{selected ? "Selected" : "Tap to add"}</span>
                   </div>
                 </button>
@@ -1187,7 +1186,6 @@ export function BookingFlow() {
                       <div className="mt-4 grid max-h-72 gap-3 overflow-y-auto pr-1 md:grid-cols-2">
                         {patientCatalog.map((item) => {
                           const picked = patient.itemIds.includes(item.id);
-                          const saving = Math.max(0, item.mrp - item.price);
                           return (
                             <button key={item.id} type="button" onClick={() => togglePatientItem(patient.patientId, item.id)} className={`rounded-2xl border p-4 text-left transition hover:border-[#F7931E] ${picked ? "border-[#F7931E] bg-white shadow-[0_10px_22px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white/80"}`}>
                               <div className="flex items-start justify-between gap-3">
@@ -1197,13 +1195,12 @@ export function BookingFlow() {
                                 </div>
                                 <div className="text-right">
                                   <p className="font-black text-[#F7931E]">{formatInr(item.price)}</p>
-                                  {saving > 0 ? <p className="text-[11px] font-semibold text-[#7c8f90] line-through">{formatInr(item.mrp)}</p> : null}
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7c8f90]">Real price</p>
                                 </div>
                               </div>
                               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex flex-wrap gap-2">
-                                  {item.discount > 0 ? <span className="rounded-full bg-[#fff3ea] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#F7931E]">{item.discount}% OFF</span> : null}
-                                  {saving > 0 ? <span className="rounded-full bg-[#e9fbf7] px-2.5 py-1 text-[11px] font-bold text-[#F7931E]">Save {formatInr(saving)}</span> : null}
+                                  <span className="rounded-full bg-[#fff3ea] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#F7931E]">Bundle eligible</span>
                                 </div>
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">{picked ? "Selected" : "Add"}</p>
                               </div>
@@ -1383,20 +1380,17 @@ export function BookingFlow() {
             <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
               <h3 className="text-xl font-bold text-[#0D0D0D]">Order summary</h3>
               <div className="mt-4 space-y-3 text-sm text-[#5f6868]">
-                <div className="flex justify-between"><span>Total MRP</span><span>{formatInr(totalMrp)}</span></div>
-                {packageDiscountTotal > 0 ? (
-                  <div className="flex justify-between text-[#F7931E]"><span>Package/Test discount</span><span>- {formatInr(packageDiscountTotal)}</span></div>
-                ) : null}
-                <div className="flex justify-between"><span>Subtotal after discount</span><span>{formatInr(quote.subtotal)}</span></div>
+                <div className="flex justify-between"><span>ScopeX real price subtotal</span><span>{formatInr(realPriceSubtotal)}</span></div>
                 {quote.appliedOffers.map((offer) => (
                   <div key={offer.code} className="flex justify-between text-[#F7931E]"><span>{offer.title}</span><span>- {formatInr(offer.discountAmount)}</span></div>
                 ))}
-                {specialDiscountTotal > 0 ? (
-                  <div className="flex justify-between font-semibold text-[#F7931E]"><span>Special discount total</span><span>- {formatInr(specialDiscountTotal)}</span></div>
+                {bundleSaving > 0 ? (
+                  <div className="flex justify-between font-semibold text-[#F7931E]"><span>Bundle saving total</span><span>- {formatInr(bundleSaving)}</span></div>
                 ) : null}
+                <div className="flex justify-between"><span>Home collection charge</span><span>{collectionCharge > 0 ? formatInr(collectionCharge) : "Free"}</span></div>
                 <div className="border-t border-[#f1dfce] pt-3 flex justify-between text-base font-bold text-[#0D0D0D]"><span>Payable</span><span>{formatInr(quote.payableAmount)}</span></div>
-                {totalSavings > 0 ? (
-                  <div className="rounded-2xl bg-[#e9fbf7] px-4 py-3 text-center font-black text-[#F7931E]">You save {formatInr(totalSavings)} on this booking</div>
+                {collectionCharge > 0 ? (
+                  <div className="rounded-2xl bg-white px-4 py-3 text-center font-bold text-[#5f6868]">Home collection is free from {formatInr(freeCollectionThreshold)}.</div>
                 ) : null}
               </div>
 

@@ -33,7 +33,7 @@ export function SiteHeader() {
         <div className={`section-wrap text-center text-[12px] font-semibold sm:text-[13px] ${isGrowthPartnersPage ? "text-white" : "text-[#F7931E]"}`}>
           {isGrowthPartnersPage
             ? "Pan India Network • Enterprise Solutions • Dedicated Business Support"
-            : "Get 15% OFF on First Booking | Free Home Collection"}
+            : "Real Prices | Bundle Savings | Free Home Collection Above ₹600"}
         </div>
       </div>
 

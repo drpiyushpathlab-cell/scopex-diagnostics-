@@ -53,10 +53,15 @@ export type OfferBreakdown = {
 };
 
 export type BookingQuote = {
+  referenceTotal?: number;
+  realPriceSubtotal?: number;
   subtotal: number;
+  bundleSaving?: number;
   discountTotal: number;
+  collectionCharge?: number;
   payableAmount: number;
   appliedOffers: OfferBreakdown[];
+  freeCollectionThreshold?: number;
 };
 
 export type BookingOrderPayload = {

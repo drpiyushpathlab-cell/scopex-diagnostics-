@@ -10,6 +10,7 @@
     "build": "next build",
     "build:backend": "tsc -p tsconfig.backend.json",
     "build:all": "npm run build && npm run build:backend",
+    "test:pricing": "node --import tsx --test tests/pricing.test.ts",
     "start": "next start",
     "start:backend": "tsx backend/src/server.ts",
     "dev:backend": "tsx watch backend/src/server.ts",
@@ -17,6 +18,7 @@
   },
   "dependencies": {
     "@insforge/sdk": "^1.2.6",
+    "@supabase/supabase-js": "^2.49.4",
     "axios": "^1.17.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

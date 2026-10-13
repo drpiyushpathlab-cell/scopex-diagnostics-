@@ -45,6 +45,7 @@ export async function calculateQuoteWithOffers(input: OfferInput) {
   const discountAmount = Math.min(couponDiscount, baseQuote.payableAmount);
 
   return {
+    ...baseQuote,
     subtotal: baseQuote.subtotal,
     discountTotal: baseQuote.discountTotal + discountAmount,
     payableAmount: Math.max(0, baseQuote.payableAmount - discountAmount),
@@ -52,9 +53,9 @@ export async function calculateQuoteWithOffers(input: OfferInput) {
       ...baseQuote.appliedOffers,
       {
         code: coupon.code,
-        title: `${coupon.code} coupon`,
+        title: `${coupon.code} saving code`,
         discountAmount,
-        description: "Coupon discount applied"
+        description: "Saving code applied"
       }
     ]
   };

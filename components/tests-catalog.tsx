@@ -175,8 +175,7 @@ export function TestsCatalog() {
                         </div>
                         <div className="shrink-0 pl-2 text-right">
                           <p className="text-[1.9rem] font-bold leading-none text-[#FF6A00]">{"\u20B9"}{formatPrice(test.price)}</p>
-                          {test.mrp ? <p className="premium-subtle mt-1 text-xs line-through">MRP {"\u20B9"}{formatPrice(test.mrp)}</p> : null}
-                          {test.discount ? <p className="mt-1 text-xs font-semibold text-[#FF6A00]">{test.discount}% OFF</p> : null}
+                          <p className="premium-subtle mt-1 text-xs">ScopeX real price</p>
                         </div>
                       </div>
 

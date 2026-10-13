@@ -511,8 +511,8 @@ export function PatientDashboard() {
               </div>
               <div className="rounded-[22px] bg-white p-4 text-left shadow-sm md:text-right">
                 <p className="text-3xl font-black text-[#ff6a00]">{rupee(featuredPackage.price)}</p>
-                <p className="text-xs text-[#7c8f90] line-through">MRP {rupee(featuredPackage.mrp)}</p>
-                <p className="text-xs font-bold text-[#F7931E]">{featuredPackage.discount}% OFF</p>
+                <p className="text-xs text-[#7c8f90]">ScopeX real price</p>
+                <p className="text-xs font-bold text-[#F7931E]">Bundle savings may apply</p>
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">

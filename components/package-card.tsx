@@ -28,7 +28,6 @@ function formatCurrency(value: number) {
 
 export function PackageCard({ item }: { item: PackageItem }) {
   const [showDetails, setShowDetails] = useState(false);
-  const saveAmount = item.mrp - item.price;
   const compactOverview = item.overview.slice(0, 10);
   const visibleOverview = showDetails ? item.overview : compactOverview;
   const hasMoreDetails = item.overview.length > compactOverview.length;
@@ -45,7 +44,7 @@ export function PackageCard({ item }: { item: PackageItem }) {
 
       <div className="flex items-start justify-between gap-4">
         <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${badgeClassMap[item.badge]}`}>{item.badge}</span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#FF6A00]">Limited Time Offer</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#FF6A00]">Real Price</span>
       </div>
 
       <h3 className="mt-5 text-[1.72rem] font-bold leading-tight md:text-[1.85rem]">{item.name}</h3>
@@ -54,12 +53,12 @@ export function PackageCard({ item }: { item: PackageItem }) {
       <div className="mt-6 flex items-end gap-3">
         <p className="text-[2.4rem] font-bold leading-none text-[#FF6A00]">{"\u20B9"}{formatCurrency(item.price)}</p>
         <div className="pb-1">
-          <p className="premium-subtle text-sm line-through">MRP {"\u20B9"}{formatCurrency(item.mrp)}</p>
-          <p className="text-sm font-semibold text-[#FF6A00]">{item.discount}% OFF</p>
+          <p className="premium-subtle text-sm">ScopeX managed price</p>
+          <p className="text-sm font-semibold text-[#FF6A00]">Bundle savings may apply</p>
         </div>
       </div>
 
-      <p className="mt-2 text-sm font-semibold text-[#FF6A00]">Save {"\u20B9"}{formatCurrency(saveAmount)}</p>
+      <p className="mt-2 text-sm font-semibold text-[#FF6A00]">No fabricated reference-price or fake discount claims.</p>
 
       <div className="premium-card-soft mt-6 flex min-h-[260px] flex-col rounded-2xl p-4">
         <p className="premium-subtle text-xs font-semibold uppercase tracking-[0.14em]">Test Overview</p>

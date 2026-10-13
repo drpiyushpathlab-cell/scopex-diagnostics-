@@ -152,6 +152,22 @@ const popularTests = [
   { label: "LFT", href: "/tests?focus=organ-function-tests&filter=profile&search=liver" }
 ];
 
+const bookingSteps = [
+  ["Search", "Find tests or packages by health need, organ system, or common marker."],
+  ["Book", "Choose patient, address, collection slot, and payment method."],
+  ["Collect", "A trained collection partner visits your home at the selected time."],
+  ["Report", "Track booking status and access reports from the patient dashboard."]
+];
+
+const healthSystems = [
+  ["Metabolic", "HbA1c, glucose, insulin, lipid markers"],
+  ["Thyroid", "TSH and thyroid profile testing"],
+  ["Heart", "Lipid profile and preventive risk markers"],
+  ["Liver", "Liver enzymes and wellness profiles"],
+  ["Kidney", "Creatinine, urea, electrolytes, urine markers"],
+  ["Vitamins", "Vitamin D, B12 and nutrition screening"]
+];
+
 function formatPrice(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }
@@ -186,6 +202,43 @@ export default function HomePage() {
     <>
       <StructuredData data={organizationSchemas()} />
       <Hero />
+
+      <section className="bg-[#FAFAF8] py-10 md:py-14">
+        <div className="section-wrap">
+          <div className="grid gap-4 md:grid-cols-4">
+            {bookingSteps.map(([title, text], index) => (
+              <article key={title} className="rounded-lg border border-[#E8E2DC] bg-white p-5 shadow-[0_14px_34px_rgba(13,13,13,0.04)]">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#F7931E]">0{index + 1}</p>
+                <h2 className="mt-3 text-2xl font-black text-[#0D0D0D]">{title}</h2>
+                <p className="mt-2 text-sm leading-7 text-[#5f6868]">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-12 md:py-16">
+        <div className="section-wrap grid gap-8 lg:grid-cols-[0.85fr_1fr] lg:items-start">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#F7931E]">System By System</p>
+            <h2 className="mt-3 text-4xl font-black leading-tight text-[#0D0D0D] md:text-5xl">Understand health by the markers that matter.</h2>
+            <p className="mt-4 text-base leading-8 text-[#5f6868]">
+              Inspired by modern preventive-health flows, ScopeX groups tests into practical health systems so patients can move from symptoms to the right booking faster.
+            </p>
+            <Link href="/tests" className="secondary-btn mt-6 rounded-md">
+              Explore Test Catalog
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {healthSystems.map(([title, text]) => (
+              <Link key={title} href={`/tests?search=${encodeURIComponent(title)}`} className="rounded-lg border border-[#E8E2DC] bg-[#FAFAF8] p-5 transition hover:-translate-y-1 hover:border-[#F7931E] hover:bg-white">
+                <h3 className="text-xl font-black text-[#0D0D0D]">{title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[#5f6868]">{text}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="container-px pt-8 md:pt-10">
         <div className="section-wrap rounded-[28px] border border-[#d9ebe7] bg-[#FFF8F2] p-6 shadow-[0_12px_30px_rgba(16,24,40,0.05)]">
@@ -240,15 +293,15 @@ export default function HomePage() {
                   <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${homepageBadgeClassMap[item.badge] ?? "bg-[#fff3e5] text-[#F7931E] border border-[#d9ebe7]"}`}>
                     {item.badge}
                   </span>
-                  <span className="text-xs font-semibold text-[#F7931E]">{item.discount}% OFF</span>
+                  <span className="text-xs font-semibold text-[#F7931E]">Real Price</span>
                   </div>
                   <h3 className="mt-4 text-xl font-bold text-[#0D0D0D] transition group-hover:text-[#F7931E]">{item.name}</h3>
                   <p className="mt-2 text-sm leading-7 text-[#5f6868]">{item.tagline}</p>
                   <div className="mt-5 flex items-end gap-3">
                     <p className="text-4xl font-extrabold text-[#0D0D0D]">{"\u20B9"}{formatPrice(item.price)}</p>
                     <div className="pb-1">
-                      <p className="text-xs text-[#7c8f90] line-through">MRP {"\u20B9"}{formatPrice(item.mrp)}</p>
-                      <p className="text-xs font-semibold text-[#F7931E]">Save {"\u20B9"}{formatPrice(item.mrp - item.price)}</p>
+                      <p className="text-xs text-[#7c8f90]">ScopeX managed price</p>
+                      <p className="text-xs font-semibold text-[#F7931E]">Bundle savings at checkout</p>
                     </div>
                   </div>
                   <ul className="mt-5 space-y-2 text-sm leading-7 text-[#5f6868]">

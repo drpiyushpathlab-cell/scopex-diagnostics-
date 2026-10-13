@@ -47,11 +47,7 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(circle at 12% 8%, rgba(247, 147, 30, 0.12), transparent 28%),
-    radial-gradient(circle at 88% 14%, rgba(247, 147, 30, 0.08), transparent 26%),
-    linear-gradient(180deg, #FFF8F2 0%, #FFEEDC 56%, #FFE2C2 100%);
-  background-attachment: fixed;
+  background: #ffffff;
   color: var(--text);
   font-family: var(--font-poppins), sans-serif;
   font-weight: 400;
@@ -71,18 +67,18 @@ h4 {
 }
 
 .section-wrap {
-  @apply mx-auto max-w-6xl container-px;
+  @apply mx-auto max-w-[1180px] container-px;
 }
 
 .card {
-  @apply rounded-2xl border p-6;
+  @apply rounded-lg border p-6;
   border-color: #f1dfce;
   background: var(--surface);
   box-shadow: 0 16px 36px rgba(16, 24, 40, 0.05);
 }
 
 .cta-btn {
-  @apply inline-flex min-h-[44px] items-center justify-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0;
+  @apply inline-flex min-h-[44px] items-center justify-center rounded-lg px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0;
   background: var(--accent);
   box-shadow: 0 10px 24px rgba(243, 112, 33, 0.2);
 }
@@ -93,8 +89,8 @@ h4 {
 }
 
 .secondary-btn {
-  @apply inline-flex min-h-[44px] items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] transition;
-  border-color: #f7d7bb;
+  @apply inline-flex min-h-[44px] items-center justify-center rounded-lg border px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] transition;
+  border-color: #E8E2DC;
   color: var(--primary);
   background: #ffffff;
 }
@@ -116,26 +112,26 @@ h4 {
 }
 
 .premium-panel {
-  border: 1px solid #f1dfce;
+  border: 1px solid #E8E2DC;
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 16px 36px rgba(16, 24, 40, 0.06);
+  box-shadow: 0 14px 34px rgba(13, 13, 13, 0.05);
 }
 
 .premium-card {
-  border: 1px solid #f1dfce;
+  border: 1px solid #E8E2DC;
   background: #ffffff;
   color: var(--text);
-  box-shadow: 0 16px 36px rgba(16, 24, 40, 0.06);
+  box-shadow: 0 14px 34px rgba(13, 13, 13, 0.05);
 }
 
 .premium-card-soft {
-  border: 1px solid #e3efed;
-  background: #FFF8F2;
+  border: 1px solid #E8E2DC;
+  background: #FAFAF8;
 }
 
 .premium-chip {
-  border: 1px solid #f1dfce;
-  background: #fff3e5;
+  border: 1px solid #E8E2DC;
+  background: #FAFAF8;
   color: var(--primary);
 }
 

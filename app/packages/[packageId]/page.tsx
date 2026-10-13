@@ -59,8 +59,8 @@ export default async function PackageDetailPage({ params }: PackagePageProps) {
             </div>
             <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] px-5 py-4">
               <p className="text-4xl font-extrabold text-[#F7931E]">₹{new Intl.NumberFormat("en-IN").format(item.price)}</p>
-              <p className="mt-1 text-sm text-[#7c8f90] line-through">MRP ₹{new Intl.NumberFormat("en-IN").format(item.mrp)}</p>
-              <p className="mt-1 text-sm font-semibold text-[#F7931E]">{item.discount}% OFF</p>
+              <p className="mt-1 text-sm text-[#7c8f90]">ScopeX real package price</p>
+              <p className="mt-1 text-sm font-semibold text-[#F7931E]">No fabricated reference-price claims</p>
             </div>
           </div>
 
