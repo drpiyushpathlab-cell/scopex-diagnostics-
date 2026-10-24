@@ -181,12 +181,12 @@ export function HomeCollectionPopup() {
   return (
     <div className="fixed inset-0 z-[85] flex items-center justify-center bg-[#0D0D0D]/45 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="home-collection-popup-title">
       <div className="home-collection-popup-panel relative w-full max-w-[450px] rounded-[20px] border border-[#f1dfce] bg-white p-5 text-[#0D0D0D] shadow-[0_24px_70px_rgba(13,13,13,0.22)] md:p-6">
-        <button type="button" onClick={closePopup} className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-[#f1dfce] bg-[#FFF8F2] text-2xl leading-none text-[#0D0D0D] transition hover:-translate-y-0.5 hover:border-[#F7931E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7931E]" aria-label="Close home collection popup">
+        <button type="button" onClick={closePopup} className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-[#f1dfce] bg-[#FFF8F2] text-2xl leading-none text-[#0D0D0D] transition hover:-translate-y-0.5 hover:border-[#FF6B00] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6B00]" aria-label="Close home collection popup">
           ×
         </button>
 
         <div className="pr-12">
-          <p className="inline-flex rounded-full border border-[#f7d7bb] bg-[#FFF8F2] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#F7931E]">🎉 FREE Home Sample Collection*</p>
+          <p className="inline-flex rounded-full border border-[#f7d7bb] bg-[#FFF8F2] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#FF6B00]">🎉 FREE Home Sample Collection*</p>
           <h2 id="home-collection-popup-title" className="mt-4 text-2xl font-bold leading-tight text-[#0D0D0D]">🏠 Book Home Sample Collection</h2>
           <p className="mt-2 text-sm leading-6 text-[#5f6868]">Book your blood test at home in just one click</p>
         </div>

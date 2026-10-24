@@ -13,7 +13,7 @@ export default function DiseasesIndexPage() {
     <section className="container-px py-14 md:py-16">
       <div className="section-wrap">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Disease Guides</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Disease Guides</p>
           <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Find tests by health condition</h1>
           <p className="mt-4 text-sm leading-8 text-[#5f6868] md:text-base">
             Browse reusable disease-focused diagnostic pages that connect common health concerns with relevant tests,
@@ -30,7 +30,7 @@ export default function DiseasesIndexPage() {
             >
               <h2 className="text-xl font-bold text-[#0D0D0D]">{page.h1}</h2>
               <p className="mt-2 text-sm leading-7 text-[#5f6868]">{page.description}</p>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#F7931E]">View Tests</p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#FF6B00]">View Tests</p>
             </Link>
           ))}
         </div>

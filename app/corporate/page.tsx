@@ -12,7 +12,7 @@ export default function CorporateIndexPage() {
     <section className="container-px py-14 md:py-16">
       <div className="section-wrap">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Corporate Healthcare</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Corporate Healthcare</p>
           <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Enterprise diagnostic programs</h1>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">

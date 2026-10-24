@@ -15,7 +15,7 @@ export default function CitiesIndexPage() {
     <section className="container-px py-14 md:py-16">
       <div className="section-wrap">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">City SEO</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">City SEO</p>
           <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Blood test at home across India</h1>
           <p className="mt-4 text-sm leading-8 text-[#5f6868] md:text-base">
             ScopeX Diagnostics is building scalable city pages for home sample collection, preventive health checkups,
@@ -28,7 +28,7 @@ export default function CitiesIndexPage() {
             <Link
               key={city}
               href={`/blood-test-in-${slugify(city)}`}
-              className="rounded-[22px] border border-[#f1dfce] bg-white p-4 text-sm font-semibold text-[#5f6868] shadow-[0_12px_28px_rgba(16,24,40,0.05)] transition hover:-translate-y-1 hover:border-[#F7931E] hover:text-[#F7931E]"
+              className="rounded-[22px] border border-[#f1dfce] bg-white p-4 text-sm font-semibold text-[#5f6868] shadow-[0_12px_28px_rgba(16,24,40,0.05)] transition hover:-translate-y-1 hover:border-[#FF6B00] hover:text-[#FF6B00]"
             >
               Blood Test in {city}
             </Link>

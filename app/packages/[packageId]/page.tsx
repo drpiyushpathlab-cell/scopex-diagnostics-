@@ -46,21 +46,21 @@ export default async function PackageDetailPage({ params }: PackagePageProps) {
   return (
     <section className="container-px py-10 md:py-14">
       <div className="section-wrap max-w-5xl">
-        <Link href="/packages" className="mb-5 inline-flex text-sm font-semibold text-[#F7931E]">
+        <Link href="/packages" className="mb-5 inline-flex text-sm font-semibold text-[#FF6B00]">
           ← Back to Packages
         </Link>
 
         <div className="rounded-[30px] border border-[#f1dfce] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">{item.section}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">{item.section}</p>
               <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-5xl">{item.name}</h1>
               <p className="mt-3 text-base leading-8 text-[#5f6868] md:text-lg">{item.tagline}</p>
             </div>
             <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] px-5 py-4">
-              <p className="text-4xl font-extrabold text-[#F7931E]">₹{new Intl.NumberFormat("en-IN").format(item.price)}</p>
+              <p className="text-4xl font-extrabold text-[#FF6B00]">₹{new Intl.NumberFormat("en-IN").format(item.price)}</p>
               <p className="mt-1 text-sm text-[#7c8f90]">ScopeX real package price</p>
-              <p className="mt-1 text-sm font-semibold text-[#F7931E]">No fabricated reference-price claims</p>
+              <p className="mt-1 text-sm font-semibold text-[#FF6B00]">No fabricated reference-price claims</p>
             </div>
           </div>
 
@@ -80,7 +80,7 @@ export default async function PackageDetailPage({ params }: PackagePageProps) {
                 <ul className="mt-4 space-y-2 text-sm leading-7 text-[#5f6868]">
                   {item.whyPackage.map((point) => (
                     <li key={point} className="flex gap-2">
-                      <span className="text-[#F7931E]">?</span>
+                      <span className="text-[#FF6B00]">?</span>
                       <span>{point}</span>
                     </li>
                   ))}
@@ -110,7 +110,7 @@ export default async function PackageDetailPage({ params }: PackagePageProps) {
           </div>
 
           <div className="mt-5">
-            <Link href="/packages" className="text-sm font-medium text-[#7c8f90] underline-offset-4 transition hover:text-[#F7931E] hover:underline">
+            <Link href="/packages" className="text-sm font-medium text-[#7c8f90] underline-offset-4 transition hover:text-[#FF6B00] hover:underline">
               View all other packages
             </Link>
           </div>

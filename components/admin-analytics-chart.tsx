@@ -133,7 +133,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
       {/* Header & Controls */}
       <div className="flex flex-col gap-4 border-b border-[#f1dfce] pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#F7931E]">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
             <TrendingUp className="h-4 w-4" />
             <span>30-Day Performance Visualizer</span>
           </div>
@@ -152,7 +152,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
             <button
               onClick={() => setViewMode("both")}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                viewMode === "both" ? "bg-white text-[#F7931E] shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
+                viewMode === "both" ? "bg-white text-[#FF6B00] shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
               }`}
             >
               Overview
@@ -160,7 +160,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
             <button
               onClick={() => setViewMode("bookings")}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                viewMode === "bookings" ? "bg-white text-[#F7931E] shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
+                viewMode === "bookings" ? "bg-white text-[#FF6B00] shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
               }`}
             >
               Bookings
@@ -168,7 +168,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
             <button
               onClick={() => setViewMode("revenue")}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                viewMode === "revenue" ? "bg-white text-[#F7931E] shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
+                viewMode === "revenue" ? "bg-white text-[#FF6B00] shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
               }`}
             >
               Revenue
@@ -182,7 +182,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
                 key={r}
                 onClick={() => setTimeRange(r)}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-                  timeRange === r ? "bg-[#F7931E] text-white shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
+                  timeRange === r ? "bg-[#FF6B00] text-white shadow-sm" : "text-[#5f6868] hover:text-[#0D0D0D]"
                 }`}
               >
                 {r}D
@@ -197,7 +197,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
         <div className="rounded-2xl border border-[#f1dfce] bg-[#FFFDFB] p-4">
           <div className="flex items-center justify-between text-xs text-[#5f6868]">
             <span className="font-semibold uppercase tracking-wider">Total Bookings</span>
-            <Activity className="h-4 w-4 text-[#F7931E]" />
+            <Activity className="h-4 w-4 text-[#FF6B00]" />
           </div>
           <p className="mt-2 text-2xl font-extrabold text-[#0D0D0D] tabular-nums sm:text-3xl">
             {summary.totalBookings}
@@ -224,9 +224,9 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
         <div className="rounded-2xl border border-[#f1dfce] bg-[#FFFDFB] p-4">
           <div className="flex items-center justify-between text-xs text-[#5f6868]">
             <span className="font-semibold uppercase tracking-wider">Gross Revenue</span>
-            <DollarSign className="h-4 w-4 text-[#F7931E]" />
+            <DollarSign className="h-4 w-4 text-[#FF6B00]" />
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-[#F7931E] tabular-nums sm:text-3xl">
+          <p className="mt-2 text-2xl font-extrabold text-[#FF6B00] tabular-nums sm:text-3xl">
             {formatINR(summary.totalRevenue)}
           </p>
           <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
@@ -259,8 +259,8 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
             <defs>
               {/* ScopeX Amber Gradient */}
               <linearGradient id="bookingAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#F7931E" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#F7931E" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="#FF6B00" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#FF6B00" stopOpacity={0.0} />
               </linearGradient>
 
               {/* Revenue Emerald Gradient */}
@@ -352,7 +352,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
                 type="monotone"
                 dataKey="bookings"
                 name="Total Bookings"
-                stroke="#F7931E"
+                stroke="#FF6B00"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#bookingAreaGrad)"
@@ -406,7 +406,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
         <p>
           💡 <span className="font-semibold text-[#0D0D0D]">Growth Note:</span> Morning slots (6:30 AM – 9:30 AM) generate 71% of total home collection revenue. Bundle packages average a 2.4x cart conversion.
         </p>
-        <span className="shrink-0 font-semibold text-[#F7931E]">Updated live</span>
+        <span className="shrink-0 font-semibold text-[#FF6B00]">Updated live</span>
       </div>
     </div>
   );

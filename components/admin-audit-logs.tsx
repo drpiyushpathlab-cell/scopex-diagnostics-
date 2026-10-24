@@ -64,7 +64,7 @@ export function AdminAuditLogs() {
 
   return (
     <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Audit Logs</p>
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Audit Logs</p>
       <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Activity and admin actions</h1>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">
         Track booking updates, report uploads/downloads, user activity, login events, and admin actions.
@@ -78,7 +78,7 @@ export function AdminAuditLogs() {
       </div>
 
       <div className="mt-6 overflow-hidden rounded-[22px] border border-[#f1dfce]">
-        <div className="grid grid-cols-5 gap-3 bg-[#FFF8F2] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">
+        <div className="grid grid-cols-5 gap-3 bg-[#FFF8F2] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-[#FF6B00]">
           <span>Time</span>
           <span>Role</span>
           <span>Action</span>

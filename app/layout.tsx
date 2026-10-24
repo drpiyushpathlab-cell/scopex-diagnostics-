@@ -57,16 +57,24 @@ export const metadata: Metadata = {
   }
 };
 
+import { CompareProvider } from "@/lib/compare-context";
+import { CompareModal } from "@/components/compare-modal";
+import { CompareFloatingBar } from "@/components/compare-floating-bar";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="light" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body suppressHydrationWarning className={`${poppins.variable} ${montserrat.variable} font-[var(--font-poppins)]`}>
-        <SiteHeader />
-        <main className="pb-28 md:pb-24">{children}</main>
-        <SiteFooter />
-        <FloatingActions />
-        <HomeCollectionPopup />
-        <HealthAdvisorPopup />
+        <CompareProvider>
+          <SiteHeader />
+          <main className="pb-28 md:pb-24">{children}</main>
+          <SiteFooter />
+          <FloatingActions />
+          <HomeCollectionPopup />
+          <HealthAdvisorPopup />
+          <CompareFloatingBar />
+          <CompareModal />
+        </CompareProvider>
       </body>
     </html>
   );

@@ -166,7 +166,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
               <span className="font-semibold text-[#0D0D0D]">{mobileNumber}</span> ({preferredSlot.toLowerCase()}) to guide you on the right tests and explain any fasting or preparation guidelines.
             </p>
             <div className="mt-6 flex items-center justify-center gap-2 rounded-2xl bg-[#FFF8F2] p-3 text-xs text-[#5f6868]">
-              <ShieldCheck className="h-4 w-4 text-[#F7931E]" />
+              <ShieldCheck className="h-4 w-4 text-[#FF6B00]" />
               <span>100% Free Consultation · No Unnecessary Tests Pushed</span>
             </div>
             <button
@@ -181,20 +181,20 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
           <div>
             {/* Top Indicator & Step Counter */}
             <div className="flex items-center justify-between border-b border-[#f1dfce] pb-4">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#F7931E]">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
                 <Headphones className="h-4 w-4" />
                 <span>Talk to a Health Advisor</span>
               </div>
-              <span className="rounded-full bg-[#FFF8F2] border border-[#f1dfce] px-3 py-1 text-xs font-bold text-[#F7931E]">
+              <span className="rounded-full bg-[#FFF8F2] border border-[#f1dfce] px-3 py-1 text-xs font-bold text-[#FF6B00]">
                 Step {step} of 3
               </span>
             </div>
 
             {/* Visual Step Progress Bar */}
             <div className="mt-4 grid grid-cols-3 gap-2">
-              <div className={`h-1.5 rounded-full transition-colors ${step >= 1 ? "bg-[#F7931E]" : "bg-stone-200"}`} />
-              <div className={`h-1.5 rounded-full transition-colors ${step >= 2 ? "bg-[#F7931E]" : "bg-stone-200"}`} />
-              <div className={`h-1.5 rounded-full transition-colors ${step >= 3 ? "bg-[#F7931E]" : "bg-stone-200"}`} />
+              <div className={`h-1.5 rounded-full transition-colors ${step >= 1 ? "bg-[#FF6B00]" : "bg-stone-200"}`} />
+              <div className={`h-1.5 rounded-full transition-colors ${step >= 2 ? "bg-[#FF6B00]" : "bg-stone-200"}`} />
+              <div className={`h-1.5 rounded-full transition-colors ${step >= 3 ? "bg-[#FF6B00]" : "bg-stone-200"}`} />
             </div>
 
             {error && (
@@ -220,8 +220,8 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                     onClick={() => setPurpose("before_test")}
                     className={`rounded-2xl border p-3 text-left transition ${
                       purpose === "before_test"
-                        ? "border-[#F7931E] bg-[#FFF8F2] shadow-xs"
-                        : "border-[#E8E2DC] bg-white hover:border-[#F7931E]/50"
+                        ? "border-[#FF6B00] bg-[#FFF8F2] shadow-xs"
+                        : "border-[#E8E2DC] bg-white hover:border-[#FF6B00]/50"
                     }`}
                   >
                     <p className="text-xs font-bold text-[#0D0D0D]">Help Choosing Tests</p>
@@ -233,8 +233,8 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                     onClick={() => setPurpose("after_test")}
                     className={`rounded-2xl border p-3 text-left transition ${
                       purpose === "after_test"
-                        ? "border-[#F7931E] bg-[#FFF8F2] shadow-xs"
-                        : "border-[#E8E2DC] bg-white hover:border-[#F7931E]/50"
+                        ? "border-[#FF6B00] bg-[#FFF8F2] shadow-xs"
+                        : "border-[#E8E2DC] bg-white hover:border-[#FF6B00]/50"
                     }`}
                   >
                     <p className="text-xs font-bold text-[#0D0D0D]">Understand My Report</p>
@@ -256,8 +256,8 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                           onClick={() => toggleConcern(c)}
                           className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
                             selected
-                              ? "bg-[#F7931E] text-white shadow-xs"
-                              : "border border-[#E8E2DC] bg-white text-[#404040] hover:border-[#F7931E]"
+                              ? "bg-[#FF6B00] text-white shadow-xs"
+                              : "border border-[#E8E2DC] bg-white text-[#404040] hover:border-[#FF6B00]"
                           }`}
                         >
                           {c}
@@ -300,7 +300,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Ananya Roy"
-                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                   />
                 </div>
 
@@ -317,7 +317,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                       value={age}
                       onChange={(e) => setAge(e.target.value)}
                       placeholder="e.g. 34"
-                      className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                      className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                     />
                   </div>
                   <div>
@@ -327,7 +327,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value as "male" | "female" | "other")}
-                      className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none bg-white"
+                      className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none bg-white"
                     >
                       <option value="male">Male</option>
                       <option value="female">Female</option>
@@ -345,7 +345,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="e.g. Delhi NCR, Mumbai, Hyderabad..."
-                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                   />
                 </div>
 
@@ -392,7 +392,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                       value={mobileNumber}
                       onChange={(e) => setMobileNumber(e.target.value)}
                       placeholder="10-digit mobile number"
-                      className="w-full rounded-xl border border-[#E8E2DC] py-2.5 pl-12 pr-3.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                      className="w-full rounded-xl border border-[#E8E2DC] py-2.5 pl-12 pr-3.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -404,7 +404,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                   <select
                     value={preferredSlot}
                     onChange={(e) => setPreferredSlot(e.target.value)}
-                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none bg-white"
+                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none bg-white"
                   >
                     {CALLBACK_SLOTS.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -421,7 +421,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="e.g. Doctor asked for fasting test, which package has lipid?"
-                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                   />
                 </div>
 
@@ -444,7 +444,7 @@ export function HealthAdvisorModal({ isOpen, onClose }: HealthAdvisorModalProps)
                 </div>
 
                 <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#8A8A8A]">
-                  <Sparkles className="h-3 w-3 text-[#F7931E]" />
+                  <Sparkles className="h-3 w-3 text-[#FF6B00]" />
                   <span>Free service · Average callback time: 10–15 mins</span>
                 </div>
               </form>

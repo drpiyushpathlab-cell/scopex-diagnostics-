@@ -158,7 +158,7 @@ export function AdminStatusSummary({ bookings = [], metrics = [] }: AdminStatusS
     <div className="mt-8 rounded-3xl border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#f1dfce] pb-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#F7931E]">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
             Fulfillment Pipeline
           </p>
           <h2 className="text-xl font-extrabold text-[#0D0D0D] tracking-tight sm:text-2xl">
@@ -170,7 +170,7 @@ export function AdminStatusSummary({ bookings = [], metrics = [] }: AdminStatusS
         </div>
         <Link
           href="/admin/bookings"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#F7931E] transition hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FF6B00] transition hover:underline"
         >
           <span>Manage All Bookings</span>
           <ArrowRight className="h-3.5 w-3.5" />
@@ -187,7 +187,7 @@ export function AdminStatusSummary({ bookings = [], metrics = [] }: AdminStatusS
             <Link
               key={status.key}
               href={status.href}
-              className={`group flex flex-col justify-between rounded-2xl border ${status.borderLight} ${status.bgLight} p-3.5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-[#F7931E]/40`}
+              className={`group flex flex-col justify-between rounded-2xl border ${status.borderLight} ${status.bgLight} p-3.5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-[#FF6B00]/40`}
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -207,10 +207,10 @@ export function AdminStatusSummary({ bookings = [], metrics = [] }: AdminStatusS
               </div>
 
               <div className="mt-4 flex items-baseline justify-between border-t border-black/5 pt-2">
-                <span className="text-2xl font-black tabular-nums text-[#0D0D0D] group-hover:text-[#F7931E] transition-colors">
+                <span className="text-2xl font-black tabular-nums text-[#0D0D0D] group-hover:text-[#FF6B00] transition-colors">
                   {count}
                 </span>
-                <span className="text-[10px] font-semibold text-[#8A8A8A] group-hover:text-[#F7931E] transition-colors">
+                <span className="text-[10px] font-semibold text-[#8A8A8A] group-hover:text-[#FF6B00] transition-colors">
                   View →
                 </span>
               </div>

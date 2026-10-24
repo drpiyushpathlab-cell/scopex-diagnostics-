@@ -192,7 +192,7 @@ function getPatientSubtotal(patient: BookingPatient) {
 function SectionTitle({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">{eyebrow}</p>
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">{eyebrow}</p>
       <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">{title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5f6868] md:text-base">{description}</p>
     </div>
@@ -774,7 +774,7 @@ export function BookingFlow() {
         contact: normalizedCustomer.phone,
         email: normalizedCustomer.email
       },
-      theme: { color: "#F7931E" },
+      theme: { color: "#FF6B00" },
       handler: async (response: Record<string, string>) => {
         setIsSubmitting(true);
         setSubmitMessage("Verifying payment...");
@@ -889,7 +889,7 @@ export function BookingFlow() {
       {step !== "auth" && isLoggedIn ? (
         <div className="flex flex-col gap-4 rounded-[24px] border border-[#f1dfce] bg-white p-4 shadow-[0_12px_28px_rgba(16,24,40,0.05)] sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Logged in</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#FF6B00]">Logged in</p>
             <h3 className="mt-1 text-xl font-bold text-[#0D0D0D]">Hi, {loggedInName}</h3>
             {loggedInMobile ? <p className="mt-1 text-sm text-[#5f6868]">Mobile: {loggedInMobile}</p> : null}
           </div>
@@ -913,7 +913,7 @@ export function BookingFlow() {
               onChange={(event) => setOtpPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
               placeholder="10-digit mobile number"
               inputMode="numeric"
-              className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#F7931E]"
+              className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#FF6B00]"
             />
             <div className="flex flex-col gap-3 sm:flex-row">
               <button type="button" onClick={requestOtp} className="cta-btn w-full sm:w-auto" disabled={authStatus === "loading"}>
@@ -925,7 +925,7 @@ export function BookingFlow() {
                   onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="Enter OTP"
                   inputMode="numeric"
-                  className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#F7931E]"
+                  className="rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition focus:border-[#FF6B00]"
                 />
               ) : null}
             </div>
@@ -934,7 +934,7 @@ export function BookingFlow() {
                 Verify OTP
               </button>
             ) : null}
-            {authMessage ? <p className={`text-sm ${authStatus === "error" ? "text-red-600" : "text-[#F7931E]"}`}>{authMessage}</p> : null}
+            {authMessage ? <p className={`text-sm ${authStatus === "error" ? "text-red-600" : "text-[#FF6B00]"}`}>{authMessage}</p> : null}
           </div>
         </div>
       ) : null}
@@ -953,7 +953,7 @@ export function BookingFlow() {
                 key={mode}
                 type="button"
                 onClick={() => setCatalogMode(mode)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${catalogMode === mode ? "bg-[#F7931E] text-white" : "bg-[#eef7f6] text-[#264547]"}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${catalogMode === mode ? "bg-[#FF6B00] text-white" : "bg-[#eef7f6] text-[#264547]"}`}
               >
                 {mode}
               </button>
@@ -962,7 +962,7 @@ export function BookingFlow() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={`Search ${catalogMode}`}
-              className="min-w-[260px] flex-1 rounded-full border border-[#f1dfce] px-4 py-2.5 text-sm outline-none focus:border-[#F7931E]"
+              className="min-w-[260px] flex-1 rounded-full border border-[#f1dfce] px-4 py-2.5 text-sm outline-none focus:border-[#FF6B00]"
             />
           </div>
 
@@ -974,22 +974,22 @@ export function BookingFlow() {
                   key={item.id}
                   type="button"
                   onClick={() => toggleSelection(item.id)}
-                  className={`rounded-[24px] border p-5 text-left transition ${selected ? "border-[#F7931E] bg-[#FFF8F2] shadow-[0_16px_36px_rgba(15,143,124,0.08)]" : "border-[#f1dfce] bg-white hover:border-[#cfe4df]"}`}
+                  className={`rounded-[24px] border p-5 text-left transition ${selected ? "border-[#FF6B00] bg-[#FFF8F2] shadow-[0_16px_36px_rgba(15,143,124,0.08)]" : "border-[#f1dfce] bg-white hover:border-[#cfe4df]"}`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#F7931E]">{item.kind}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#FF6B00]">{item.kind}</p>
                       <h3 className="mt-2 text-xl font-bold text-[#0D0D0D]">{item.name}</h3>
                       <p className="mt-2 text-sm leading-7 text-[#5f6868]">{item.description}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-extrabold text-[#F7931E]">{formatInr(item.price)}</p>
+                      <p className="text-2xl font-extrabold text-[#FF6B00]">{formatInr(item.price)}</p>
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7c8f90]">ScopeX real price</p>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="rounded-full bg-[#fff7f1] px-3 py-1 font-semibold text-[#F7931E]">Transparent pricing</span>
-                    <span className={`font-semibold ${selected ? "text-[#F7931E]" : "text-[#264547]"}`}>{selected ? "Selected" : "Tap to add"}</span>
+                    <span className="rounded-full bg-[#fff7f1] px-3 py-1 font-semibold text-[#FF6B00]">Transparent pricing</span>
+                    <span className={`font-semibold ${selected ? "text-[#FF6B00]" : "text-[#264547]"}`}>{selected ? "Selected" : "Tap to add"}</span>
                   </div>
                 </button>
               );
@@ -1038,16 +1038,16 @@ export function BookingFlow() {
                         key={member.id}
                         type="button"
                         onClick={() => toggleSavedFamilyMember(member)}
-                        className={`rounded-[20px] border p-4 text-left transition ${selected ? "border-[#F7931E] bg-[#effaf7]" : "border-[#f1dfce] bg-white hover:border-[#F7931E]"}`}
+                        className={`rounded-[20px] border p-4 text-left transition ${selected ? "border-[#FF6B00] bg-[#effaf7]" : "border-[#f1dfce] bg-white hover:border-[#FF6B00]"}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-bold text-[#0D0D0D]">{member.name}</p>
                             <p className="mt-1 text-sm text-[#5f6868]">{member.relation} - {member.age ? `${member.age} yrs` : member.dob || "Age missing"} - {member.gender || "Gender missing"}</p>
                           </div>
-                          {member.is_default ? <span className="rounded-full bg-[#e9fbf7] px-2 py-1 text-[10px] font-bold uppercase text-[#F7931E]">Default</span> : null}
+                          {member.is_default ? <span className="rounded-full bg-[#e9fbf7] px-2 py-1 text-[10px] font-bold uppercase text-[#FF6B00]">Default</span> : null}
                         </div>
-                        <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#F7931E]">{selected ? "Selected" : "Tap to select"}</p>
+                        <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#FF6B00]">{selected ? "Selected" : "Tap to select"}</p>
                       </button>
                     );
                   })}
@@ -1060,7 +1060,7 @@ export function BookingFlow() {
 
                 {showNewFamilyForm ? (
                   <div className="mt-4 grid gap-3 rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4 md:grid-cols-3">
-                    <input value={newFamilyForm.name} onChange={(event) => setNewFamilyForm((current) => ({ ...current, name: event.target.value }))} placeholder="Name" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+                    <input value={newFamilyForm.name} onChange={(event) => setNewFamilyForm((current) => ({ ...current, name: event.target.value }))} placeholder="Name" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
                     <select
                       value={newFamilyForm.relation}
                       onChange={(event) => {
@@ -1071,23 +1071,23 @@ export function BookingFlow() {
                           gender: current.gender || genderFromRelation(relation)
                         }));
                       }}
-                      className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]"
+                      className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]"
                     >
                       {relationOptions.map((relation) => <option key={relation}>{relation}</option>)}
                     </select>
-                    <input value={newFamilyForm.age} onChange={(event) => setNewFamilyForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age" inputMode="numeric" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-                    <input value={newFamilyForm.dob} onChange={(event) => setNewFamilyForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-                    <select value={newFamilyForm.gender} onChange={(event) => setNewFamilyForm((current) => ({ ...current, gender: event.target.value }))} className={`rounded-2xl border px-4 py-3 text-sm outline-none focus:border-[#F7931E] ${newFamilyForm.gender ? "border-[#f1dfce]" : "border-[#F7931E] bg-[#fff8f3]"}`}>
+                    <input value={newFamilyForm.age} onChange={(event) => setNewFamilyForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age" inputMode="numeric" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
+                    <input value={newFamilyForm.dob} onChange={(event) => setNewFamilyForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
+                    <select value={newFamilyForm.gender} onChange={(event) => setNewFamilyForm((current) => ({ ...current, gender: event.target.value }))} className={`rounded-2xl border px-4 py-3 text-sm outline-none focus:border-[#FF6B00] ${newFamilyForm.gender ? "border-[#f1dfce]" : "border-[#FF6B00] bg-[#fff8f3]"}`}>
                       <option value="">Select gender</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="other">Other</option>
                     </select>
-                    <input value={newFamilyForm.mobile} onChange={(event) => setNewFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
+                    <input value={newFamilyForm.mobile} onChange={(event) => setNewFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
                     <button type="button" onClick={addNewFamilyMemberToBooking} disabled={!newFamilyMemberReady || savingFamilyMember} className="cta-btn md:col-span-3 disabled:cursor-not-allowed disabled:opacity-60">
                       {savingFamilyMember ? "Saving member..." : "Save and add to booking"}
                     </button>
-                    {!newFamilyMemberReady ? <p className="text-xs font-semibold text-[#F7931E] md:col-span-3">Name, relation, age/DOB, and gender are required.</p> : null}
+                    {!newFamilyMemberReady ? <p className="text-xs font-semibold text-[#FF6B00] md:col-span-3">Name, relation, age/DOB, and gender are required.</p> : null}
                   </div>
                 ) : null}
               </div>
@@ -1116,23 +1116,23 @@ export function BookingFlow() {
                   <div className="border-b border-[#e5f0ee] bg-gradient-to-r from-[#f6fffc] via-white to-[#fff7f1] p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e9fbf7] text-xl font-black uppercase text-[#F7931E]">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e9fbf7] text-xl font-black uppercase text-[#FF6B00]">
                           {(patient.name || patient.relation || "P").slice(0, 1)}
                         </div>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-[#e9fbf7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#F7931E]">{patient.relation}</span>
-                            {missingDetails ? <span className="rounded-full bg-[#fff3ea] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#F7931E]">Details needed</span> : null}
+                            <span className="rounded-full bg-[#e9fbf7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#FF6B00]">{patient.relation}</span>
+                            {missingDetails ? <span className="rounded-full bg-[#fff3ea] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#FF6B00]">Details needed</span> : null}
                           </div>
                           <h3 className="mt-2 text-2xl font-black text-[#0D0D0D]">{patient.name || "Patient name"}</h3>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="rounded-full border border-[#f1dfce] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patientItems.length} selected item(s)</span>
-                            <span className="rounded-full border border-[#ffd8bf] bg-white px-3 py-1 text-xs font-bold text-[#F7931E]">{formatInr(getPatientSubtotal(patient))}</span>
+                            <span className="rounded-full border border-[#ffd8bf] bg-white px-3 py-1 text-xs font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient))}</span>
                             <span className="rounded-full border border-[#f1dfce] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patient.mode === "same" ? "Same package" : "Custom tests"}</span>
                           </div>
                         </div>
                       </div>
-                      <button type="button" onClick={() => removeBookingPatient(patient.patientId)} className="rounded-full border border-[#ffd8bf] bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:bg-[#fff3ea]">Remove</button>
+                      <button type="button" onClick={() => removeBookingPatient(patient.patientId)} className="rounded-full border border-[#ffd8bf] bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#FF6B00] transition hover:bg-[#fff3ea]">Remove</button>
                     </div>
                   </div>
 
@@ -1140,19 +1140,19 @@ export function BookingFlow() {
                     <div className="grid gap-3 md:grid-cols-4">
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">Patient name</span>
-                        <input value={patient.name} onChange={(event) => updateBookingPatient(patient.patientId, { name: event.target.value })} placeholder="Patient name" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7]" />
+                        <input value={patient.name} onChange={(event) => updateBookingPatient(patient.patientId, { name: event.target.value })} placeholder="Patient name" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#FF6B00] focus:ring-4 focus:ring-[#e9fbf7]" />
                       </label>
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">Age</span>
-                        <input value={patient.age || ""} onChange={(event) => updateBookingPatient(patient.patientId, { age: event.target.value.replace(/\D/g, "").slice(0, 3) })} placeholder="Age" inputMode="numeric" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7]" />
+                        <input value={patient.age || ""} onChange={(event) => updateBookingPatient(patient.patientId, { age: event.target.value.replace(/\D/g, "").slice(0, 3) })} placeholder="Age" inputMode="numeric" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#FF6B00] focus:ring-4 focus:ring-[#e9fbf7]" />
                       </label>
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">DOB optional</span>
-                        <input value={patient.dob || ""} onChange={(event) => updateBookingPatient(patient.patientId, { dob: event.target.value })} type="date" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7]" />
+                        <input value={patient.dob || ""} onChange={(event) => updateBookingPatient(patient.patientId, { dob: event.target.value })} type="date" className="w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#FF6B00] focus:ring-4 focus:ring-[#e9fbf7]" />
                       </label>
                       <label className="space-y-1">
                         <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#789092]">Gender</span>
-                        <select value={patient.gender || ""} onChange={(event) => updateBookingPatient(patient.patientId, { gender: event.target.value })} className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-[#F7931E] focus:ring-4 focus:ring-[#e9fbf7] ${patient.gender ? "border-[#f1dfce]" : "border-[#F7931E]"}`}>
+                        <select value={patient.gender || ""} onChange={(event) => updateBookingPatient(patient.patientId, { gender: event.target.value })} className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-[#FF6B00] focus:ring-4 focus:ring-[#e9fbf7] ${patient.gender ? "border-[#f1dfce]" : "border-[#FF6B00]"}`}>
                           <option value="">Select gender</option>
                           <option value="male">Male</option>
                           <option value="female">Female</option>
@@ -1163,11 +1163,11 @@ export function BookingFlow() {
                     {missingDetails ? <p className="mt-3 rounded-2xl bg-[#fff7f1] px-4 py-3 text-xs font-bold text-[#b4480f]">Complete age/DOB and gender before proceeding.</p> : null}
 
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <button type="button" onClick={() => setPatientMode(patient.patientId, "same")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "same" ? "border-[#F7931E] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white hover:border-[#F7931E]"}`}>
+                      <button type="button" onClick={() => setPatientMode(patient.patientId, "same")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "same" ? "border-[#FF6B00] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white hover:border-[#FF6B00]"}`}>
                         <span className="text-sm font-black text-[#0D0D0D]">Apply same test/package</span>
                         <span className="mt-1 block text-xs text-[#5f6868]">Copy selected main cart items</span>
                       </button>
-                      <button type="button" onClick={() => setPatientMode(patient.patientId, "different")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "different" ? "border-[#F7931E] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white hover:border-[#F7931E]"}`}>
+                      <button type="button" onClick={() => setPatientMode(patient.patientId, "different")} className={`rounded-2xl border px-4 py-4 text-left transition ${patient.mode === "different" ? "border-[#FF6B00] bg-[#effaf7] shadow-[0_8px_18px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white hover:border-[#FF6B00]"}`}>
                         <span className="text-sm font-black text-[#0D0D0D]">Choose different test/package</span>
                         <span className="mt-1 block text-xs text-[#5f6868]">Assign custom items to this patient</span>
                       </button>
@@ -1178,31 +1178,31 @@ export function BookingFlow() {
                       <div className="flex flex-col gap-3 md:flex-row">
                         <div className="flex gap-2">
                           {(["packages", "tests"] as CatalogMode[]).map((mode) => (
-                            <button key={mode} type="button" onClick={() => setPatientCatalogMode((current) => ({ ...current, [patient.patientId]: mode }))} className={`rounded-full px-4 py-2 text-sm font-black capitalize transition ${patientMode === mode ? "bg-[#F7931E] text-white shadow-[0_8px_18px_rgba(15,143,124,0.16)]" : "bg-white text-[#F7931E] hover:bg-[#effaf7]"}`}>{mode}</button>
+                            <button key={mode} type="button" onClick={() => setPatientCatalogMode((current) => ({ ...current, [patient.patientId]: mode }))} className={`rounded-full px-4 py-2 text-sm font-black capitalize transition ${patientMode === mode ? "bg-[#FF6B00] text-white shadow-[0_8px_18px_rgba(15,143,124,0.16)]" : "bg-white text-[#FF6B00] hover:bg-[#effaf7]"}`}>{mode}</button>
                           ))}
                         </div>
-                        <input value={patientSearch[patient.patientId] || ""} onChange={(event) => setPatientSearch((current) => ({ ...current, [patient.patientId]: event.target.value }))} placeholder="Search tests or packages" className="min-w-0 flex-1 rounded-full border border-[#f1dfce] px-4 py-2.5 text-sm outline-none focus:border-[#F7931E]" />
+                        <input value={patientSearch[patient.patientId] || ""} onChange={(event) => setPatientSearch((current) => ({ ...current, [patient.patientId]: event.target.value }))} placeholder="Search tests or packages" className="min-w-0 flex-1 rounded-full border border-[#f1dfce] px-4 py-2.5 text-sm outline-none focus:border-[#FF6B00]" />
                       </div>
                       <div className="mt-4 grid max-h-72 gap-3 overflow-y-auto pr-1 md:grid-cols-2">
                         {patientCatalog.map((item) => {
                           const picked = patient.itemIds.includes(item.id);
                           return (
-                            <button key={item.id} type="button" onClick={() => togglePatientItem(patient.patientId, item.id)} className={`rounded-2xl border p-4 text-left transition hover:border-[#F7931E] ${picked ? "border-[#F7931E] bg-white shadow-[0_10px_22px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white/80"}`}>
+                            <button key={item.id} type="button" onClick={() => togglePatientItem(patient.patientId, item.id)} className={`rounded-2xl border p-4 text-left transition hover:border-[#FF6B00] ${picked ? "border-[#FF6B00] bg-white shadow-[0_10px_22px_rgba(15,143,124,0.12)]" : "border-[#f1dfce] bg-white/80"}`}>
                               <div className="flex items-start justify-between gap-3">
                                 <div>
                                   <p className="font-bold text-[#0D0D0D]">{item.name}</p>
                                   <p className="mt-1 text-xs text-[#5f6868]">{item.kind} - {item.category}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="font-black text-[#F7931E]">{formatInr(item.price)}</p>
+                                  <p className="font-black text-[#FF6B00]">{formatInr(item.price)}</p>
                                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7c8f90]">Real price</p>
                                 </div>
                               </div>
                               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex flex-wrap gap-2">
-                                  <span className="rounded-full bg-[#fff3ea] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#F7931E]">Bundle eligible</span>
+                                  <span className="rounded-full bg-[#fff3ea] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#FF6B00]">Bundle eligible</span>
                                 </div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">{picked ? "Selected" : "Add"}</p>
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#FF6B00]">{picked ? "Selected" : "Add"}</p>
                               </div>
                             </button>
                           );
@@ -1231,18 +1231,18 @@ export function BookingFlow() {
           />
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <input value={customer.fullName} onChange={(e) => updateCustomer("fullName", e.target.value)} placeholder="Full Name" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-            <input value={customer.phone} onChange={(e) => updateCustomer("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Mobile Number" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-            <input value={customer.email} onChange={(e) => updateCustomer("email", e.target.value)} placeholder="Email" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-            <input value={customer.city} onChange={(e) => updateCustomer("city", e.target.value)} placeholder="City" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-            <input suppressHydrationWarning value={customer.preferredDate} onChange={(e) => updateCustomer("preferredDate", e.target.value)} type="date" min={new Date().toISOString().split("T")[0]} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]" />
-            <select value={customer.preferredTime} onChange={(e) => updateCustomer("preferredTime", e.target.value)} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E]">
+            <input value={customer.fullName} onChange={(e) => updateCustomer("fullName", e.target.value)} placeholder="Full Name" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
+            <input value={customer.phone} onChange={(e) => updateCustomer("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Mobile Number" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
+            <input value={customer.email} onChange={(e) => updateCustomer("email", e.target.value)} placeholder="Email" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
+            <input value={customer.city} onChange={(e) => updateCustomer("city", e.target.value)} placeholder="City" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
+            <input suppressHydrationWarning value={customer.preferredDate} onChange={(e) => updateCustomer("preferredDate", e.target.value)} type="date" min={new Date().toISOString().split("T")[0]} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]" />
+            <select value={customer.preferredTime} onChange={(e) => updateCustomer("preferredTime", e.target.value)} className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00]">
               <option value="">Preferred collection time</option>
               {slotOptions.map((slot) => (
                 <option key={slot} value={slot}>{slot}</option>
               ))}
             </select>
-            <input value={customer.address} onChange={(e) => updateCustomer("address", e.target.value)} placeholder="Address" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#F7931E] md:col-span-2" />
+            <input value={customer.address} onChange={(e) => updateCustomer("address", e.target.value)} placeholder="Address" className="rounded-2xl border border-[#f1dfce] px-4 py-3 text-sm outline-none focus:border-[#FF6B00] md:col-span-2" />
           </div>
 
           <div className="mt-6 rounded-[24px] border border-dashed border-[#bddbd6] bg-[#FFF8F2] p-5">
@@ -1284,17 +1284,17 @@ export function BookingFlow() {
                         <p className="text-sm font-bold text-[#0D0D0D]">{report.file.name}</p>
                         <p className="text-xs text-[#7c8f90]">{(report.file.size / (1024 * 1024)).toFixed(2)} MB - {report.status}</p>
                       </div>
-                      <button type="button" onClick={() => removePreviousReport(report.id)} className="text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">Remove</button>
+                      <button type="button" onClick={() => removePreviousReport(report.id)} className="text-xs font-black uppercase tracking-[0.12em] text-[#FF6B00]">Remove</button>
                     </div>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e7f2f0]">
-                      <div className="h-full rounded-full bg-[#F7931E] transition-all" style={{ width: `${report.progress}%` }} />
+                      <div className="h-full rounded-full bg-[#FF6B00] transition-all" style={{ width: `${report.progress}%` }} />
                     </div>
                     {report.message ? <p className="mt-2 text-xs text-red-600">{report.message}</p> : null}
                   </div>
                 ))}
               </div>
             ) : null}
-            {reportUploadMessage ? <p className="mt-3 text-sm font-semibold text-[#F7931E]">{reportUploadMessage}</p> : null}
+            {reportUploadMessage ? <p className="mt-3 text-sm font-semibold text-[#FF6B00]">{reportUploadMessage}</p> : null}
           </div>
 
           <div className="mt-8 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
@@ -1313,9 +1313,9 @@ export function BookingFlow() {
                       <p className="font-bold text-[#0D0D0D]">{patient.name}</p>
                       <p className="mt-1 text-sm text-[#5f6868]">{patient.relation} - {patient.age || patient.dob} - {patient.gender}</p>
                     </div>
-                    <p className="font-bold text-[#F7931E]">{formatInr(getPatientSubtotal(patient))}</p>
+                    <p className="font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient))}</p>
                   </div>
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#F7931E]">{getItemsForPatient(patient).length} selected item(s)</p>
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#FF6B00]">{getItemsForPatient(patient).length} selected item(s)</p>
                 </article>
               ))}
             </div>
@@ -1350,11 +1350,11 @@ export function BookingFlow() {
                           <p className="font-semibold text-[#0D0D0D]">{patient.name}</p>
                           <p className="text-sm text-[#5f6868]">{patient.relation} - {getItemsForPatient(patient).length} item(s)</p>
                         </div>
-                        <p className="font-bold text-[#F7931E]">{formatInr(getPatientSubtotal(patient))}</p>
+                        <p className="font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient))}</p>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {getItemsForPatient(patient).map((item) => (
-                          <span key={`${patient.patientId}-${item.id}`} className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#F7931E]">{item.name}</span>
+                          <span key={`${patient.patientId}-${item.id}`} className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#FF6B00]">{item.name}</span>
                         ))}
                       </div>
                     </div>
@@ -1365,11 +1365,11 @@ export function BookingFlow() {
               <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
                 <h3 className="text-xl font-bold text-[#0D0D0D]">Payment method</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <button type="button" onClick={() => setPaymentMethod("online")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "online" ? "border-[#F7931E] bg-white" : "border-[#f1dfce] bg-white"}`}>
+                  <button type="button" onClick={() => setPaymentMethod("online")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "online" ? "border-[#FF6B00] bg-white" : "border-[#f1dfce] bg-white"}`}>
                     <p className="font-semibold text-[#0D0D0D]">Pay Online</p>
                     <p className="mt-1 text-sm text-[#5f6868]">UPI, cards, net banking via Razorpay</p>
                   </button>
-                  <button type="button" onClick={() => setPaymentMethod("cod")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "cod" ? "border-[#F7931E] bg-white" : "border-[#f1dfce] bg-white"}`}>
+                  <button type="button" onClick={() => setPaymentMethod("cod")} className={`rounded-[20px] border px-4 py-4 text-left ${paymentMethod === "cod" ? "border-[#FF6B00] bg-white" : "border-[#f1dfce] bg-white"}`}>
                     <p className="font-semibold text-[#0D0D0D]">Pay at Home</p>
                     <p className="mt-1 text-sm text-[#5f6868]">Confirm booking now, pay at collection time</p>
                   </button>
@@ -1382,10 +1382,10 @@ export function BookingFlow() {
               <div className="mt-4 space-y-3 text-sm text-[#5f6868]">
                 <div className="flex justify-between"><span>ScopeX real price subtotal</span><span>{formatInr(realPriceSubtotal)}</span></div>
                 {quote.appliedOffers.map((offer) => (
-                  <div key={offer.code} className="flex justify-between text-[#F7931E]"><span>{offer.title}</span><span>- {formatInr(offer.discountAmount)}</span></div>
+                  <div key={offer.code} className="flex justify-between text-[#FF6B00]"><span>{offer.title}</span><span>- {formatInr(offer.discountAmount)}</span></div>
                 ))}
                 {bundleSaving > 0 ? (
-                  <div className="flex justify-between font-semibold text-[#F7931E]"><span>Bundle saving total</span><span>- {formatInr(bundleSaving)}</span></div>
+                  <div className="flex justify-between font-semibold text-[#FF6B00]"><span>Bundle saving total</span><span>- {formatInr(bundleSaving)}</span></div>
                 ) : null}
                 <div className="flex justify-between"><span>Home collection charge</span><span>{collectionCharge > 0 ? formatInr(collectionCharge) : "Free"}</span></div>
                 <div className="border-t border-[#f1dfce] pt-3 flex justify-between text-base font-bold text-[#0D0D0D]"><span>Payable</span><span>{formatInr(quote.payableAmount)}</span></div>
@@ -1428,15 +1428,15 @@ export function BookingFlow() {
           />
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <div className="rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E]">Order ID</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#FF6B00]">Order ID</p>
               <p className="mt-2 text-xl font-bold text-[#0D0D0D]">{orderId}</p>
             </div>
             <div className="rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E]">Payment</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#FF6B00]">Payment</p>
               <p className="mt-2 text-xl font-bold text-[#0D0D0D]">{paymentMethod === "online" ? "Paid online" : "Pay at home"}</p>
             </div>
             <div className="rounded-[20px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#F7931E]">Reference</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#FF6B00]">Reference</p>
               <p className="mt-2 text-xl font-bold text-[#0D0D0D]">{paymentId || "Pending"}</p>
             </div>
           </div>

@@ -11,7 +11,7 @@ export default function BookHomeCollectionPage() {
     <section className="section-wrap py-14">
       <div className="mb-6 rounded-full border border-[#ffd8bf] bg-[#fff7f1] px-4 py-3 text-center shadow-[0_10px_24px_rgba(243,112,33,0.08)]">
         <p className="text-sm font-semibold tracking-[0.02em] text-[#0D0D0D] md:text-base">
-          Add multiple tests and get <span className="text-[#F7931E]">automatic bundle savings</span>
+          Add multiple tests and get <span className="text-[#FF6B00]">automatic bundle savings</span>
         </p>
       </div>
       <BookingFlow />

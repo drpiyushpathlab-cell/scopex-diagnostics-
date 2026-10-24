@@ -31,14 +31,14 @@ export function HealthAdvisorPopup() {
           <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-hidden rounded-[30px] border border-[#f1dfce] bg-white text-[var(--text)] shadow-[0_24px_60px_rgba(16,24,40,0.18)]">
             <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#f1dfce] bg-white/95 p-4 backdrop-blur md:p-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#F7931E]">10 AM - 6 PM</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#FF6B00]">10 AM - 6 PM</p>
                 <h3 className="text-xl font-bold text-[#0D0D0D]">Talk to a Health Advisor</h3>
                 <p className="mt-1 text-xs text-[#5f6868]">SCOPEX Test Expert - Smart guidance for the right test.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="min-h-11 rounded-xl border border-[#f1dfce] bg-white px-4 py-2 text-sm font-semibold text-[#0D0D0D] transition hover:border-[#F7931E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7931E]"
+                className="min-h-11 rounded-xl border border-[#f1dfce] bg-white px-4 py-2 text-sm font-semibold text-[#0D0D0D] transition hover:border-[#FF6B00] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6B00]"
               >
                 Close
               </button>

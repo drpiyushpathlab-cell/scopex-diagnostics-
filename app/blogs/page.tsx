@@ -13,7 +13,7 @@ export default function BlogsIndexPage() {
     <section className="container-px py-14 md:py-16">
       <div className="section-wrap">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Health Library</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Health Library</p>
           <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Diagnostic health guides</h1>
           <p className="mt-4 text-sm leading-8 text-[#5f6868] md:text-base">
             Explore patient-friendly articles for understanding blood tests, preventive health markers, and reports.
@@ -29,7 +29,7 @@ export default function BlogsIndexPage() {
             >
               <h2 className="text-xl font-bold text-[#0D0D0D]">{page.h1}</h2>
               <p className="mt-2 text-sm leading-7 text-[#5f6868]">{page.description}</p>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#F7931E]">Read Article</p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#FF6B00]">Read Article</p>
             </Link>
           ))}
         </div>

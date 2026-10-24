@@ -244,7 +244,7 @@ export function BiomarkersExplorer() {
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-10 border-b border-neutral-200">
           <div className="max-w-2xl">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#F7931E]">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF6B00]">
               <span>System-By-System Architecture</span>
               <span aria-hidden="true">·</span>
               <span>120+ Biomarkers</span>
@@ -318,7 +318,7 @@ export function BiomarkersExplorer() {
               <div className="mt-4 pt-3 border-t border-neutral-800 flex items-center justify-between">
                 <Link
                   href={currentSystem.testHref}
-                  className="text-xs font-semibold text-[#F7931E] hover:underline"
+                  className="text-xs font-semibold text-[#FF6B00] hover:underline"
                 >
                   View Related Lab Tests →
                 </Link>
@@ -357,7 +357,7 @@ export function BiomarkersExplorer() {
                   <span className="text-neutral-400">Doorstep Collection</span>
                   <Link
                     href={`/tests?search=${encodeURIComponent(bio.name.split(" ")[0])}`}
-                    className="font-semibold text-neutral-800 hover:text-[#F7931E] transition-colors"
+                    className="font-semibold text-neutral-800 hover:text-[#FF6B00] transition-colors"
                   >
                     Details &amp; Booking →
                   </Link>

@@ -1,32 +1,44 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg: #FFF8F2;
+  --bg: #ffffff;
+  --bg-secondary: #f7f7f7;
   --surface: #ffffff;
-  --text: #0D0D0D;
-  --muted: #5f6868;
-  --accent: #F7931E;
-  --primary: #F7931E;
+  --text: #0d0d0d;
+  --muted: #626262;
+  --accent: #f5a623;
+  --cta: #ff6b00;
+  --border: #eaeaea;
+  --subtle-orange: #fff4e8;
+  --primary: #ff6b00;
 }
 
 .light {
-  --bg: #FFF8F2;
+  --bg: #ffffff;
+  --bg-secondary: #f7f7f7;
   --surface: #ffffff;
-  --text: #0D0D0D;
-  --muted: #5f6868;
-  --accent: #F7931E;
-  --primary: #F7931E;
+  --text: #0d0d0d;
+  --muted: #626262;
+  --accent: #f5a623;
+  --cta: #ff6b00;
+  --border: #eaeaea;
+  --subtle-orange: #fff4e8;
+  --primary: #ff6b00;
 }
 
 html:not(.light) {
-  --bg: #FFF8F2;
+  --bg: #ffffff;
+  --bg-secondary: #f7f7f7;
   --surface: #ffffff;
-  --text: #0D0D0D;
-  --muted: #5f6868;
-  --accent: #F7931E;
-  --primary: #F7931E;
+  --text: #0d0d0d;
+  --muted: #626262;
+  --accent: #f5a623;
+  --cta: #ff6b00;
+  --border: #eaeaea;
+  --subtle-orange: #fff4e8;
+  --primary: #ff6b00;
 }
 
 * {
@@ -67,43 +79,50 @@ h4 {
 }
 
 .section-wrap {
-  @apply mx-auto max-w-[1180px] container-px;
+  @apply mx-auto max-w-[1240px] container-px;
 }
 
 .card {
-  @apply rounded-lg border p-6;
-  border-color: #f1dfce;
+  @apply rounded-2xl border p-6;
+  border-color: #EAEAEA;
   background: var(--surface);
-  box-shadow: 0 16px 36px rgba(16, 24, 40, 0.05);
+  box-shadow: 0 16px 36px rgba(16, 24, 40, 0.04);
 }
 
 .cta-btn {
-  @apply inline-flex min-h-[44px] items-center justify-center rounded-lg px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0;
-  background: var(--accent);
-  box-shadow: 0 10px 24px rgba(243, 112, 33, 0.2);
+  @apply inline-flex min-h-[46px] items-center justify-center rounded-[14px] px-7 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer;
+  background: #FF6600;
+  box-shadow: 0 8px 24px rgba(255, 102, 0, 0.3);
+}
+
+.cta-btn:hover {
+  background: #E85900;
+  box-shadow: 0 10px 28px rgba(255, 102, 0, 0.38);
 }
 
 .cta-btn:focus-visible {
-  outline: 2px solid rgba(243, 112, 33, 0.5);
+  outline: 2px solid #FF6600;
   outline-offset: 2px;
 }
 
 .secondary-btn {
-  @apply inline-flex min-h-[44px] items-center justify-center rounded-lg border px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] transition;
-  border-color: #E8E2DC;
-  color: var(--primary);
+  @apply inline-flex min-h-[46px] items-center justify-center rounded-[14px] border-2 px-7 py-3 text-xs font-extrabold uppercase tracking-[0.12em] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer;
+  border-color: #FF6600;
+  color: #FF6600;
   background: #ffffff;
 }
 
 .secondary-btn:hover {
-  background: #fff3e5;
+  background: #FFF5EC;
+  border-color: #E85900;
+  color: #E85900;
 }
 
 .related-link {
-  @apply rounded-full border border-[#f1dfce] bg-[#FFF8F2] px-3 py-1.5 text-xs font-semibold text-[#5f6868] transition hover:border-[#F7931E] hover:bg-[#fff7f1] hover:text-[#F7931E];
+  @apply rounded-full border border-[#f1dfce] bg-[#FFF8F2] px-3 py-1.5 text-xs font-semibold text-[#5f6868] transition hover:border-[#FF6B00] hover:bg-[#fff7f1] hover:text-[#FF6B00];
 }
 .form-field {
-  @apply min-h-[44px] w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition placeholder:text-[#9aa9aa] focus:border-[#F7931E] focus:ring-2 focus:ring-[#F7931E]/10;
+  @apply min-h-[44px] w-full rounded-2xl border border-[#f1dfce] bg-white px-4 py-3 text-sm text-[#0D0D0D] outline-none transition placeholder:text-[#9aa9aa] focus:border-[#FF6B00] focus:ring-2 focus:ring-[#FF6B00]/10;
 }
 
 .premium-section {

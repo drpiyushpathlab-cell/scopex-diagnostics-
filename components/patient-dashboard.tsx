@@ -3,6 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import {
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  FileText,
+  Download,
+  Calendar,
+  User,
+  Users,
+  LogOut,
+  ChevronRight,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Edit2,
+  ExternalLink,
+  MapPin,
+  Phone,
+  ArrowRight,
+  X
+} from "lucide-react";
 import { packagesData } from "@/lib/data";
 import { backendFetch, getStoredAuthToken, logoutAuthSession } from "@/lib/backend-client";
 import { clearVerifiedMobile } from "@/lib/otp-client";
@@ -123,79 +145,97 @@ const emptyFamilyForm: FamilyForm = {
   isDefault: false
 };
 
-const relationOptions = ["Father", "Mother", "Wife", "Husband", "Son", "Daughter", "Self", "Other"];
-const genderOptions = ["male", "female", "other"];
+const relationOptions = [
+  "Father",
+  "Mother",
+  "Spouse",
+  "Child",
+  "Brother",
+  "Sister",
+  "Grandfather",
+  "Grandmother",
+  "Other"
+];
+
+const genderOptions = ["Male", "Female", "Other"];
 
 function rupee(value?: number) {
-  return `Rs ${Number(value || 0).toLocaleString("en-IN")}`;
+  if (typeof value !== "number" || Number.isNaN(value)) return "₹0";
+  return `₹${value.toLocaleString("en-IN")}`;
 }
 
-function normalizeProfile(profile?: ProfileRow | null): ProfileForm {
-  return {
-    fullName: profile?.full_name || "",
-    mobile: profile?.mobile || "",
-    email: profile?.email || "",
-    dob: profile?.dob || "",
-    age: profile?.age ? String(profile.age) : "",
-    gender: profile?.gender || "",
-    address: profile?.address || "",
-    city: profile?.city || "",
-    pincode: profile?.pincode || "",
-    preferredCollectionAddress: profile?.preferred_collection_address || profile?.address || ""
-  };
+function patientName(profile: ProfileRow | null) {
+  return profile?.full_name?.trim() || "ScopeX Patient";
 }
 
-function patientName(profile?: ProfileRow | null) {
-  return profile?.full_name || profile?.mobile || "Patient";
-}
-
-function formatStatus(value?: string) {
-  return String(value || "pending")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function isBookingCancelable(booking: BookingRow) {
-  const status = String(booking.booking_status || "");
-  const paymentStatus = String(booking.payment_status || "");
-  return !["collected", "processing", "completed", "cancelled"].includes(status) && !["paid", "captured", "advance_paid"].includes(paymentStatus);
-}
-
-function isBookingModifiable(booking: BookingRow) {
-  const status = String(booking.booking_status || "");
-  const paymentStatus = String(booking.payment_status || "");
-  return ["draft", "confirmed", "pending"].includes(status || "pending") && !["paid", "captured", "advance_paid"].includes(paymentStatus);
+function formatStatus(status?: string) {
+  if (!status) return "Confirmed";
+  return status
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function reportLinkFromBooking(booking: BookingRow) {
   return booking.reports?.find((report) => report.report_url)?.report_url || "";
 }
 
+function isBookingModifiable(booking: BookingRow) {
+  const status = (booking.booking_status || "").toLowerCase();
+  return status === "pending" || status === "confirmed";
+}
+
+function isBookingCancelable(booking: BookingRow) {
+  const status = (booking.booking_status || "").toLowerCase();
+  const paymentStatus = (booking.payment_status || "").toLowerCase();
+  if (status === "cancelled" || status === "sample_collected" || status === "in_lab" || status === "completed") {
+    return false;
+  }
+  return paymentStatus !== "paid";
+}
+
+function normalizeProfile(profile?: ProfileRow | null): ProfileForm {
+  return {
+    fullName: profile?.full_name ?? "",
+    mobile: profile?.mobile ?? "",
+    email: profile?.email ?? "",
+    dob: profile?.dob ?? "",
+    age: profile?.age ? String(profile?.age) : "",
+    gender: profile?.gender ?? "",
+    address: profile?.address ?? "",
+    city: profile?.city ?? "",
+    pincode: profile?.pincode ?? "",
+    preferredCollectionAddress: profile?.preferred_collection_address ?? ""
+  };
+}
+
 export function PatientDashboard() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [profileFlowMessage, setProfileFlowMessage] = useState("");
   const [profile, setProfile] = useState<ProfileRow | null>(null);
-  const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [familyForm, setFamilyForm] = useState<FamilyForm>(emptyFamilyForm);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [reports, setReports] = useState<ReportRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
+  const [familyForm, setFamilyForm] = useState<FamilyForm>(emptyFamilyForm);
+  const [familySaving, setFamilySaving] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [showProfileFlow, setShowProfileFlow] = useState(false);
   const [profileStep, setProfileStep] = useState(1);
   const [consent, setConsent] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [familySaving, setFamilySaving] = useState(false);
-  const [selectedPatientFilter, setSelectedPatientFilter] = useState("self");
-  const [tracking, setTracking] = useState<Record<string, TrackingEvent[]>>({});
+  const [profileFlowMessage, setProfileFlowMessage] = useState("");
+  const [selectedPatientFilter, setSelectedPatientFilter] = useState("all");
   const [expandedTrackingId, setExpandedTrackingId] = useState("");
+  const [tracking, setTracking] = useState<Record<string, TrackingEvent[]>>({});
   const [busyBookingId, setBusyBookingId] = useState("");
 
   const featuredPackage = useMemo(() => {
-    const latestPackageName = bookings.flatMap((booking) => booking.booking_items ?? []).find((item) => item.item_type === "package")?.item_name;
-    return packagesData.find((item) => item.name === latestPackageName) || packagesData.find((item) => item.featured) || packagesData[0];
-  }, [bookings]);
+    return (
+      packagesData.find((item) => item.id === "health-360-pro") ||
+      packagesData.find((item) => item.featured) ||
+      packagesData[0]
+    );
+  }, []);
 
   const profileIncomplete = !profile?.is_profile_complete;
   const requiredPersonalComplete = Boolean(
@@ -206,7 +246,6 @@ export function PatientDashboard() {
       profileForm.address.trim() &&
       profileForm.pincode.trim()
   );
-  const canSaveProfile = requiredPersonalComplete && consent;
 
   useEffect(() => {
     if (!getStoredAuthToken()) {
@@ -325,7 +364,9 @@ export function PatientDashboard() {
       if (savedMember) {
         setFamilyMembers((current) => {
           const withoutSaved = current.filter((member) => member.id !== savedMember.id);
-          const normalized = savedMember.is_default ? withoutSaved.map((member) => ({ ...member, is_default: false })) : withoutSaved;
+          const normalized = savedMember.is_default
+            ? withoutSaved.map((member) => ({ ...member, is_default: false }))
+            : withoutSaved;
           return [savedMember, ...normalized];
         });
       }
@@ -402,7 +443,9 @@ export function PatientDashboard() {
   }
 
   async function cancelBooking(booking: BookingRow) {
-    const ok = window.confirm("Cancel this booking? This is available only before payment or sample processing starts.");
+    const ok = window.confirm(
+      "Cancel this booking? This is available only before payment or sample processing starts."
+    );
     if (!ok) return;
 
     setBusyBookingId(booking.id);
@@ -410,7 +453,9 @@ export function PatientDashboard() {
       const response = await backendFetch(`/booking/${booking.id}/cancel`, { method: "PATCH" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || "Unable to cancel booking.");
-      setBookings((current) => current.map((item) => (item.id === booking.id ? { ...item, booking_status: "cancelled" } : item)));
+      setBookings((current) =>
+        current.map((item) => (item.id === booking.id ? { ...item, booking_status: "cancelled" } : item))
+      );
       setTracking((current) => ({
         ...current,
         [booking.id]: [
@@ -441,9 +486,15 @@ export function PatientDashboard() {
 
   if (loading) {
     return (
-      <section className="section-wrap py-14">
-        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 text-[#5f6868] shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-          Loading your patient dashboard...
+      <section className="bg-[#FFFFFF] min-h-[70vh] flex items-center justify-center py-16">
+        <div className="section-wrap max-w-md w-full">
+          <div className="rounded-2xl border border-[#EAEAEA] bg-white p-8 text-center shadow-xs">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF4E8] text-[#FF6B00] animate-pulse">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <h3 className="mt-4 text-base font-bold text-[#0D0D0D]">Loading Patient Portal</h3>
+            <p className="mt-1 text-xs text-[#626262]">Fetching your verified health records...</p>
+          </div>
         </div>
       </section>
     );
@@ -451,395 +502,825 @@ export function PatientDashboard() {
 
   if (!getStoredAuthToken()) {
     return (
-      <section className="section-wrap py-14">
-        <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-          <h1 className="text-3xl font-bold text-[#0D0D0D]">Login required</h1>
-          <p className="mt-3 text-[#5f6868]">{message}</p>
-          <Link href="/patient/login" className="cta-btn mt-5 inline-flex">Login</Link>
+      <section className="bg-[#FFFFFF] min-h-[70vh] flex items-center justify-center py-16">
+        <div className="section-wrap max-w-md w-full">
+          <div className="rounded-3xl border border-[#EAEAEA] bg-white p-8 text-center shadow-md">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF4E8] text-[#FF6B00]">
+              <User className="h-6 w-6" />
+            </div>
+            <h1 className="mt-4 text-2xl font-black text-[#0D0D0D]">Login Required</h1>
+            <p className="mt-2 text-xs sm:text-sm text-[#626262]">
+              {message || "Please sign in with your mobile OTP to view bookings and digital reports."}
+            </p>
+            <Link href="/patient/login" className="cta-btn mt-6 inline-flex w-full justify-center">
+              Login to Patient Portal
+            </Link>
+          </div>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="section-wrap pb-28 pt-8 md:py-12">
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Patient Dashboard</p>
-          <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-5xl">Welcome, {patientName(profile)}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5f6868] md:text-base">
-            Manage patient details, saved family members, home collection bookings, and reports from one clean workspace.
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => setShowProfileFlow(true)}
-              className="secondary-btn w-full justify-center sm:w-auto"
-            >
-              Complete Details
-            </button>
-            <button
-              type="button"
-              onClick={logoutPatient}
-              className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:bg-[#fff3ea]"
-            >
-              Logout
-            </button>
-          </div>
+    <div className="bg-[#FFFFFF] min-h-screen text-[#0D0D0D] pb-24">
+      {/* 1. SIGNATURE CARBON BLACK COMMAND CENTER (After Login Theme matching Option C & dark reports section) */}
+      <section className="relative overflow-hidden bg-[#0D0D0D] text-white pt-10 pb-12 sm:pt-14 sm:pb-16 border-b border-stone-800">
+        {/* Subtle orange ambient glow on the right */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 h-[380px] w-[380px] rounded-full bg-[#FF6B00]/22 blur-[100px] pointer-events-none" />
 
-          {profileIncomplete ? (
-            <div className="mt-5 rounded-[22px] border border-[#ffd6bf] bg-[#fff7f1] p-4 text-sm text-[#8a3b13]">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="font-semibold">Complete your health profile for faster bookings.</p>
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setShowProfileFlow(true)} className="rounded-full bg-[#ff6a00] px-5 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white">Complete Details</button>
-                  <button type="button" onClick={() => setShowProfileFlow(false)} className="rounded-full border border-[#ffd6bf] px-5 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8a3b13]">Skip for now</button>
-                </div>
+        <div className="section-wrap relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              {/* Patient Badge */}
+              <div className="inline-flex items-center gap-2 rounded-full border border-stone-700 bg-stone-900/90 px-3.5 py-1 text-xs font-semibold text-[#FF6B00]">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#FF6B00]" />
+                <span>ScopeX Verified Patient Workspace</span>
+              </div>
+
+              {/* Patient Name Heading */}
+              <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                Welcome back, {patientName(profile)}
+              </h1>
+
+              <p className="mt-2 text-xs sm:text-sm text-stone-300 leading-relaxed max-w-xl">
+                Track doorstep phlebotomy visits, download NABL-accredited diagnostic reports, and manage health checkups for your family.
+              </p>
+
+              {/* Status pills */}
+              <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs text-stone-300">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-stone-700 bg-stone-900/80 px-2.5 py-1">
+                  <Phone className="h-3 w-3 text-[#FF6B00]" />
+                  <span>{profile?.mobile || "Registered Mobile"}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-stone-700 bg-stone-900/80 px-2.5 py-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                  <span>{profile?.is_profile_complete ? "Profile Complete" : "Profile Pending"}</span>
+                </span>
               </div>
             </div>
-          ) : null}
 
-          {message ? <p className="mt-4 text-sm font-medium text-[#F7931E]">{message}</p> : null}
+            {/* Quick Actions in Dark Header */}
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+              <Link
+                href="/book-home-collection"
+                className="cta-btn text-center justify-center cursor-pointer shadow-[0_10px_28px_rgba(255,107,0,0.35)]"
+              >
+                Book Home Collection
+              </Link>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowProfileFlow(true)}
+                  className="flex-1 rounded-xl border border-stone-700 bg-stone-900/90 px-4 py-2.5 text-xs font-bold text-white hover:border-[#FF6B00] hover:bg-stone-800 transition text-center cursor-pointer"
+                >
+                  Edit Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={logoutPatient}
+                  className="rounded-xl border border-stone-800 bg-stone-900/60 p-2.5 text-stone-400 hover:text-red-400 hover:border-red-500/40 transition cursor-pointer"
+                  title="Logout"
+                  aria-label="Logout"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
 
-          <div className="mt-6 rounded-[26px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
-            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          {/* Quick Metrics Cards inside Dark Hero */}
+          <div className="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="rounded-2xl border border-stone-800 bg-stone-900/70 p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Total Bookings</p>
+              <p className="mt-1 text-2xl sm:text-3xl font-black text-white">{bookings.length}</p>
+              <p className="mt-1 text-[11px] text-stone-400">Home collections</p>
+            </div>
+            <div className="rounded-2xl border border-stone-800 bg-stone-900/70 p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Digital Reports</p>
+              <p className="mt-1 text-2xl sm:text-3xl font-black text-[#FF6B00]">{reports.length}</p>
+              <p className="mt-1 text-[11px] text-stone-400">Pathologist-verified</p>
+            </div>
+            <div className="rounded-2xl border border-stone-800 bg-stone-900/70 p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Family Members</p>
+              <p className="mt-1 text-2xl sm:text-3xl font-black text-white">{familyMembers.length + 1}</p>
+              <p className="mt-1 text-[11px] text-stone-400">Self + Family</p>
+            </div>
+            <div className="rounded-2xl border border-stone-800 bg-stone-900/70 p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Profile Health</p>
+              <p className="mt-1 text-2xl sm:text-3xl font-black text-emerald-400">
+                {profile?.is_profile_complete ? "100%" : "60%"}
+              </p>
+              <p className="mt-1 text-[11px] text-stone-400">
+                {profile?.is_profile_complete ? "Fully verified" : "Action recommended"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Workspace Body */}
+      <div className="section-wrap mt-8 sm:mt-10 space-y-8">
+        {/* Profile Incomplete Notification Banner */}
+        {profileIncomplete ? (
+          <div className="rounded-2xl border border-[#FFD9C0] bg-[#FFF4E8] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-[#FF6B00] shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Selected package</p>
-                <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">{featuredPackage.name}</h2>
-                <p className="mt-1 text-sm text-[#5f6868]">{featuredPackage.tagline}</p>
-                <p className="mt-3 text-sm text-[#5f6868]">{featuredPackage.overview.length} included tests</p>
-              </div>
-              <div className="rounded-[22px] bg-white p-4 text-left shadow-sm md:text-right">
-                <p className="text-3xl font-black text-[#ff6a00]">{rupee(featuredPackage.price)}</p>
-                <p className="text-xs text-[#7c8f90]">ScopeX real price</p>
-                <p className="text-xs font-bold text-[#F7931E]">Bundle savings may apply</p>
+                <p className="text-xs sm:text-sm font-bold text-[#0D0D0D]">
+                  Complete your health profile for seamless home collection
+                </p>
+                <p className="text-xs text-[#626262]">
+                  Add your home address and date of birth so your collection partner can arrive on time.
+                </p>
               </div>
             </div>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Link href={`/packages/${featuredPackage.id}`} className="secondary-btn w-full justify-center sm:w-auto">View details</Link>
-              <Link href={`/book-home-collection?package=${encodeURIComponent(featuredPackage.name)}`} className="cta-btn w-full justify-center sm:w-auto">Book now</Link>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowProfileFlow(true)}
+                className="cta-btn py-2 px-4 text-[11px]"
+              >
+                Complete Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowProfileFlow(false)}
+                className="rounded-xl border border-[#EAEAEA] bg-white px-3.5 py-2 text-[11px] font-bold text-[#626262] hover:text-[#0D0D0D]"
+              >
+                Dismiss
+              </button>
             </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Saved patients</p>
-              <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">Family members</h2>
-            </div>
-            <span className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#F7931E]">{familyMembers.length}/10</span>
+        {message ? (
+          <div className="rounded-xl bg-[#F7F7F7] border border-[#EAEAEA] px-4 py-2.5 text-xs font-semibold text-[#0D0D0D]">
+            {message}
           </div>
+        ) : null}
 
-          <div className="mt-5 grid gap-3">
-            <article className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
-              <div className="flex items-center justify-between gap-3">
+        {/* 2-Column Dashboard Layout */}
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          {/* Left Column: Recommended Package + Bookings & History */}
+          <div className="space-y-8">
+            {/* Featured Recommended Package Card with Carbon Black contrast accent */}
+            <div className="rounded-3xl border border-[#EAEAEA] bg-white p-6 sm:p-7 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="rounded-lg bg-[#FFF4E8] px-2.5 py-1 text-xs font-bold text-[#FF6B00]">
+                  Recommended For You
+                </span>
+                <span className="text-xs font-semibold text-[#626262]">
+                  {featuredPackage.overview.length} Included Tests
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="font-bold text-[#0D0D0D]">Self</p>
-                  <p className="text-sm text-[#5f6868]">{profile?.mobile || "Mobile saved after login"}</p>
+                  <h3 className="text-xl sm:text-2xl font-black text-[#0D0D0D]">
+                    {featuredPackage.name}
+                  </h3>
+                  <p className="mt-1 text-xs text-[#626262]">{featuredPackage.tagline}</p>
                 </div>
-                {profile?.is_profile_complete ? <span className="rounded-full bg-[#e8f7f3] px-3 py-1 text-xs font-bold text-[#F7931E]">Ready</span> : null}
+                <div className="text-left sm:text-right">
+                  <p className="text-2xl sm:text-3xl font-black text-[#0D0D0D]">
+                    {rupee(featuredPackage.price)}
+                  </p>
+                  <p className="text-[11px] text-[#626262]">ScopeX verified price</p>
+                </div>
               </div>
-            </article>
-            {familyMembers.map((member) => (
-              <article key={member.id} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="font-bold text-[#0D0D0D]">{member.name} {member.is_default ? <span className="text-xs text-[#F7931E]">Default</span> : null}</p>
-                    <p className="text-sm text-[#5f6868]">
-                      {member.relation} - {member.age ? `${member.age} yrs` : member.dob || "Age pending"} - {member.gender || "Gender pending"}
-                    </p>
-                    {member.health_note ? <p className="mt-1 text-xs text-[#7c8f90]">{member.health_note}</p> : null}
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.12em]">
-                    <button type="button" onClick={() => setFamilyForm({ id: member.id, name: member.name, relation: member.relation, dob: member.dob || "", age: member.age ? String(member.age) : "", gender: member.gender || "", mobile: member.mobile || "", healthNote: member.health_note || "", isDefault: Boolean(member.is_default) })} className="text-[#F7931E]">Edit</button>
-                    <button type="button" onClick={() => makeDefault(member.id)} className="text-[#F7931E]">Default</button>
-                    <button type="button" onClick={() => deleteFamilyMember(member.id)} className="text-red-500">Delete</button>
-                  </div>
+
+              <div className="mt-5 flex flex-wrap gap-2 text-xs text-[#0D0D0D]">
+                {featuredPackage.overview.slice(0, 4).map((test) => (
+                  <span
+                    key={test}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#EAEAEA] bg-[#F7F7F7] px-2.5 py-1 text-[11px] font-semibold"
+                  >
+                    <CheckCircle2 className="h-3 w-3 text-[#FF6B00]" />
+                    {test}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-[#EAEAEA] flex items-center gap-3">
+                <Link
+                  href={`/book-home-collection?package=${encodeURIComponent(featuredPackage.name)}`}
+                  className="cta-btn flex-1 text-center justify-center"
+                >
+                  Book Package Now
+                </Link>
+                <Link
+                  href={`/packages/${featuredPackage.id}`}
+                  className="rounded-xl border border-[#0D0D0D] bg-white px-5 py-2.5 text-xs font-bold text-[#0D0D0D] hover:bg-[#F7F7F7] text-center"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+
+            {/* Member-Wise Bookings & Real-Time Tracking */}
+            <div className="rounded-3xl border border-[#EAEAEA] bg-white p-6 sm:p-7 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#EAEAEA] pb-4">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#FF6B00]">
+                    Order History
+                  </span>
+                  <h2 className="mt-1 text-xl font-bold text-[#0D0D0D]">
+                    Home Collection Bookings
+                  </h2>
                 </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      <div className="mt-6 rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Add Family Member</p>
-            <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">Reuse saved details in future bookings</h2>
-          </div>
-          {familyForm.id ? <button type="button" onClick={() => setFamilyForm(emptyFamilyForm)} className="secondary-btn w-fit">Cancel edit</button> : null}
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-4">
-          <input value={familyForm.name} onChange={(event) => setFamilyForm((current) => ({ ...current, name: event.target.value }))} placeholder="Name" className="form-field" />
-          <select value={familyForm.relation} onChange={(event) => setFamilyForm((current) => ({ ...current, relation: event.target.value }))} className="form-field">
-            {relationOptions.map((relation) => <option key={relation}>{relation}</option>)}
-          </select>
-          <input value={familyForm.age} onChange={(event) => setFamilyForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age" inputMode="numeric" className="form-field" />
-          <select value={familyForm.gender} onChange={(event) => setFamilyForm((current) => ({ ...current, gender: event.target.value }))} className="form-field">
-            <option value="">Gender</option>
-            {genderOptions.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
-          </select>
-          <input value={familyForm.dob} onChange={(event) => setFamilyForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="form-field" />
-          <input value={familyForm.mobile} onChange={(event) => setFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="form-field" />
-          <input value={familyForm.healthNote} onChange={(event) => setFamilyForm((current) => ({ ...current, healthNote: event.target.value }))} placeholder="Health note optional" className="form-field md:col-span-2" />
-        </div>
-        <label className="mt-4 flex items-center gap-3 text-sm text-[#5f6868]">
-          <input type="checkbox" checked={familyForm.isDefault} onChange={(event) => setFamilyForm((current) => ({ ...current, isDefault: event.target.checked }))} />
-          Mark as default patient
-        </label>
-        <button type="button" onClick={saveFamilyMember} disabled={familySaving} className="cta-btn mt-5 w-full sm:w-auto">
-          {familySaving ? "Saving..." : familyForm.id ? "Update Family Member" : "Add Family Member"}
-        </button>
-      </div>
+                {/* Filter Selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#626262]">Filter:</span>
+                  <select
+                    value={selectedPatientFilter}
+                    onChange={(e) => setSelectedPatientFilter(e.target.value)}
+                    className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3 py-1.5 text-xs font-bold text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
+                  >
+                    <option value="all">All Patients</option>
+                    <option value="self">Self</option>
+                    {familyMembers.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-      <div className="mt-6 rounded-[30px] border border-[#f1dfce] bg-white p-5 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">History & Reports</p>
-            <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">Member-wise records</h2>
-          </div>
-          <select value={selectedPatientFilter} onChange={(event) => setSelectedPatientFilter(event.target.value)} className="form-field max-w-xs">
-            <option value="self">Self</option>
-            <option value="all">All patients</option>
-            {familyMembers.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
-          </select>
-        </div>
-
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
-          <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
-            <h3 className="text-xl font-bold text-[#0D0D0D]">Previous bookings</h3>
-            <div className="mt-4 grid gap-3">
-              {filteredBookings.length === 0 ? <p className="text-sm text-[#5f6868]">No bookings found for this patient yet.</p> : null}
-              {filteredBookings.map((booking) => (
-                <article key={booking.id} className="rounded-[22px] border border-[#f1dfce] bg-white p-4 shadow-[0_10px_22px_rgba(16,42,45,0.04)]">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="font-bold text-[#0D0D0D]">{booking.booking_id || `Booking #${booking.id.slice(0, 8)}`}</p>
-                      <p className="mt-1 text-sm text-[#5f6868]">{booking.preferred_date || "Date pending"} - {booking.preferred_time || "Slot pending"}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-[#effaf7] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#F7931E]">{formatStatus(booking.booking_status)}</span>
-                      <span className="rounded-full bg-[#fff3ea] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#F7931E]">{formatStatus(booking.payment_status || "payment pending")}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 rounded-2xl bg-[#FFF8F2] p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#F7931E]">Selected items</p>
-                      <p className="font-black text-[#F7931E]">{rupee(booking.payable_amount)}</p>
-                    </div>
-                    <p className="mt-2 text-sm text-[#5f6868]">
-                      {booking.booking_items?.map((item) => item.item_name).filter(Boolean).join(", ") || "Items pending"}
+              <div className="mt-6 space-y-4">
+                {filteredBookings.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[#EAEAEA] bg-[#F7F7F7] p-8 text-center">
+                    <Calendar className="mx-auto h-8 w-8 text-[#8A8A8A]" />
+                    <p className="mt-2 text-xs sm:text-sm font-semibold text-[#0D0D0D]">
+                      No bookings found
                     </p>
-                  </div>
-
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleTracking(booking.id)}
-                      className="rounded-full border border-[#f7d7bb] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:border-[#F7931E] hover:bg-[#effaf7]"
+                    <p className="mt-1 text-xs text-[#626262]">
+                      You haven&apos;t booked any home collection for this patient yet.
+                    </p>
+                    <Link
+                      href="/book-home-collection"
+                      className="cta-btn mt-4 inline-flex text-xs py-2 px-5"
                     >
-                      {busyBookingId === booking.id && expandedTrackingId === booking.id ? "Loading..." : expandedTrackingId === booking.id ? "Hide Tracking" : "Track Order"}
-                    </button>
-                    {reportLinkFromBooking(booking) ? (
-                      <a
-                        href={reportLinkFromBooking(booking)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-full border border-[#f7d7bb] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:border-[#F7931E] hover:bg-[#effaf7]"
-                      >
-                        View Report
-                      </a>
-                    ) : (
-                      <span className="rounded-full border border-[#f1dfce] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
-                        Report Pending
-                      </span>
-                    )}
-                    {isBookingModifiable(booking) ? (
-                      <Link
-                        href={`/book-home-collection?modifyBookingId=${booking.id}`}
-                        className="rounded-full border border-[#f7d7bb] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:border-[#F7931E] hover:bg-[#effaf7]"
-                      >
-                        Modify
-                      </Link>
-                    ) : (
-                      <span className="rounded-full border border-[#f1dfce] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
-                        Locked
-                      </span>
-                    )}
-                    {isBookingCancelable(booking) ? (
-                      <button
-                        type="button"
-                        onClick={() => cancelBooking(booking)}
-                        disabled={busyBookingId === booking.id}
-                        className="rounded-full border border-[#ffd6bf] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] transition hover:bg-[#fff3ea] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {busyBookingId === booking.id ? "Please wait..." : "Cancel"}
-                      </button>
-                    ) : (
-                      <span className="rounded-full border border-[#f1dfce] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#7c8f90]">
-                        Cancel Closed
-                      </span>
-                    )}
+                      Book First Test
+                    </Link>
                   </div>
+                ) : null}
 
-                  {expandedTrackingId === booking.id ? (
-                    <div className="mt-4 rounded-[18px] border border-[#f1dfce] bg-[#fbfefe] p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#F7931E]">Order Timeline</p>
-                      <div className="mt-3 space-y-3">
-                        {(tracking[booking.id]?.length ? tracking[booking.id] : [{ status: booking.booking_status || "confirmed", note: "Current order status" }]).map((event, index) => (
-                          <div key={`${booking.id}-${event.id || index}`} className="flex gap-3">
-                            <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${index === (tracking[booking.id]?.length || 1) - 1 ? "bg-[#F7931E]" : "bg-[#F7931E]"}`} />
-                            <div>
-                              <p className="text-sm font-bold text-[#0D0D0D]">{formatStatus(event.status)}</p>
-                              {event.note ? <p className="text-xs text-[#5f6868]">{event.note}</p> : null}
-                              {event.eta_minutes ? <p className="text-xs font-semibold text-[#F7931E]">ETA: {event.eta_minutes} minutes</p> : null}
-                              {event.created_at ? <p className="text-[11px] text-[#7c8f90]">{new Date(event.created_at).toLocaleString("en-IN")}</p> : null}
-                            </div>
-                          </div>
-                        ))}
+                {filteredBookings.map((booking) => (
+                  <article
+                    key={booking.id}
+                    className="rounded-2xl border border-[#EAEAEA] bg-white p-5 shadow-2xs hover:border-[#FF6B00]/60 transition"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-[#0D0D0D]">
+                            {booking.booking_id || `Booking #${booking.id.slice(0, 8)}`}
+                          </span>
+                          <span className="rounded-md bg-[#F7F7F7] px-2 py-0.5 text-[10px] font-bold text-[#626262]">
+                            {booking.patient_type === "family" ? "Family" : "Self"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-[#626262] flex items-center gap-1.5">
+                          <Calendar className="h-3 w-3 text-[#FF6B00]" />
+                          <span>{booking.preferred_date || "Date Pending"}</span>
+                          <span>•</span>
+                          <Clock className="h-3 w-3 text-[#FF6B00]" />
+                          <span>{booking.preferred_time || "Slot Pending"}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-[#FFF4E8] px-3 py-1 text-[11px] font-bold text-[#FF6B00]">
+                          {formatStatus(booking.booking_status)}
+                        </span>
+                        <span className="rounded-full bg-[#F7F7F7] border border-[#EAEAEA] px-3 py-1 text-[11px] font-semibold text-[#0D0D0D]">
+                          {formatStatus(booking.payment_status || "Payment Pending")}
+                        </span>
                       </div>
                     </div>
-                  ) : null}
-                </article>
-              ))}
+
+                    <div className="mt-4 rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] p-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[#0D0D0D]">Selected Diagnostic Items</span>
+                        <span className="font-black text-[#FF6B00]">{rupee(booking.payable_amount)}</span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-[#626262]">
+                        {booking.booking_items?.map((item) => item.item_name).filter(Boolean).join(", ") ||
+                          "Tests / Packages pending"}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2.5 pt-2 border-t border-[#EAEAEA]">
+                      <button
+                        type="button"
+                        onClick={() => toggleTracking(booking.id)}
+                        className="rounded-xl border border-[#EAEAEA] bg-white px-3.5 py-1.5 text-xs font-bold text-[#0D0D0D] hover:border-[#FF6B00] hover:text-[#FF6B00] transition cursor-pointer"
+                      >
+                        {busyBookingId === booking.id && expandedTrackingId === booking.id
+                          ? "Loading..."
+                          : expandedTrackingId === booking.id
+                          ? "Hide Tracking"
+                          : "Track Phlebotomist"}
+                      </button>
+
+                      {reportLinkFromBooking(booking) ? (
+                        <a
+                          href={reportLinkFromBooking(booking)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-[#0D0D0D] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#FF6B00] transition"
+                        >
+                          <Download className="h-3 w-3" />
+                          <span>View Report</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-[#8A8A8A] font-medium">Report in Progress</span>
+                      )}
+
+                      {isBookingCancelable(booking) ? (
+                        <button
+                          type="button"
+                          onClick={() => cancelBooking(booking)}
+                          disabled={busyBookingId === booking.id}
+                          className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 transition cursor-pointer ml-auto"
+                        >
+                          {busyBookingId === booking.id ? "Please wait..." : "Cancel"}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {/* Expandable Order Tracking Timeline */}
+                    {expandedTrackingId === booking.id ? (
+                      <div className="mt-4 rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] p-4 text-xs">
+                        <p className="font-bold uppercase tracking-wider text-[#FF6B00] text-[10px]">
+                          Live Phlebotomy &amp; Lab Timeline
+                        </p>
+                        <div className="mt-3 space-y-3">
+                          {(tracking[booking.id]?.length
+                            ? tracking[booking.id]
+                            : [{ status: booking.booking_status || "confirmed", note: "Order confirmed in system." }]
+                          ).map((event, index) => (
+                            <div key={`${booking.id}-${event.id || index}`} className="flex items-start gap-3">
+                              <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#FF6B00]" />
+                              <div>
+                                <p className="font-bold text-[#0D0D0D]">{formatStatus(event.status)}</p>
+                                {event.note ? <p className="text-[#626262]">{event.note}</p> : null}
+                                {event.eta_minutes ? (
+                                  <p className="font-semibold text-[#FF6B00]">
+                                    Estimated Arrival: {event.eta_minutes} mins
+                                  </p>
+                                ) : null}
+                                {event.created_at ? (
+                                  <p className="text-[10px] text-[#8A8A8A]">
+                                    {new Date(event.created_at).toLocaleString("en-IN")}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
-            <h3 className="text-xl font-bold text-[#0D0D0D]">Reports</h3>
-            <div className="mt-4 grid gap-3">
-              {filteredReports.length === 0 ? <p className="text-sm text-[#5f6868]">Reports will appear here after lab processing.</p> : null}
-              {filteredReports.map((report) => (
-                <article key={report.id} className="rounded-2xl border border-[#f1dfce] bg-white p-4">
-                  <p className="font-bold text-[#0D0D0D]">{report.file_name || report.bookings?.booking_id || "Diagnostic Report"}</p>
-                  <p className="mt-1 text-sm text-[#5f6868]">{report.status || "pending"}</p>
-                  {report.report_url ? <a href={report.report_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-bold text-[#F7931E]">View / Download</a> : null}
-                </article>
-              ))}
+
+          {/* Right Column: Family Members & Diagnostic Reports List */}
+          <div className="space-y-8">
+            {/* Reports Showcase Box (Signature Dark Card matching user screenshot) */}
+            <div className="rounded-3xl border border-[#EAEAEA] bg-[#0D0D0D] p-6 text-white shadow-md relative overflow-hidden">
+              <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#FF6B00]/25 blur-3xl pointer-events-none" />
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF6B00]">
+                    Verified Reports
+                  </span>
+                  <span className="text-xs text-stone-400">NABL Lab Certified</span>
+                </div>
+
+                <h3 className="mt-2 text-xl font-bold text-white">Your Diagnostic Reports</h3>
+                <p className="mt-1 text-xs text-stone-300">
+                  Access authenticated digital PDF reports verified by certified MD pathologists.
+                </p>
+
+                <div className="mt-5 space-y-3">
+                  {filteredReports.length === 0 ? (
+                    <div className="rounded-2xl border border-stone-800 bg-stone-900/80 p-5 text-center text-xs text-stone-400">
+                      Reports will appear here once your collected sample is analyzed by our NABL laboratory partner.
+                    </div>
+                  ) : null}
+
+                  {filteredReports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="rounded-2xl border border-stone-800 bg-stone-900/90 p-4 flex items-center justify-between gap-3 hover:border-[#FF6B00]/70 transition"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white truncate">
+                          {report.file_name || report.bookings?.booking_id || "Diagnostic Report"}
+                        </p>
+                        <p className="text-[10px] text-stone-400">
+                          Status: <span className="text-emerald-400 uppercase font-semibold">{report.status || "Ready"}</span>
+                        </p>
+                      </div>
+
+                      {report.report_url ? (
+                        <a
+                          href={report.report_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#FF6B00] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#E85900] transition"
+                        >
+                          <Download className="h-3 w-3" />
+                          <span>Download</span>
+                        </a>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Family Members Management */}
+            <div className="rounded-3xl border border-[#EAEAEA] bg-white p-6 sm:p-7 shadow-xs">
+              <div className="flex items-center justify-between border-b border-[#EAEAEA] pb-4">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#FF6B00]">
+                    Family Health
+                  </span>
+                  <h3 className="mt-1 text-xl font-bold text-[#0D0D0D]">
+                    Saved Family Members
+                  </h3>
+                </div>
+                <span className="rounded-lg bg-[#F7F7F7] border border-[#EAEAEA] px-2.5 py-1 text-xs font-bold text-[#0D0D0D]">
+                  {familyMembers.length + 1} Saved
+                </span>
+              </div>
+
+              {/* Members List */}
+              <div className="mt-5 space-y-3">
+                {/* Self card */}
+                <div className="rounded-2xl border border-[#EAEAEA] bg-[#F7F7F7] p-4 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-[#0D0D0D]">{patientName(profile)}</p>
+                      <span className="rounded-md bg-[#FFF4E8] px-2 py-0.5 text-[10px] font-bold text-[#FF6B00]">
+                        Primary / Self
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#626262] mt-0.5">{profile?.mobile || "Registered Mobile"}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowProfileFlow(true)}
+                    className="text-xs font-bold text-[#FF6B00] hover:underline cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                </div>
+
+                {familyMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="rounded-2xl border border-[#EAEAEA] bg-white p-4 flex items-center justify-between hover:border-[#FF6B00]/60 transition"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-[#0D0D0D]">{member.name}</p>
+                        {member.is_default ? (
+                          <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                            Default
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-[#626262] mt-0.5">
+                        {member.relation} • {member.age ? `${member.age} yrs` : member.dob || "Age pending"} •{" "}
+                        {member.gender || "Gender pending"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFamilyForm({
+                            id: member.id,
+                            name: member.name,
+                            relation: member.relation,
+                            dob: member.dob || "",
+                            age: member.age ? String(member.age) : "",
+                            gender: member.gender || "",
+                            mobile: member.mobile || "",
+                            healthNote: member.health_note || "",
+                            isDefault: Boolean(member.is_default)
+                          })
+                        }
+                        className="text-[#0D0D0D] hover:text-[#FF6B00] font-bold cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteFamilyMember(member.id)}
+                        className="text-red-600 hover:text-red-700 font-bold cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add / Edit Family Member Form */}
+              <div className="mt-6 pt-5 border-t border-[#EAEAEA]">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#0D0D0D]">
+                    {familyForm.id ? "Edit Family Member" : "Add New Family Member"}
+                  </p>
+                  {familyForm.id ? (
+                    <button
+                      type="button"
+                      onClick={() => setFamilyForm(emptyFamilyForm)}
+                      className="text-xs text-[#626262] hover:text-[#0D0D0D] cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="mt-3.5 space-y-3">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <input
+                      value={familyForm.name}
+                      onChange={(e) => setFamilyForm((c) => ({ ...c, name: e.target.value }))}
+                      placeholder="Full Name *"
+                      className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                    />
+                    <select
+                      value={familyForm.relation}
+                      onChange={(e) => setFamilyForm((c) => ({ ...c, relation: e.target.value }))}
+                      className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                    >
+                      {relationOptions.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <input
+                      value={familyForm.age}
+                      onChange={(e) =>
+                        setFamilyForm((c) => ({ ...c, age: e.target.value.replace(/\D/g, "").slice(0, 3) }))
+                      }
+                      placeholder="Age *"
+                      inputMode="numeric"
+                      className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                    />
+                    <select
+                      value={familyForm.gender}
+                      onChange={(e) => setFamilyForm((c) => ({ ...c, gender: e.target.value }))}
+                      className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                    >
+                      <option value="">Gender *</option>
+                      {genderOptions.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <input
+                    value={familyForm.mobile}
+                    onChange={(e) =>
+                      setFamilyForm((c) => ({ ...c, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+                    }
+                    placeholder="Mobile number (optional)"
+                    inputMode="numeric"
+                    className="w-full rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                  />
+
+                  <label className="flex items-center gap-2 text-xs text-[#626262] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={familyForm.isDefault}
+                      onChange={(e) => setFamilyForm((c) => ({ ...c, isDefault: e.target.checked }))}
+                      className="h-3.5 w-3.5 rounded accent-[#FF6B00]"
+                    />
+                    <span>Mark as default patient for quick bookings</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={saveFamilyMember}
+                    disabled={familySaving}
+                    className="w-full rounded-xl bg-[#0D0D0D] py-2.5 text-xs font-bold text-white hover:bg-[#FF6B00] transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {familySaving ? "Saving..." : familyForm.id ? "Update Family Member" : "Save Family Member"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* 3. PROFILE MODAL WIZARD */}
       {showProfileFlow ? (
-        <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#0D0D0D]/45 px-4 py-6 backdrop-blur-sm">
-          <div className="mx-auto max-w-4xl rounded-[30px] bg-white p-5 shadow-2xl md:p-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-sm flex items-center justify-center">
+          <div className="w-full max-w-2xl rounded-3xl border border-[#EAEAEA] bg-white p-6 sm:p-8 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#EAEAEA] pb-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F7931E]">Step {profileStep} of 3</p>
-                <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D]">Complete Your Health Profile</h2>
-                <p className="mt-2 text-sm leading-7 text-[#5f6868]">Save your personal and family details once for faster bookings in future.</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF6B00]">
+                  Step {profileStep} of 3
+                </span>
+                <h3 className="text-xl font-bold text-[#0D0D0D]">Complete Your Health Profile</h3>
               </div>
-              <button type="button" onClick={() => setShowProfileFlow(false)} className="rounded-full border border-[#f1dfce] px-5 py-2 text-sm font-bold text-[#0D0D0D]">Skip for now</button>
+              <button
+                type="button"
+                onClick={() => setShowProfileFlow(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#EAEAEA] text-[#0D0D0D] hover:bg-[#F7F7F7]"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="mt-6 grid gap-2 sm:grid-cols-3">
-              {["Personal Details", "Family Members", "Save & Continue"].map((label, index) => (
-                <button key={label} type="button" onClick={() => setProfileStep(index + 1)} className={`rounded-full px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] ${profileStep === index + 1 ? "bg-[#F7931E] text-white" : "bg-[#effaf7] text-[#F7931E]"}`}>
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              {["Personal Details", "Family Members", "Consent & Save"].map((label, index) => (
+                <div
+                  key={label}
+                  className={`rounded-xl py-2 text-center text-xs font-bold ${
+                    profileStep === index + 1
+                      ? "bg-[#0D0D0D] text-white"
+                      : profileStep > index + 1
+                      ? "bg-[#FFF4E8] text-[#FF6B00]"
+                      : "bg-[#F7F7F7] text-[#8A8A8A]"
+                  }`}
+                >
                   {label}
-                </button>
+                </div>
               ))}
             </div>
 
             {profileStep === 1 ? (
-              <div className="mt-6 grid gap-3 md:grid-cols-2">
-                <input value={profileForm.fullName} onChange={(event) => setProfileForm((current) => ({ ...current, fullName: event.target.value }))} placeholder="Full name *" className="form-field" />
-                <input value={profileForm.mobile} onChange={(event) => setProfileForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile number *" inputMode="numeric" className="form-field" />
-                <input value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" className="form-field" />
-                <div className="grid grid-cols-2 gap-3">
-                  <input value={profileForm.age} onChange={(event) => setProfileForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age *" inputMode="numeric" className="form-field" />
-                  <input value={profileForm.dob} onChange={(event) => setProfileForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="form-field" />
+              <div className="mt-6 space-y-3.5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={profileForm.fullName}
+                    onChange={(e) => setProfileForm((c) => ({ ...c, fullName: e.target.value }))}
+                    placeholder="Full Name *"
+                    className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                  />
+                  <input
+                    value={profileForm.mobile}
+                    onChange={(e) =>
+                      setProfileForm((c) => ({ ...c, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+                    }
+                    placeholder="Mobile Number *"
+                    inputMode="numeric"
+                    className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                  />
+                  <input
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm((c) => ({ ...c, email: e.target.value }))}
+                    placeholder="Email Address"
+                    type="email"
+                    className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={profileForm.age}
+                      onChange={(e) =>
+                        setProfileForm((c) => ({ ...c, age: e.target.value.replace(/\D/g, "").slice(0, 3) }))
+                      }
+                      placeholder="Age *"
+                      inputMode="numeric"
+                      className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                    />
+                    <select
+                      value={profileForm.gender}
+                      onChange={(e) => setProfileForm((c) => ({ ...c, gender: e.target.value }))}
+                      className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                    >
+                      <option value="">Gender *</option>
+                      {genderOptions.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <input
+                    value={profileForm.city}
+                    onChange={(e) => setProfileForm((c) => ({ ...c, city: e.target.value }))}
+                    placeholder="City"
+                    className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                  />
+                  <input
+                    value={profileForm.pincode}
+                    onChange={(e) =>
+                      setProfileForm((c) => ({ ...c, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))
+                    }
+                    placeholder="Pincode *"
+                    inputMode="numeric"
+                    className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                  />
                 </div>
-                <select value={profileForm.gender} onChange={(event) => setProfileForm((current) => ({ ...current, gender: event.target.value }))} className="form-field">
-                  <option value="">Gender *</option>
-                  {genderOptions.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
-                </select>
-                <input value={profileForm.city} onChange={(event) => setProfileForm((current) => ({ ...current, city: event.target.value }))} placeholder="City" className="form-field" />
-                <input value={profileForm.pincode} onChange={(event) => setProfileForm((current) => ({ ...current, pincode: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Pincode *" inputMode="numeric" className="form-field" />
-                <textarea value={profileForm.address} onChange={(event) => setProfileForm((current) => ({ ...current, address: event.target.value }))} placeholder="Address for home collection *" className="form-field min-h-24 md:col-span-2" />
-                <textarea value={profileForm.preferredCollectionAddress} onChange={(event) => setProfileForm((current) => ({ ...current, preferredCollectionAddress: event.target.value }))} placeholder="Preferred home collection address" className="form-field min-h-20 md:col-span-2" />
+                <textarea
+                  value={profileForm.address}
+                  onChange={(e) => setProfileForm((c) => ({ ...c, address: e.target.value }))}
+                  placeholder="Complete Address for Doorstep Sample Collection *"
+                  rows={2}
+                  className="w-full rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:bg-white focus:outline-none"
+                />
               </div>
             ) : null}
 
             {profileStep === 2 ? (
-              <div className="mt-6">
-                <p className="text-sm leading-7 text-[#5f6868]">Add family members now or skip this step. You can always add them before future bookings.</p>
-
-                <div className="mt-4 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="text-lg font-bold text-[#0D0D0D]">{familyForm.id ? "Edit family member" : "Add family member"}</h3>
-                    {familyForm.id ? <button type="button" onClick={() => setFamilyForm(emptyFamilyForm)} className="secondary-btn w-fit">Cancel edit</button> : null}
-                  </div>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <input value={familyForm.name} onChange={(event) => setFamilyForm((current) => ({ ...current, name: event.target.value }))} placeholder="Name *" className="form-field" />
-                    <select value={familyForm.relation} onChange={(event) => setFamilyForm((current) => ({ ...current, relation: event.target.value }))} className="form-field">
-                      {relationOptions.map((relation) => <option key={relation}>{relation}</option>)}
-                    </select>
-                    <input value={familyForm.age} onChange={(event) => setFamilyForm((current) => ({ ...current, age: event.target.value.replace(/\D/g, "").slice(0, 3) }))} placeholder="Age *" inputMode="numeric" className="form-field" />
-                    <select value={familyForm.gender} onChange={(event) => setFamilyForm((current) => ({ ...current, gender: event.target.value }))} className="form-field">
-                      <option value="">Gender *</option>
-                      {genderOptions.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
-                    </select>
-                    <input value={familyForm.dob} onChange={(event) => setFamilyForm((current) => ({ ...current, dob: event.target.value }))} type="date" className="form-field" />
-                    <input value={familyForm.mobile} onChange={(event) => setFamilyForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile optional" inputMode="numeric" className="form-field" />
-                    <input value={familyForm.healthNote} onChange={(event) => setFamilyForm((current) => ({ ...current, healthNote: event.target.value }))} placeholder="Health note optional" className="form-field md:col-span-2" />
-                  </div>
-                  <label className="mt-4 flex items-center gap-3 text-sm text-[#5f6868]">
-                    <input type="checkbox" checked={familyForm.isDefault} onChange={(event) => setFamilyForm((current) => ({ ...current, isDefault: event.target.checked }))} />
-                    Mark as default patient
-                  </label>
-                  <button type="button" onClick={saveFamilyMember} disabled={familySaving} className="cta-btn mt-4 w-full sm:w-auto">
-                    {familySaving ? "Saving..." : familyForm.id ? "Update Family Member" : "Add Family Member"}
-                  </button>
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {familyMembers.length === 0 ? <p className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4 text-sm text-[#5f6868]">No family members saved yet.</p> : null}
-                  {familyMembers.map((member) => (
-                    <article key={member.id} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-bold text-[#0D0D0D]">{member.name}</p>
-                          <p className="text-sm text-[#5f6868]">{member.relation} - {member.age || member.dob || "Age pending"}</p>
-                          {member.is_default ? <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#F7931E]">Default</p> : null}
-                        </div>
-                        <button type="button" onClick={() => setFamilyForm({ id: member.id, name: member.name, relation: member.relation, dob: member.dob || "", age: member.age ? String(member.age) : "", gender: member.gender || "", mobile: member.mobile || "", healthNote: member.health_note || "", isDefault: Boolean(member.is_default) })} className="text-xs font-black uppercase tracking-[0.12em] text-[#F7931E]">Edit</button>
-                      </div>
-                    </article>
+              <div className="mt-6 space-y-4">
+                <p className="text-xs text-[#626262]">
+                  You have saved {familyMembers.length} family member(s). You can add more now or anytime later from your dashboard.
+                </p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {familyMembers.map((m) => (
+                    <div
+                      key={m.id}
+                      className="rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] p-3 text-xs flex items-center justify-between"
+                    >
+                      <span className="font-bold text-[#0D0D0D]">{m.name} ({m.relation})</span>
+                      <span className="text-[#626262]">{m.age ? `${m.age} yrs` : ""}</span>
+                    </div>
                   ))}
                 </div>
               </div>
             ) : null}
 
             {profileStep === 3 ? (
-              <div className="mt-6 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
-                <h3 className="text-xl font-bold text-[#0D0D0D]">Ready to save</h3>
-                <p className="mt-2 text-sm leading-7 text-[#5f6868]">Your details will be reused for future bookings, patient selection, reports, and family member history.</p>
-                {!requiredPersonalComplete ? <p className="mt-3 text-sm font-semibold text-red-600">Please complete required personal details first.</p> : null}
-                <label className="mt-4 flex items-start gap-3 text-sm leading-6 text-[#5f6868]">
-                  <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1" />
-                  I consent to securely save my personal and family health details for future bookings.
+              <div className="mt-6 space-y-4">
+                <div className="rounded-2xl border border-[#EAEAEA] bg-[#F7F7F7] p-5 text-xs text-[#626262] leading-relaxed">
+                  <p className="font-bold text-[#0D0D0D]">Data Privacy &amp; Encryption</p>
+                  <p className="mt-1">
+                    Your diagnostic data, addresses, and family records are stored securely with HIPAA and ISO-grade encryption. Information is used exclusively to facilitate blood sample collection and authenticated report delivery.
+                  </p>
+                </div>
+                <label className="flex items-start gap-2.5 text-xs text-[#0D0D0D] font-semibold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded accent-[#FF6B00]"
+                  />
+                  <span>
+                    I confirm the above details are accurate and authorize ScopeX Diagnostics to store them for home collection scheduling.
+                  </span>
                 </label>
               </div>
             ) : null}
 
-            {profileFlowMessage ? <p className="mt-4 text-sm font-semibold text-[#F7931E]">{profileFlowMessage}</p> : null}
+            {profileFlowMessage ? (
+              <p className="mt-4 text-xs font-semibold text-[#FF6B00]">{profileFlowMessage}</p>
+            ) : null}
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-              <button type="button" onClick={() => setProfileStep((step) => Math.max(1, step - 1))} className="secondary-btn" disabled={profileStep === 1}>Back</button>
+            <div className="mt-6 pt-4 border-t border-[#EAEAEA] flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setProfileStep((s) => Math.max(1, s - 1))}
+                disabled={profileStep === 1}
+                className="rounded-xl border border-[#EAEAEA] px-4 py-2 text-xs font-bold text-[#626262] disabled:opacity-30"
+              >
+                Back
+              </button>
+
               {profileStep < 3 ? (
-                <button type="button" onClick={() => setProfileStep((step) => Math.min(3, step + 1))} className="cta-btn">Continue</button>
+                <button
+                  type="button"
+                  onClick={() => setProfileStep((s) => Math.min(3, s + 1))}
+                  className="cta-btn py-2 px-5 text-xs"
+                >
+                  Continue
+                </button>
               ) : (
-                <button type="button" onClick={saveProfile} disabled={savingProfile} className="cta-btn disabled:cursor-not-allowed disabled:opacity-50">
-                  {savingProfile ? "Saving..." : "Save & Continue"}
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  disabled={savingProfile || !consent}
+                  className="cta-btn py-2 px-6 text-xs disabled:opacity-50"
+                >
+                  {savingProfile ? "Saving Profile..." : "Save & Complete"}
                 </button>
               )}
             </div>
           </div>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }

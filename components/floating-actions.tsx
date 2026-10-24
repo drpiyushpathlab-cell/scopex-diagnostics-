@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,11 +33,11 @@ export function FloatingActions() {
         href={`https://wa.me/${whatsappNumber}?text=${growthPartnerMessage}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_16px_34px_rgba(16,24,40,0.18)] transition hover:-translate-y-1 hover:shadow-[0_20px_44px_rgba(37,211,102,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
+        className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-[60] flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_12px_28px_rgba(37,211,102,0.32)] transition hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(37,211,102,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
         aria-label="Contact ScopeX Diagnostics on WhatsApp for Growth Partner enquiry"
         title="Contact on WhatsApp"
       >
-        <WhatsAppIcon className="h-7 w-7" />
+        <WhatsAppIcon className="h-5 w-5 sm:h-7 sm:w-7" />
       </Link>
     );
   }
@@ -47,33 +47,47 @@ export function FloatingActions() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-4 pb-[env(safe-area-inset-bottom)]" aria-label="ScopeX quick actions">
+    <div
+      className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-[60] flex flex-col items-end gap-2 sm:gap-3.5 pb-[env(safe-area-inset-bottom)] pointer-events-auto"
+      aria-label="ScopeX quick actions"
+    >
       <button
         type="button"
         onClick={openHomeCollectionPopup}
-        className="group inline-flex h-14 w-14 items-center justify-start overflow-hidden rounded-full bg-[#F7931E] px-[18px] text-sm font-bold text-white shadow-[0_14px_30px_rgba(243,147,30,0.28)] transition-all duration-[250ms] ease-out md:hover:-translate-y-[3px] md:hover:scale-105 md:hover:shadow-[0_18px_42px_rgba(243,147,30,0.36)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F7931E] md:h-[60px] md:w-[60px] md:hover:w-[170px]"
+        className="group inline-flex h-11 w-11 sm:h-13 sm:w-13 md:h-14 md:w-14 items-center justify-center overflow-hidden rounded-full bg-[#FF6600] text-white shadow-[0_10px_24px_rgba(255,102,0,0.34)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6600] md:justify-start md:px-[18px] md:hover:w-[170px]"
         aria-label="Open Get Callback popup"
         title="Get Callback"
       >
-        <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-5 w-5 sm:h-6 sm:w-6 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.74a16 16 0 0 0 6.26 6.26l1.28-1.28a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
         </svg>
-        <span className="ml-3 hidden whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:inline">Get Callback</span>
+        <span className="ml-3 hidden whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:inline font-bold text-xs uppercase tracking-wider">
+          Get Callback
+        </span>
       </button>
 
       <Link
         href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="group inline-flex h-14 w-14 items-center justify-start overflow-hidden rounded-full bg-[#25D366] px-[18px] text-sm font-bold text-white shadow-[0_14px_30px_rgba(37,211,102,0.26)] transition-all duration-[250ms] ease-out md:hover:-translate-y-[3px] md:hover:scale-105 md:hover:shadow-[0_18px_42px_rgba(37,211,102,0.34)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] md:h-[60px] md:w-[60px] md:hover:w-[170px]"
+        className="group inline-flex h-11 w-11 sm:h-13 sm:w-13 md:h-14 md:w-14 items-center justify-center overflow-hidden rounded-full bg-[#25D366] text-white shadow-[0_10px_24px_rgba(37,211,102,0.32)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] md:justify-start md:px-[18px] md:hover:w-[170px]"
         aria-label="Open WhatsApp chat"
         title="WhatsApp"
       >
-        <WhatsAppIcon className="h-6 w-6 shrink-0" />
-        <span className="ml-3 hidden whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:inline">WhatsApp</span>
+        <WhatsAppIcon className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
+        <span className="ml-3 hidden whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:inline font-bold text-xs uppercase tracking-wider">
+          WhatsApp
+        </span>
       </Link>
     </div>
   );
 }
-
-

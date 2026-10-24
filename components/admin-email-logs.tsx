@@ -98,14 +98,14 @@ export function AdminEmailLogs() {
   return (
     <div className="space-y-6">
       <section className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Admin Monitoring</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Admin Monitoring</p>
         <h1 className="mt-2 text-3xl font-black text-[#0D0D0D] md:text-4xl">Email logs</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">Monitor transactional emails, resend failed notifications, and validate SMTP delivery.</p>
 
         <div className="mt-6 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl bg-[#eef8f5] p-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#F7931E]">Total</p><p className="text-3xl font-black text-[#0D0D0D]">{stats.total}</p></div>
-          <div className="rounded-2xl bg-[#eef8f5] p-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#F7931E]">Success</p><p className="text-3xl font-black text-[#0D0D0D]">{stats.success}</p></div>
-          <div className="rounded-2xl bg-[#fff4ee] p-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#F7931E]">Failed</p><p className="text-3xl font-black text-[#0D0D0D]">{stats.failed}</p></div>
+          <div className="rounded-2xl bg-[#eef8f5] p-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#FF6B00]">Total</p><p className="text-3xl font-black text-[#0D0D0D]">{stats.total}</p></div>
+          <div className="rounded-2xl bg-[#eef8f5] p-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#FF6B00]">Success</p><p className="text-3xl font-black text-[#0D0D0D]">{stats.success}</p></div>
+          <div className="rounded-2xl bg-[#fff4ee] p-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#FF6B00]">Failed</p><p className="text-3xl font-black text-[#0D0D0D]">{stats.failed}</p></div>
         </div>
 
         <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_180px_180px_auto_auto]">
@@ -124,11 +124,11 @@ export function AdminEmailLogs() {
           <input className="form-field" value={testTo} onChange={(event) => setTestTo(event.target.value)} placeholder="Send test email to" type="email" />
           <button type="button" onClick={sendTestEmail} className="secondary-btn">Send Test Email</button>
         </div>
-        {message ? <p className="mt-4 rounded-2xl bg-[#eef8f5] p-3 text-sm font-bold text-[#F7931E]">{message}</p> : null}
+        {message ? <p className="mt-4 rounded-2xl bg-[#eef8f5] p-3 text-sm font-bold text-[#FF6B00]">{message}</p> : null}
       </section>
 
       <section className="overflow-hidden rounded-[28px] border border-[#f1dfce] bg-white shadow-[0_16px_36px_rgba(16,24,40,0.06)]">
-        <div className="hidden grid-cols-[1.2fr_1.6fr_.9fr_.7fr_.9fr_120px] bg-[#FFF8F2] p-4 text-xs font-black uppercase tracking-[0.12em] text-[#F7931E] lg:grid">
+        <div className="hidden grid-cols-[1.2fr_1.6fr_.9fr_.7fr_.9fr_120px] bg-[#FFF8F2] p-4 text-xs font-black uppercase tracking-[0.12em] text-[#FF6B00] lg:grid">
           <span>Recipient</span><span>Subject</span><span>Event</span><span>Status</span><span>Sent</span><span>Action</span>
         </div>
         {logs.length === 0 ? <p className="p-6 text-sm text-[#5f6868]">{loading ? "Loading..." : "No email logs found."}</p> : null}
@@ -137,7 +137,7 @@ export function AdminEmailLogs() {
             <p className="font-bold text-[#0D0D0D]">{log.recipient_email}</p>
             <p>{log.subject}<span className="block text-xs text-[#8aa0a0]">{log.error_message || ""}</span></p>
             <p>{log.event_type}</p>
-            <p className={log.status === "success" ? "font-black text-[#F7931E]" : "font-black text-[#F7931E]"}>{log.status}</p>
+            <p className={log.status === "success" ? "font-black text-[#FF6B00]" : "font-black text-[#FF6B00]"}>{log.status}</p>
             <p>{fmt(log.sent_at || log.created_at)}</p>
             <button type="button" onClick={() => resend(log.id)} className="secondary-btn text-xs">Resend</button>
           </article>

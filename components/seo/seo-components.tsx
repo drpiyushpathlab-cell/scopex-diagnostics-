@@ -18,7 +18,7 @@ export function Breadcrumb({ items }: { items: Array<{ label: string; href: stri
         {items.map((item, index) => (
           <li key={item.href} className="flex items-center gap-2">
             {index > 0 ? <span className="text-[#9aa9aa]">/</span> : null}
-            <Link href={item.href} className="font-semibold text-[#F7931E] hover:text-[#F7931E]">
+            <Link href={item.href} className="font-semibold text-[#FF6B00] hover:text-[#FF6B00]">
               {item.label}
             </Link>
           </li>
@@ -50,7 +50,7 @@ export function TrustSection() {
     <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((item) => (
         <div key={item} className="rounded-[22px] border border-[#f1dfce] bg-white p-5 shadow-[0_12px_28px_rgba(16,24,40,0.05)]">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff3e5] text-[#F7931E]">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff3e5] text-[#FF6B00]">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="m5 12.5 4 4L19 6.5" />
             </svg>
@@ -131,7 +131,7 @@ export function ReportCTA({ label = "Book Home Collection" }: { label?: string }
     <div className="mt-8 rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.05)] md:p-8">
       <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">ScopeX Diagnostics</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">ScopeX Diagnostics</p>
           <h2 className="mt-2 text-2xl font-bold text-[#0D0D0D]">Book diagnostics with home sample collection</h2>
           <p className="mt-3 text-sm leading-7 text-[#5f6868]">
             Choose tests, packages, or advisor support with transparent pricing and digital reports.
@@ -155,7 +155,7 @@ export function HealthLibrary() {
     <section className="container-px pt-12 md:pt-14">
       <div className="section-wrap">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Health Library</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Health Library</p>
           <h2 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Learn before you book</h2>
           <p className="mt-3 text-sm leading-8 text-[#5f6868] md:text-base">
             Patient-friendly guides for common blood tests, report markers, preventive screening, and home diagnostics.
@@ -183,7 +183,7 @@ export function SeoLandingTemplate({ page, children }: { page: SeoLandingPage; c
         <Breadcrumb items={[{ label: "Home", href: "/" }, { label: page.h1, href: page.canonicalPath }]} />
 
         <div className="mt-5 rounded-[30px] border border-[#f1dfce] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] md:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">{page.kind.replace("-", " ")}</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">{page.kind.replace("-", " ")}</p>
           <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-5xl">{page.h1}</h1>
           <p className="mt-4 max-w-4xl text-sm leading-8 text-[#5f6868] md:text-lg">{page.intro}</p>
           {page.kind === "blog" ? (

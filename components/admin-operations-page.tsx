@@ -277,13 +277,13 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Operations Management</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Operations Management</p>
         <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[#0D0D0D] md:text-4xl">{title}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">{subtitle}</p>
           </div>
-          {mode === "revenue" ? <p className="rounded-2xl bg-[#eef8f5] px-5 py-3 text-xl font-black text-[#F7931E]">Total {money(totalRevenue)}</p> : null}
+          {mode === "revenue" ? <p className="rounded-2xl bg-[#eef8f5] px-5 py-3 text-xl font-black text-[#FF6B00]">Total {money(totalRevenue)}</p> : null}
         </div>
 
         <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto_auto]">
@@ -300,30 +300,30 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
         </div>
 
         <div className="mt-6 overflow-hidden rounded-[24px] border border-[#f1dfce]">
-          <div className="hidden bg-[#FFF8F2] text-xs font-black uppercase tracking-[0.12em] text-[#F7931E] lg:grid" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
+          <div className="hidden bg-[#FFF8F2] text-xs font-black uppercase tracking-[0.12em] text-[#FF6B00] lg:grid" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
             {cols.map((col) => <button key={col} type="button" onClick={() => changeSort(col)} className="p-4 text-left uppercase">{col.replace(/_/g, " ")}</button>)}
             <span className="p-4">Actions</span>
           </div>
           {pageRows.length === 0 ? <p className="p-5 text-sm text-[#5f6868]">{message || "No records found."}</p> : null}
           {pageRows.map((row) => (
             <article key={String(row.id)} className="grid gap-3 border-t border-[#f1dfce] bg-white p-4 text-sm text-[#5f6868] lg:items-center" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
-              {cols.map((col) => <div key={col}><span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#F7931E] lg:hidden">{col.replace(/_/g, " ")}</span><span className={col.includes("amount") || col === "payable_amount" ? "font-black text-[#F7931E]" : ""}>{col.includes("amount") || col === "payable_amount" ? money(row[col]) : label(row[col])}</span></div>)}
+              {cols.map((col) => <div key={col}><span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#FF6B00] lg:hidden">{col.replace(/_/g, " ")}</span><span className={col.includes("amount") || col === "payable_amount" ? "font-black text-[#FF6B00]" : ""}>{col.includes("amount") || col === "payable_amount" ? money(row[col]) : label(row[col])}</span></div>)}
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => setSelected(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">View</button>
+                <button type="button" onClick={() => setSelected(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#FF6B00]">View</button>
                 {mode === "bookings" ? (
                   <>
                     <select value={String(row.booking_status || "")} onChange={(event) => updateBooking(String(row.id), { booking_status: event.target.value })} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-bold">
                       {bookingStatuses.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
                     </select>
-                    <button type="button" onClick={() => printRows([row])} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">Print</button>
-                    <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#F7931E]">Delete</button>
+                    <button type="button" onClick={() => printRows([row])} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#FF6B00]">Print</button>
+                    <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#FF6B00]">Delete</button>
                   </>
                 ) : null}
                 {mode === "users" ? (
                   <>
-                    <button type="button" onClick={() => toggleUser(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">{row.is_active ? "Deactivate" : "Activate"}</button>
-                    <button type="button" onClick={() => showLoginHistory(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#F7931E]">Login History</button>
-                    {isSuperAdmin ? <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#F7931E]">Delete</button> : null}
+                    <button type="button" onClick={() => toggleUser(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#FF6B00]">{row.is_active ? "Deactivate" : "Activate"}</button>
+                    <button type="button" onClick={() => showLoginHistory(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#FF6B00]">Login History</button>
+                    {isSuperAdmin ? <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#FF6B00]">Delete</button> : null}
                   </>
                 ) : null}
               </div>
@@ -338,7 +338,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
             <button type="button" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="secondary-btn disabled:opacity-40">Next</button>
           </div>
         </div>
-        {message ? <p className="mt-4 text-sm font-bold text-[#F7931E]">{message}</p> : null}
+        {message ? <p className="mt-4 text-sm font-bold text-[#FF6B00]">{message}</p> : null}
       </div>
 
       {mode === "users" ? (
@@ -355,7 +355,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
               <button type="button" onClick={createStaffUser} disabled={creatingStaff} className="cta-btn disabled:opacity-60">{creatingStaff ? "Creating..." : "Create User"}</button>
             </div>
           ) : null}
-          {staffMessage ? <p className={`mt-4 rounded-2xl p-3 text-sm font-bold ${staffMessage.includes("success") ? "bg-[#eef8f5] text-[#F7931E]" : "bg-[#fff4ee] text-[#F7931E]"}`}>{staffMessage}</p> : null}
+          {staffMessage ? <p className={`mt-4 rounded-2xl p-3 text-sm font-bold ${staffMessage.includes("success") ? "bg-[#eef8f5] text-[#FF6B00]" : "bg-[#fff4ee] text-[#FF6B00]"}`}>{staffMessage}</p> : null}
           {isSuperAdmin ? (
             <div className="mt-6 rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">
               <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -371,7 +371,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
               </div>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button type="button" onClick={changeSuperAdminPassword} disabled={changingPassword} className="cta-btn disabled:opacity-60">{changingPassword ? "Changing..." : "Change Password"}</button>
-                {passwordMessage ? <p className={`text-sm font-bold ${passwordMessage.includes("success") || passwordMessage.includes("changed") ? "text-[#F7931E]" : "text-red-600"}`}>{passwordMessage}</p> : null}
+                {passwordMessage ? <p className={`text-sm font-bold ${passwordMessage.includes("success") || passwordMessage.includes("changed") ? "text-[#FF6B00]" : "text-red-600"}`}>{passwordMessage}</p> : null}
               </div>
             </div>
           ) : null}

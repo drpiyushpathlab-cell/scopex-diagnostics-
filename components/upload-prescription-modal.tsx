@@ -93,7 +93,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
               <span className="font-semibold text-[#0D0D0D]">{mobile}</span> to confirm test items and schedule your preferred morning collection slot.
             </p>
             <div className="mt-6 flex items-center justify-center gap-2 rounded-2xl bg-[#FFF8F2] p-3 text-xs text-[#5f6868]">
-              <ShieldCheck className="h-4 w-4 text-[#F7931E]" />
+              <ShieldCheck className="h-4 w-4 text-[#FF6B00]" />
               <span>Free doorstep sample collection applies for qualified orders.</span>
             </div>
             <button
@@ -110,7 +110,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#F7931E]">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
               <UploadCloud className="h-4 w-4" />
               <span>Fast Track Booking</span>
             </div>
@@ -134,7 +134,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
                 <label className="block text-xs font-bold text-[#0D0D0D] mb-1.5">
                   Prescription Document / Photo *
                 </label>
-                <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#E8E2DC] bg-[#FFFDFB] p-5 text-center cursor-pointer transition hover:border-[#F7931E] hover:bg-[#FFF8F2]">
+                <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#E8E2DC] bg-[#FFFDFB] p-5 text-center cursor-pointer transition hover:border-[#FF6B00] hover:bg-[#FFF8F2]">
                   <input
                     type="file"
                     accept="image/*,.pdf"
@@ -143,13 +143,13 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
                   />
                   {file ? (
                     <div className="flex items-center gap-2 text-xs font-semibold text-[#0D0D0D]">
-                      <FileText className="h-5 w-5 text-[#F7931E]" />
+                      <FileText className="h-5 w-5 text-[#FF6B00]" />
                       <span className="truncate max-w-[260px]">{file.name}</span>
                       <span className="text-[#8A8A8A]">({Math.round(file.size / 1024)} KB)</span>
                     </div>
                   ) : (
                     <>
-                      <UploadCloud className="h-7 w-7 text-[#F7931E]" />
+                      <UploadCloud className="h-7 w-7 text-[#FF6B00]" />
                       <p className="mt-2 text-xs font-semibold text-[#0D0D0D]">
                         Tap to take a photo or browse file
                       </p>
@@ -173,7 +173,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Ramesh Sharma"
-                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -186,7 +186,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                     placeholder="10-digit number"
-                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                    className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                   />
                 </div>
               </div>
@@ -201,7 +201,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g. Delhi NCR, Mumbai, Bengaluru..."
-                  className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                  className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                 />
               </div>
 
@@ -215,7 +215,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. Fasting required, urgent report needed"
-                  className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#F7931E] focus:outline-none"
+                  className="w-full rounded-xl border border-[#E8E2DC] px-3.5 py-2.5 text-xs text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
                 />
               </div>
 
@@ -230,7 +230,7 @@ export function UploadPrescriptionModal({ isOpen, onClose }: UploadPrescriptionM
               </div>
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#8A8A8A]">
-                <PhoneCall className="h-3 w-3 text-[#F7931E]" />
+                <PhoneCall className="h-3 w-3 text-[#FF6B00]" />
                 <span>Our team will call to confirm test package details and pricing.</span>
               </div>
             </form>

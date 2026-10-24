@@ -1,46 +1,69 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
+import { Phone, Mail, MapPin, ShieldCheck, Heart } from "lucide-react";
 
 const popularTests = [
-  { label: "CBC Test", href: "/tests?focus=basic-tests&filter=blood&search=cbc" },
-  { label: "Thyroid Profile", href: "/tests?focus=profile-tests&filter=profile&search=thyroid" },
-  { label: "Diabetes (HbA1c)", href: "/tests?focus=basic-tests&filter=blood&search=hba1c" },
-  { label: "Lipid Profile", href: "/tests?focus=profile-tests&filter=profile&search=lipid" },
-  { label: "Liver Function Test", href: "/tests?focus=organ-function-tests&filter=profile&search=liver" },
-  { label: "Kidney Function Test", href: "/tests?focus=organ-function-tests&filter=profile&search=kidney" },
-  { label: "Vitamin D Test", href: "/tests?focus=hormone-special-tests&filter=hormone&search=vitamin%20d" }
+  { label: "CBC Test (Complete Blood Count)", href: "/tests?focus=basic-tests&filter=blood&search=cbc" },
+  { label: "Thyroid Profile (T3, T4, TSH)", href: "/tests?focus=profile-tests&filter=profile&search=thyroid" },
+  { label: "Diabetes Screen (HbA1c + Sugar)", href: "/tests?focus=basic-tests&filter=blood&search=hba1c" },
+  { label: "Lipid Profile (Cholesterol)", href: "/tests?focus=profile-tests&filter=profile&search=lipid" },
+  { label: "Liver Function Test (LFT)", href: "/tests?focus=organ-function-tests&filter=profile&search=liver" },
+  { label: "Kidney Function Test (KFT)", href: "/tests?focus=organ-function-tests&filter=profile&search=kidney" },
+  { label: "Vitamin D & B12 Test", href: "/tests?focus=hormone-special-tests&filter=hormone&search=vitamin%20d" }
 ];
 
 const healthPackages = [
-  { label: "Full Body Checkup", href: "/packages" },
-  { label: "Women Health Package", href: "/packages" },
-  { label: "Senior Citizen Package", href: "/packages" },
-  { label: "Fever Panel", href: "/tests" },
-  { label: "Heart Health Package", href: "/packages" }
+  { label: "Health 360 Pro Full Body", href: "/packages/health-360-pro" },
+  { label: "Burnout Predictor Basic", href: "/packages/burnout-predictor-basic" },
+  { label: "Burnout Predictor Pro", href: "/packages/burnout-predictor-pro" },
+  { label: "Gut Health & Digestion Check", href: "/packages/gut-health-check" },
+  { label: "Senior Citizen Wellness Panel", href: "/packages" },
+  { label: "Women Preventive Health Panel", href: "/packages" }
+];
+
+const partnerLinks = [
+  { label: "Collection Centre Partners", href: "/growth-partners#partnership-models" },
+  { label: "Clinics & Doctors", href: "/growth-partners#partnership-models" },
+  { label: "Corporate Health Programs", href: "/growth-partners#partnership-models" },
+  { label: "Insurance & TPA Diagnostics", href: "/growth-partners#partnership-models" },
+  { label: "Partner Onboarding Enquiries", href: "/growth-partners" }
 ];
 
 export function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-[#f1dfce] bg-white py-12">
+    <footer className="border-t border-[#EAEAEA] bg-white pt-14 pb-10 text-[#0D0D0D]">
       <div className="section-wrap">
-        <div className="grid gap-8 lg:grid-cols-5">
-          <div className="lg:col-span-1">
-            <h2 className="text-2xl font-bold text-[#0D0D0D]">ScopeX Diagnostics</h2>
-            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-              ScopeX Diagnostics is a tech-enabled diagnostic platform providing accurate blood tests and full body
-              health checkups with home sample collection. We ensure reliable, fast, and affordable diagnostic services
-              with advanced lab technology.
+        {/* Main Footer Columns */}
+        <div className="grid gap-10 lg:grid-cols-5 sm:grid-cols-2">
+          {/* Col 1: Brand, Tagline, Positioning */}
+          <div className="lg:col-span-2 space-y-4">
+            <BrandLogo />
+            <div className="space-y-1">
+              <p className="text-sm font-extrabold text-[#FF6B00] tracking-wide">
+                Your Health. Decoded.
+              </p>
+              <p className="text-xs font-semibold text-[#0D0D0D]">
+                Real Prices. Faster Diagnostics. Better Guidance.
+              </p>
+            </div>
+            <p className="text-xs leading-relaxed text-[#626262] max-w-sm">
+              ScopeX Diagnostics is a tech-enabled diagnostic platform providing transparently priced blood tests and comprehensive health packages with certified home sample collection across major Indian cities.
             </p>
-            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-              Serving customers through a growing Pan India diagnostic network across major Indian cities.
-            </p>
+            <div className="flex items-center gap-2 pt-1 text-xs text-[#0D0D0D] font-medium">
+              <ShieldCheck className="h-4 w-4 text-[#FF6B00]" />
+              <span>NABL Quality Standards · Safe Barcoded Cold-Chain</span>
+            </div>
           </div>
 
+          {/* Col 2: Popular Tests */}
           <div>
-            <h3 className="text-lg font-bold text-[#0D0D0D]">Popular Tests</h3>
-            <ul className="mt-4 space-y-2.5 text-sm leading-7 text-[var(--muted)]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0D0D0D]">
+              Popular Tests
+            </h3>
+            <ul className="mt-4 space-y-2.5 text-xs text-[#626262]">
               {popularTests.map((item) => (
                 <li key={item.label}>
-                  <Link href={item.href} className="hover:text-[#F7931E]">
+                  <Link href={item.href} className="hover:text-[#FF6B00] transition-colors">
                     {item.label}
                   </Link>
                 </li>
@@ -48,12 +71,27 @@ export function SiteFooter() {
             </ul>
           </div>
 
+          {/* Col 3: Packages & Partners */}
           <div>
-            <h3 className="text-lg font-bold text-[#0D0D0D]">Health Packages</h3>
-            <ul className="mt-4 space-y-2.5 text-sm leading-7 text-[var(--muted)]">
-              {healthPackages.map((item) => (
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0D0D0D]">
+              Packages &amp; Partners
+            </h3>
+            <ul className="mt-4 space-y-2.5 text-xs text-[#626262]">
+              {healthPackages.slice(0, 4).map((item) => (
                 <li key={item.label}>
-                  <Link href={item.href} className="hover:text-[#F7931E]">
+                  <Link href={item.href} className="hover:text-[#FF6B00] transition-colors">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+              <li className="pt-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D0D0D]">
+                  Growth Partners:
+                </span>
+              </li>
+              {partnerLinks.slice(0, 3).map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="hover:text-[#FF6B00] transition-colors">
                     {item.label}
                   </Link>
                 </li>
@@ -61,72 +99,64 @@ export function SiteFooter() {
             </ul>
           </div>
 
+          {/* Col 4: Contact & Support */}
           <div>
-            <h3 className="text-lg font-bold text-[#0D0D0D]">Service Coverage</h3>
-            <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
-              <p>
-                <strong>Available Across Major Indian Cities</strong>
-              </p>
-              <p>
-                <strong>Serving Across India</strong>
-              </p>
-              <p>
-                <strong>Available in:</strong>
-                <br />
-                All Major Cities Across India
-              </p>
-              <p>
-                <strong>Including:</strong>
-                <br />
-                Delhi NCR • Mumbai • Bengaluru • Hyderabad • Chennai • Pune • Ahmedabad • Kolkata • Jaipur • Lucknow • Kanpur • Indore • Bhopal • Nagpur • Surat • Chandigarh • Kochi • Patna • Bhubaneswar • Guwahati • Raipur • Varanasi • Vijayawada • Visakhapatnam &amp; More
-              </p>
-              <p>
-                <strong>Need service in your city?</strong>
-                <br />
-                Contact our team for availability.
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold text-[#0D0D0D]">Contact</h3>
-            <div className="mt-4 space-y-2 text-sm leading-7 text-[var(--muted)]">
-              <p>+91-8989273440</p>
-              <p>support@scopexdiagnostics.in</p>
-              <p>Serving Across India</p>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0D0D0D]">
+              Customer Support
+            </h3>
+            <div className="mt-4 space-y-3 text-xs text-[#626262]">
+              <div className="flex items-start gap-2.5">
+                <Phone className="h-4 w-4 text-[#FF6B00] shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-[#0D0D0D]">+91-8989273440</p>
+                  <p className="text-[11px] text-[#626262]">Mon - Sun: 6:00 AM - 9:00 PM</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Mail className="h-4 w-4 text-[#FF6B00] shrink-0 mt-0.5" />
+                <div>
+                  <a href="mailto:support@scopexdiagnostics.in" className="hover:text-[#FF6B00]">
+                    support@scopexdiagnostics.in
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <MapPin className="h-4 w-4 text-[#FF6B00] shrink-0 mt-0.5" />
+                <p>Pan India Home Sample Collection Network</p>
+              </div>
             </div>
 
-            <h4 className="mt-5 text-base font-bold text-[#0D0D0D]">Book Test</h4>
-            <Link href="/book-home-collection" className="cta-btn mt-3 w-full justify-center text-center">
-              Book Now
-            </Link>
+            <div className="mt-5">
+              <Link
+                href="/book-home-collection"
+                className="cta-btn w-full rounded-xl py-2.5 text-center text-xs font-bold"
+              >
+                Book Home Collection
+              </Link>
+            </div>
           </div>
         </div>
 
-        <div className="mt-10 rounded-[26px] border border-[#f1dfce] bg-[#FFF8F2] p-6">
-          <h3 className="text-xl font-bold text-[#0D0D0D]">Book Blood Test at Home Across India</h3>
-          <p className="mt-3 text-sm leading-8 text-[var(--muted)] md:text-base">
-            Book blood tests and full body health checkups at home across major Indian cities with ScopeX Diagnostics. Our trained
-            phlebotomists ensure safe sample collection with fast report delivery. Choose from a wide range of
-            diagnostic tests including CBC, thyroid, diabetes, vitamin tests, and preventive health packages.
+        {/* Medical Disclaimer & Service Statement */}
+        <div className="mt-12 rounded-2xl border border-[#EAEAEA] bg-[#F7F7F7] p-5 text-xs text-[#626262] leading-relaxed">
+          <p className="font-bold text-[#0D0D0D] mb-1">Medical Disclaimer &amp; Service Information</p>
+          <p>
+            Diagnostic tests and preventive health packages provided through ScopeX Diagnostics are intended for clinical investigation, routine screening, and wellness tracking. All tests are conducted by certified medical technicians and processed through accredited partner pathology laboratories. Reports should always be interpreted in consultation with a qualified medical practitioner.
           </p>
         </div>
 
-        <div className="mt-8 flex flex-col gap-4 border-t border-[#f1dfce] pt-6 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between">
-          <p>Â© 2026 ScopeX Diagnostics. All Rights Reserved.</p>
-          <div className="flex flex-wrap gap-4">
-            <Link href="/about">About</Link>
-            <Link href="/contact">Contact</Link>
-            <Link href="/privacy-policy">Privacy Policy</Link>
-            <Link href="/terms-and-conditions">Terms &amp; Conditions</Link>
-            <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link>
+        {/* Bottom Legal Bar */}
+        <div className="mt-8 flex flex-col gap-4 border-t border-[#EAEAEA] pt-6 text-xs text-[#626262] md:flex-row md:items-center md:justify-between">
+          <p>© {new Date().getFullYear()} SCOPEX Diagnostics India. All rights reserved.</p>
+          <div className="flex flex-wrap gap-4 sm:gap-6">
+            <Link href="/about" className="hover:text-[#0D0D0D]">About</Link>
+            <Link href="/contact" className="hover:text-[#0D0D0D]">Contact</Link>
+            <Link href="/privacy-policy" className="hover:text-[#0D0D0D]">Privacy Policy</Link>
+            <Link href="/terms-and-conditions" className="hover:text-[#0D0D0D]">Terms &amp; Conditions</Link>
+            <Link href="/refund-policy" className="hover:text-[#0D0D0D]">Cancellation &amp; Refund</Link>
           </div>
         </div>
       </div>
     </footer>
   );
 }
-
-
-
-

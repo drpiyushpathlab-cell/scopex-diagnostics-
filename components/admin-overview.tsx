@@ -57,7 +57,7 @@ export function AdminOverview() {
 
   return (
     <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Admin Panel</p>
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Admin Panel</p>
       <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-4xl">Booking operations overview</h1>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">
         This admin shell is connected to the ScopeX backend APIs. Use it for order review, payment reconciliation, callback assignment, and report fulfillment workflows.
@@ -79,12 +79,12 @@ export function AdminOverview() {
             <Link
               key={metric.title}
               href={href}
-              className="group rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5 transition hover:-translate-y-1 hover:border-[#F7931E] hover:shadow-[0_18px_40px_rgba(15,143,124,0.12)]"
+              className="group rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5 transition hover:-translate-y-1 hover:border-[#FF6B00] hover:shadow-[0_18px_40px_rgba(15,143,124,0.12)]"
             >
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#F7931E]">{metric.title}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#FF6B00]">{metric.title}</p>
               <p className="mt-3 text-3xl font-bold text-[#0D0D0D]">{metric.value}</p>
               <p className="mt-2 text-sm leading-7 text-[#5f6868]">{metric.note}</p>
-              <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-[#F7931E] opacity-0 transition group-hover:opacity-100">Open records</p>
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-[#FF6B00] opacity-0 transition group-hover:opacity-100">Open records</p>
             </Link>
           );
         })}

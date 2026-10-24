@@ -68,9 +68,9 @@ export default function RefundPolicyPage() {
   return (
     <section className="container-px py-14 md:py-16">
       <div className="section-wrap rounded-[32px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-10">
-        <p className="text-sm font-black uppercase tracking-[0.18em] text-[#F7931E]">ScopeX Diagnostics</p>
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-[#FF6B00]">ScopeX Diagnostics</p>
         <h1 className="mt-3 text-3xl font-black text-[#0D0D0D] md:text-5xl">Refund &amp; Cancellation Policy</h1>
-        <p className="mt-3 text-sm font-semibold text-[#F7931E]">Last Updated: June 2026</p>
+        <p className="mt-3 text-sm font-semibold text-[#FF6B00]">Last Updated: June 2026</p>
         <p className="mt-5 max-w-5xl text-sm leading-8 text-[var(--muted)] md:text-base">
           At ScopeX Diagnostics, we strive to provide high-quality diagnostic services and a seamless customer
           experience. This Refund &amp; Cancellation Policy outlines the terms governing cancellations, refunds, and
@@ -96,14 +96,14 @@ export default function RefundPolicyPage() {
             <p>ScopeX Diagnostics</p>
             <p>
               Email:{" "}
-              <a className="text-[#F7931E] underline-offset-4 hover:underline" href="mailto:scopexdiagnostic@gmail.com">
+              <a className="text-[#FF6B00] underline-offset-4 hover:underline" href="mailto:scopexdiagnostic@gmail.com">
                 scopexdiagnostic@gmail.com
               </a>
             </p>
             <p>
               Website:{" "}
               <a
-                className="text-[#F7931E] underline-offset-4 hover:underline"
+                className="text-[#FF6B00] underline-offset-4 hover:underline"
                 href="https://www.scopexdiagnostics.in"
                 target="_blank"
                 rel="noreferrer"

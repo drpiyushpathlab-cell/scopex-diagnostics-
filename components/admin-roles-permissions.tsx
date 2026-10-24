@@ -207,7 +207,7 @@ export function AdminRolesPermissions() {
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">Admin - Roles & Permissions</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">Admin - Roles & Permissions</p>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-3xl font-black text-[#0D0D0D] md:text-4xl">Dynamic permissions</h1>
@@ -215,7 +215,7 @@ export function AdminRolesPermissions() {
           </div>
           <button type="button" onClick={() => setSelectedRole(blankRole())} className="cta-btn">Create New Role</button>
         </div>
-        {message ? <p className="mt-4 rounded-2xl bg-[#eef8f5] p-3 text-sm font-bold text-[#F7931E]">{message}</p> : null}
+        {message ? <p className="mt-4 rounded-2xl bg-[#eef8f5] p-3 text-sm font-bold text-[#FF6B00]">{message}</p> : null}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
@@ -223,9 +223,9 @@ export function AdminRolesPermissions() {
           <h2 className="text-xl font-black text-[#0D0D0D]">Roles</h2>
           <div className="mt-4 space-y-3">
             {roles.map((role) => (
-              <button key={role.id} type="button" onClick={() => selectRole(role)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedRole.id === role.id ? "border-[#F7931E] bg-[#eef8f5]" : "border-[#f1dfce] bg-[#FFF8F2] hover:border-[#F7931E]"}`}>
+              <button key={role.id} type="button" onClick={() => selectRole(role)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedRole.id === role.id ? "border-[#FF6B00] bg-[#eef8f5]" : "border-[#f1dfce] bg-[#FFF8F2] hover:border-[#FF6B00]"}`}>
                 <span className="block font-black text-[#0D0D0D]">{role.display_name || role.role}</span>
-                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[#F7931E]">{role.role} {role.is_system ? "- System" : "- Custom"}</span>
+                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[#FF6B00]">{role.role} {role.is_system ? "- System" : "- Custom"}</span>
                 <span className="mt-2 block text-sm text-[#5f6868]">{rolePermissions(role).includes("*") ? "Full access" : `${rolePermissions(role).length} permissions`}</span>
               </button>
             ))}
@@ -242,7 +242,7 @@ export function AdminRolesPermissions() {
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {catalog.map((group) => (
               <div key={group.group} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
-                <h3 className="font-black uppercase tracking-[0.14em] text-[#F7931E]">{group.group}</h3>
+                <h3 className="font-black uppercase tracking-[0.14em] text-[#FF6B00]">{group.group}</h3>
                 <div className="mt-3 grid gap-2">
                   {group.permissions.map(([key, label]) => (
                     <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#0D0D0D]">
@@ -258,7 +258,7 @@ export function AdminRolesPermissions() {
           <div className="mt-6 flex flex-wrap gap-3">
             <button type="button" onClick={saveRole} className="cta-btn">Save Role</button>
             {selectedRole.id ? <button type="button" onClick={() => cloneRole(selectedRole)} className="secondary-btn">Clone Existing Role</button> : null}
-            {selectedRole.id && !selectedRole.is_system ? <button type="button" onClick={() => deleteRole(selectedRole)} className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#F7931E]">Delete Role</button> : null}
+            {selectedRole.id && !selectedRole.is_system ? <button type="button" onClick={() => deleteRole(selectedRole)} className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#FF6B00]">Delete Role</button> : null}
           </div>
         </section>
       </div>
@@ -266,7 +266,7 @@ export function AdminRolesPermissions() {
       <section className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F7931E]">User Creation Form</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">User Creation Form</p>
             <h2 className="mt-2 text-2xl font-black text-[#0D0D0D]">Create admin user</h2>
             <p className="mt-2 text-sm text-[#5f6868]">Assign a default role, or enable custom permissions for this user from day one.</p>
           </div>
@@ -296,7 +296,7 @@ export function AdminRolesPermissions() {
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {catalog.map((group) => (
               <div key={group.group} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
-                <h3 className="font-black uppercase tracking-[0.14em] text-[#F7931E]">{group.group}</h3>
+                <h3 className="font-black uppercase tracking-[0.14em] text-[#FF6B00]">{group.group}</h3>
                 <div className="mt-3 grid gap-2">
                   {group.permissions.map(([key, label]) => (
                     <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#0D0D0D]">
@@ -344,7 +344,7 @@ export function AdminRolesPermissions() {
           <div className="mt-4 max-h-[420px] space-y-4 overflow-y-auto pr-2">
             {catalog.map((group) => (
               <div key={group.group} className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
-                <h3 className="font-black uppercase tracking-[0.14em] text-[#F7931E]">{group.group}</h3>
+                <h3 className="font-black uppercase tracking-[0.14em] text-[#FF6B00]">{group.group}</h3>
                 <div className="mt-3 grid gap-2">
                   {group.permissions.map(([key, label]) => (
                     <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#0D0D0D]">
