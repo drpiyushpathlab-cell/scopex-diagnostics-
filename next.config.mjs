@@ -1,41 +1,14 @@
 /** @type {import('next').NextConfig} */
-const isDevelopment = process.env.NODE_ENV !== "production";
-const scriptSrc = [
-  "'self'",
-  "'unsafe-inline'",
-  ...(isDevelopment ? ["'unsafe-eval'"] : []),
-  "https://checkout.razorpay.com"
-].join(" ");
-
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
-  async headers() {
-    const securityHeaders = [
-      { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  images: {
+    remotePatterns: [
       {
-        key: "Content-Security-Policy",
-        value: [
-          "default-src 'self'",
-          `script-src ${scriptSrc}`,
-          "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' data: blob:",
-          "font-src 'self' data:",
-          "connect-src 'self' http://localhost:4000 https://api.razorpay.com https://*.supabase.co https://formsubmit.co",
-          "frame-src https://api.razorpay.com https://checkout.razorpay.com",
-          "base-uri 'self'",
-          "form-action 'self'"
-        ].join("; ")
+        protocol: "https",
+        hostname: "**"
       }
-    ];
-
-    return [
-      {
-        source: "/:path*",
-        headers: securityHeaders
-      }
-    ];
+    ]
   }
 };
 

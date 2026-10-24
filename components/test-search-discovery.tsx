@@ -206,7 +206,7 @@ export function TestSearchDiscovery() {
                             {test.name}
                           </p>
                           <p className="text-[10px] text-[#626262]">
-                            {test.group} · {test.tat}
+                            {test.group} · {test.tat || "12-24 Hrs"}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">

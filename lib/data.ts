@@ -37,6 +37,7 @@ export type TestItem = {
   components?: string[];
   searchAliases?: string[];
   fastingHours?: string;
+  tat?: string;
 };
 
 export const packagesData: PackageItem[] = [

@@ -14,7 +14,7 @@
     "start": "next start",
     "start:backend": "tsx backend/src/server.ts",
     "dev:backend": "tsx watch backend/src/server.ts",
-    "lint": "next lint"
+    "lint": "next lint && tsc --noEmit"
   },
   "dependencies": {
     "@insforge/sdk": "^1.2.6",

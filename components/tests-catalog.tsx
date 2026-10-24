@@ -206,7 +206,7 @@ export function TestsCatalog() {
                           </span>
                           <div className="flex items-center gap-1 text-[11px] font-medium text-[#626262]">
                             <Clock className="h-3 w-3" />
-                            <span>{test.tat}</span>
+                            <span>{test.tat || "12-24 Hrs"}</span>
                           </div>
                         </div>
 
