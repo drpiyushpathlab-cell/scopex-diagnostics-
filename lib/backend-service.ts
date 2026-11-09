@@ -609,10 +609,11 @@ export async function createAdminTest(
   if (typeof data.price !== "number" || data.price < 0) throw new HttpError(400, "Valid price is required.");
 
   const rawSlug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const id = data.id || rawSlug || crypto.randomUUID();
+  const code = (data.code || "").trim().toLowerCase();
+  const id = data.id || code || rawSlug || crypto.randomUUID();
 
   if (inMemoryTests.has(id)) {
-    throw new HttpError(409, `Test with ID/slug "${id}" already exists.`);
+    throw new HttpError(409, `Test with ID/code/slug "${id}" already exists.`);
   }
 
   const mrp = typeof data.mrp === "number" && data.mrp > data.price ? data.mrp : Math.round(data.price * 1.5);
@@ -620,6 +621,7 @@ export async function createAdminTest(
 
   const newTest: TestItem = {
     id,
+    code: code || rawSlug,
     name: data.name.trim(),
     slug: rawSlug,
     price: data.price,
@@ -700,6 +702,7 @@ export async function updateAdminTest(
     ...existing,
     ...patch,
     id: existing.id, // preserve immutable ID to protect historical booking references
+    code: patch.code !== undefined ? ((patch.code || "").trim().toLowerCase() || undefined) : existing.code,
     price,
     mrp,
     discount,

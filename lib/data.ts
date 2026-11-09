@@ -52,6 +52,7 @@ export type TestItem = {
   seoTitle?: string;
   seoDescription?: string;
   slug?: string;
+  code?: string;
 };
 
 export const packagesData: PackageItem[] = [

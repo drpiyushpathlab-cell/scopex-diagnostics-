@@ -29,6 +29,7 @@ import {
 
 type DiagnosticTest = {
   id: string;
+  code?: string;
   name: string;
   slug?: string;
   price: number;
@@ -135,6 +136,7 @@ function AdminTestsContent() {
   const [editingTest, setEditingTest] = useState<DiagnosticTest | null>(null);
   const [testForm, setTestForm] = useState<{
     name: string;
+    code: string;
     slug: string;
     price: number;
     mrp: number;
@@ -153,6 +155,7 @@ function AdminTestsContent() {
     isActive: boolean;
   }>({
     name: "",
+    code: "",
     slug: "",
     price: 300,
     mrp: 500,
@@ -450,6 +453,7 @@ function AdminTestsContent() {
     setEditingTest(null);
     setTestForm({
       name: "",
+      code: "",
       slug: "",
       price: 350,
       mrp: 600,
@@ -475,6 +479,7 @@ function AdminTestsContent() {
     setEditingTest(test);
     setTestForm({
       name: test.name,
+      code: test.code || test.id || "",
       slug: test.slug || test.id,
       price: test.price,
       mrp: test.mrp || Math.round(test.price * 1.5),
@@ -514,6 +519,7 @@ function AdminTestsContent() {
 
     const payload = {
       name: testForm.name.trim(),
+      code: testForm.code.trim() || undefined,
       slug: testForm.slug.trim() || undefined,
       price: Number(testForm.price),
       mrp: Number(testForm.mrp) || Math.round(Number(testForm.price) * 1.4),
@@ -1451,7 +1457,7 @@ function AdminTestsContent() {
 
               <form onSubmit={handleSaveTest} className="mt-6 space-y-4">
                 {/* 1. Basic Info */}
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block text-xs font-bold text-[#0D0D0D]">Test Name *</label>
                     <input
@@ -1463,6 +1469,18 @@ function AdminTestsContent() {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-bold text-[#0D0D0D]">
+                      Test Code (LIS Mapping)
+                    </label>
+                    <input
+                      value={testForm.code}
+                      onChange={(e) => setTestForm({ ...testForm, code: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })}
+                      placeholder="e.g. cbc-001"
+                      className="mt-1 w-full rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2.5 text-xs font-mono font-bold focus:border-[#FF6B00] focus:outline-none"
+                    />
+                    <p className="text-[10px] text-stone-500 mt-1">Short unique alphanumeric code for internal DB &amp; LIS mapping</p>
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-[#0D0D0D]">URL Slug</label>
                     <input
                       value={testForm.slug}
@@ -1470,6 +1488,7 @@ function AdminTestsContent() {
                       placeholder="e.g. cbc-esr-test"
                       className="mt-1 w-full rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] px-3.5 py-2.5 text-xs font-semibold focus:border-[#FF6B00] focus:outline-none"
                     />
+                    <p className="text-[10px] text-stone-500 mt-1">SEO canonical link identifier</p>
                   </div>
                 </div>
 

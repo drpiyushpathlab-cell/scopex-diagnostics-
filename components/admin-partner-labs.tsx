@@ -535,6 +535,19 @@ export function AdminPartnerLabs() {
     }
   }, []);
 
+  useEffect(() => {
+    if (showAssignSampleModal && assignPartnerLabId && assignLocationId && assignBookingId) {
+      void loadAssignRatePreview(assignPartnerLabId, assignLocationId, assignBookingId);
+    }
+  }, [showAssignSampleModal, assignPartnerLabId, assignLocationId, assignBookingId, loadAssignRatePreview]);
+
+  useEffect(() => {
+    if (showReassignModal && reassignPartnerLabId && reassignLocationId) {
+      const testIds = showReassignModal.testSnapshots?.map((t: any) => t.testId) || ["cbc"];
+      void loadReassignRatePreview(reassignPartnerLabId, reassignLocationId, testIds);
+    }
+  }, [showReassignModal, reassignPartnerLabId, reassignLocationId, loadReassignRatePreview]);
+
   // Helper feedback banner timeout
   useEffect(() => {
     if (feedback) {
@@ -792,6 +805,38 @@ export function AdminPartnerLabs() {
     }
   };
 
+  const handleReassignSample = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showReassignModal) return;
+    if (!reassignReason.trim()) {
+      setFeedback({ type: "error", text: "Reason for lab reassignment is mandatory for clinical audit." });
+      return;
+    }
+    try {
+      const res = await backendFetch("/admin/partner-samples/reassign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sampleId: showReassignModal.id,
+          newPartnerLabId: reassignPartnerLabId,
+          newLocationId: reassignLocationId,
+          reason: reassignReason.trim()
+        })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Failed to reassign sample.");
+      setFeedback({
+        type: "success",
+        text: `Sample ${showReassignModal.scopexSampleId} successfully reassigned to ${d.sample.partnerLabName} (${d.sample.locationCity}). New processing rate: ₹${d.sample.totalProcessingCost}`
+      });
+      setShowReassignModal(null);
+      setReassignReason("");
+      void loadAll();
+    } catch (err: any) {
+      setFeedback({ type: "error", text: err.message });
+    }
+  };
+
   // ---------------------------------------------------------------------------
   // HANDLERS: PHASE 5 (REPORT UPLOAD & PATIENT PUBLICATION)
   // ---------------------------------------------------------------------------
@@ -911,6 +956,7 @@ export function AdminPartnerLabs() {
   const filteredMappings = mappings.filter((m) => {
     if (selectedPartnerFilter !== "all" && m.partnerLabId !== selectedPartnerFilter) return false;
     if (selectedStatusFilter !== "all" && m.status !== selectedStatusFilter) return false;
+    if (selectedApplicabilityFilter !== "all" && (m.applicability || "pan_india") !== selectedApplicabilityFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -1268,6 +1314,17 @@ export function AdminPartnerLabs() {
                 <option value="active">Active Only</option>
                 <option value="inactive">Inactive</option>
               </select>
+
+              <select
+                value={selectedApplicabilityFilter}
+                onChange={(e) => setSelectedApplicabilityFilter(e.target.value)}
+                className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 focus:outline-none"
+              >
+                <option value="all">All Applicability</option>
+                <option value="pan_india">Pan-India Only</option>
+                <option value="selected_cities">Selected Cities</option>
+                <option value="single_city">Single City Only</option>
+              </select>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -1300,9 +1357,10 @@ export function AdminPartnerLabs() {
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FFF8F2] border-b border-[#f1dfce] text-gray-600 font-bold uppercase tracking-wider text-[11px]">
                 <tr>
-                  <th className="py-3 px-4">Partner Lab & Location</th>
+                  <th className="py-3 px-4">Partner Lab & Scope</th>
                   <th className="py-3 px-4">SCOPEX Test Name</th>
                   <th className="py-3 px-4">Partner Lab Test Name & Code</th>
+                  <th className="py-3 px-4">Rate Applicability</th>
                   <th className="py-3 px-4">Sample & TAT</th>
                   <th className="py-3 px-4 text-right">Partner Rate</th>
                   <th className="py-3 px-4">Effective Dates</th>
@@ -1312,7 +1370,7 @@ export function AdminPartnerLabs() {
               <tbody className="divide-y divide-gray-100">
                 {filteredMappings.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-500">
+                    <td colSpan={8} className="py-8 text-center text-gray-500">
                       No test mappings found. Use &quot;Add Test Mapping&quot; or &quot;Bulk Excel Upload&quot; to configure rates.
                     </td>
                   </tr>
@@ -1324,7 +1382,7 @@ export function AdminPartnerLabs() {
                       <tr key={m.id} className="hover:bg-orange-50/30 transition">
                         <td className="py-3 px-4 font-medium text-gray-900">
                           <div>{lab?.name || m.partnerLabId}</div>
-                          <div className="text-[11px] text-gray-500">{loc?.city || m.locationId}</div>
+                          <div className="text-[11px] text-gray-500">{loc?.city || m.city || "All India"}</div>
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-bold text-gray-900">{m.scopexTestName}</span>
@@ -1341,6 +1399,26 @@ export function AdminPartnerLabs() {
                               <span className="text-gray-400 italic text-[10px]">No Partner Code (Supported)</span>
                             )}
                           </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {m.applicability === "pan_india" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-800 border border-blue-200">
+                              🇮🇳 Pan-India
+                            </span>
+                          ) : m.applicability === "selected_cities" ? (
+                            <div>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2.5 py-0.5 text-[10px] font-bold text-purple-800 border border-purple-200">
+                                Selected Cities ({m.applicableCities?.length || 0})
+                              </span>
+                              <p className="text-[10px] text-gray-500 mt-0.5 max-w-xs truncate" title={m.applicableCities?.join(", ")}>
+                                {m.applicableCities?.join(", ")}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
+                              Single City: {m.city || loc?.city || "Indore"}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-gray-600">
                           <div>{m.sampleType}</div>
@@ -1483,6 +1561,20 @@ export function AdminPartnerLabs() {
                       >
                         Lifecycle Audit ({s.statusHistory.length})
                       </button>
+
+                      {s.status !== "Completed" && s.status !== "Report Uploaded" && (
+                        <button
+                          onClick={() => {
+                            setShowReassignModal(s);
+                            setReassignPartnerLabId(s.partnerLabId);
+                            setReassignLocationId(s.locationId);
+                            setReassignReason("");
+                          }}
+                          className="rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition"
+                        >
+                          Reassign Lab
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -2116,45 +2208,147 @@ export function AdminPartnerLabs() {
             </div>
 
             <form onSubmit={handleCreateManualMapping} className="mt-4 space-y-3 text-xs">
-              <div className="grid gap-3 grid-cols-2">
-                <div>
-                  <label className="font-bold text-gray-700">Partner Laboratory *</label>
-                  <select
-                    value={manualMapData.partnerLabId}
-                    onChange={(e) => {
-                      const selected = labs.find((l) => l.id === e.target.value);
-                      setManualMapData({
-                        ...manualMapData,
-                        partnerLabId: e.target.value,
-                        locationId: selected?.locations[0]?.id || ""
-                      });
-                    }}
-                    className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
-                  >
-                    {labs.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
+              <div>
+                <label className="font-bold text-gray-700">Partner Laboratory *</label>
+                <select
+                  value={manualMapData.partnerLabId}
+                  onChange={(e) => {
+                    const selected = labs.find((l) => l.id === e.target.value);
+                    setManualMapData({
+                      ...manualMapData,
+                      partnerLabId: e.target.value,
+                      locationId: selected?.locations[0]?.id || ""
+                    });
+                  }}
+                  className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
+                >
+                  {labs.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Rate Applicability & City Selection */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-[#008080]" />
+                    Rate Applicability Scope *
+                  </span>
+                  <span className="text-[10px] text-gray-500">
+                    Priority: Single City → Selected Cities → Pan-India
+                  </span>
                 </div>
 
-                <div>
-                  <label className="font-bold text-gray-700">City Location *</label>
-                  <select
-                    value={manualMapData.locationId}
-                    onChange={(e) => setManualMapData({ ...manualMapData, locationId: e.target.value })}
-                    className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setManualMapData({ ...manualMapData, applicability: "pan_india" })}
+                    className={`rounded-xl py-2 px-3 text-xs font-bold text-center border transition ${
+                      manualMapData.applicability === "pan_india"
+                        ? "bg-[#008080] text-white border-[#008080] shadow-xs"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                    }`}
                   >
-                    {labs
-                      .find((l) => l.id === manualMapData.partnerLabId)
-                      ?.locations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.city} ({loc.id})
+                    🇮🇳 Pan-India
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setManualMapData({ ...manualMapData, applicability: "selected_cities" })}
+                    className={`rounded-xl py-2 px-3 text-xs font-bold text-center border transition ${
+                      manualMapData.applicability === "selected_cities"
+                        ? "bg-[#008080] text-white border-[#008080] shadow-xs"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    🏢 Selected Cities
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setManualMapData({ ...manualMapData, applicability: "single_city" })}
+                    className={`rounded-xl py-2 px-3 text-xs font-bold text-center border transition ${
+                      manualMapData.applicability === "single_city"
+                        ? "bg-[#008080] text-white border-[#008080] shadow-xs"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    📍 Single City
+                  </button>
+                </div>
+
+                {manualMapData.applicability === "pan_india" && (
+                  <p className="text-[11px] text-blue-900 bg-white/80 p-2 rounded-lg border border-blue-100">
+                    ✓ One common rate applies to <strong>all active locations</strong> of {labs.find((l) => l.id === manualMapData.partnerLabId)?.name || "this partner"} across India.
+                  </p>
+                )}
+
+                {manualMapData.applicability === "selected_cities" && (
+                  <div className="space-y-2 bg-white/80 p-2.5 rounded-lg border border-blue-100">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-gray-700 text-[11px]">
+                        Select Applicable Cities ({manualMapData.applicableCities?.length || 0} selected):
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManualMapData({
+                            ...manualMapData,
+                            applicableCities:
+                              manualMapData.applicableCities?.length === ALL_OPERATIONAL_CITIES.length
+                                ? []
+                                : [...ALL_OPERATIONAL_CITIES]
+                          })
+                        }
+                        className="text-[10px] text-[#008080] font-bold hover:underline"
+                      >
+                        {manualMapData.applicableCities?.length === ALL_OPERATIONAL_CITIES.length ? "Clear All" : "Select All"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 max-h-32 overflow-y-auto">
+                      {ALL_OPERATIONAL_CITIES.map((c) => {
+                        const isChecked = manualMapData.applicableCities?.includes(c);
+                        return (
+                          <label key={c} className="flex items-center gap-1.5 p-1 rounded hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const current = manualMapData.applicableCities || [];
+                                const updated = e.target.checked
+                                  ? [...current, c]
+                                  : current.filter((x) => x !== c);
+                                setManualMapData({ ...manualMapData, applicableCities: updated });
+                              }}
+                              className="rounded text-[#008080] focus:ring-0"
+                            />
+                            <span className="text-[11px] font-medium text-gray-800">{c}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {manualMapData.applicability === "single_city" && (
+                  <div className="bg-white/80 p-2.5 rounded-lg border border-blue-100">
+                    <label className="font-bold text-gray-700 text-[11px]">Select Target City *</label>
+                    <select
+                      value={manualMapData.city}
+                      onChange={(e) => setManualMapData({ ...manualMapData, city: e.target.value })}
+                      className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
+                    >
+                      {ALL_OPERATIONAL_CITIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
                         </option>
                       ))}
-                  </select>
-                </div>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -2511,113 +2705,497 @@ export function AdminPartnerLabs() {
       )}
 
       {/* ======================================================================= */}
-      {/* MODAL 5: ASSIGN BOOKING TO PARTNER LAB (PHASE 3)                        */}
+      {/* MODAL 5: ASSIGN BOOKING TO PARTNER LAB (POST-BOOKING SELECTION)         */}
       {/* ======================================================================= */}
-      {showAssignSampleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-[#FF6B00]" />
-                Assign Booking to Partner Laboratory
-              </h3>
-              <button onClick={() => setShowAssignSampleModal(false)} className="text-gray-400 hover:text-black">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      {showAssignSampleModal && (() => {
+        const selectedBooking = confirmedBookings.find((b) => b.id === assignBookingId);
+        const patientCity = (selectedBooking as any)?.address_city || (selectedBooking as any)?.collection_address?.city || (selectedBooking as any)?.city || "Indore";
+        const patientName = (selectedBooking as any)?.customer_name || (selectedBooking as any)?.patient_name || "Patient";
+        const bookingTests: Array<{ id: string; name: string }> = [];
+        const patientsList = ((selectedBooking as any)?.booking_patients as any[]) || [];
+        for (const p of patientsList) {
+          for (const item of p.items || []) {
+            if (item.kind === "test" && item.id) {
+              bookingTests.push({ id: item.id, name: item.name || item.id });
+            } else if (item.kind === "package" && item.testIds) {
+              bookingTests.push(...item.testIds.map((tid: string) => ({ id: tid, name: tid })));
+            }
+          }
+        }
+        if (bookingTests.length === 0) {
+          bookingTests.push({ id: "cbc", name: "Complete Blood Count (CBC)" });
+        }
 
-            <form onSubmit={handleAssignSample} className="mt-4 space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-gray-700">Select Confirmed Booking *</label>
-                <select
-                  value={assignBookingId}
-                  onChange={(e) => setAssignBookingId(e.target.value)}
-                  required
-                  className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
+        const activePartnerLocations =
+          labs
+            .find((lb) => lb.id === assignPartnerLabId)
+            ?.locations.filter((loc) => loc.status === "active") || [];
+
+        const isConfirmDisabled =
+          !assignBookingId ||
+          !assignPartnerLabId ||
+          !assignLocationId ||
+          (assignPreviewData && !assignPreviewData.allMapped && !assignOverrideException);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-[#FF6B00]" />
+                    Assign Confirmed Booking to Partner Laboratory
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Post-booking allocation: System validates partner tests and resolves rate priority (Single City → Selected Cities → Pan-India).
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAssignSampleModal(false)}
+                  className="rounded-lg p-1 text-gray-400 hover:text-black"
                 >
-                  <option value="">-- Choose confirmed patient booking --</option>
-                  {confirmedBookings.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.booking_number || b.id} - {b.customer_name || "Patient"} ({b.booking_status})
-                    </option>
-                  ))}
-                </select>
+                  <X className="h-4 w-4" />
+                </button>
               </div>
 
-              <div className="grid gap-3 grid-cols-2">
+              <form onSubmit={handleAssignSample} className="mt-4 space-y-4 text-xs">
+                {/* 1. Booking Selection */}
                 <div>
-                  <label className="font-bold text-gray-700">Partner Laboratory *</label>
+                  <label className="font-bold text-gray-700 block">Select Confirmed Patient Booking *</label>
                   <select
-                    value={assignPartnerLabId}
+                    value={assignBookingId}
                     onChange={(e) => {
-                      setAssignPartnerLabId(e.target.value);
-                      const l = labs.find((lb) => lb.id === e.target.value);
-                      if (l && l.locations[0]) setAssignLocationId(l.locations[0].id);
+                      setAssignBookingId(e.target.value);
+                      if (assignPartnerLabId && assignLocationId) {
+                        void loadAssignRatePreview(assignPartnerLabId, assignLocationId, e.target.value);
+                      }
                     }}
                     required
-                    className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
+                    className="w-full mt-1 rounded-xl border border-gray-200 p-2.5 text-xs font-semibold focus:border-[#FF6B00] focus:outline-none"
                   >
-                    {labs.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
+                    <option value="">-- Choose confirmed patient booking --</option>
+                    {confirmedBookings.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.booking_number || b.id} - {b.customer_name || "Patient"} ({b.booking_status}) - City: {(b as any).address_city || (b as any).city || "Indore"}
                       </option>
                     ))}
                   </select>
                 </div>
 
+                {/* Patient Booking Details Badge */}
+                {selectedBooking && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-gray-900">Patient: {patientName}</span>
+                      <span className="font-mono text-[11px] font-semibold text-gray-600">
+                        City: <strong className="text-gray-900">{patientCity}</strong>
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-gray-700">
+                      Required Tests ({bookingTests.length}):{" "}
+                      <span className="font-semibold">{bookingTests.map((t) => t.name).join(", ")}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Partner Lab & Partner-Specific City Selection */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="font-bold text-gray-700 block">Partner Laboratory *</label>
+                    <select
+                      value={assignPartnerLabId}
+                      onChange={(e) => {
+                        const newLabId = e.target.value;
+                        setAssignPartnerLabId(newLabId);
+                        const selectedLab = labs.find((lb) => lb.id === newLabId);
+                        const firstActiveLoc = selectedLab?.locations.find((loc) => loc.status === "active");
+                        const newLocId = firstActiveLoc?.id || "";
+                        setAssignLocationId(newLocId);
+                        if (assignBookingId && newLocId) {
+                          void loadAssignRatePreview(newLabId, newLocId, assignBookingId);
+                        }
+                      }}
+                      required
+                      className="w-full mt-1 rounded-xl border border-gray-200 p-2.5 text-xs font-bold text-gray-800 focus:border-[#FF6B00] focus:outline-none"
+                    >
+                      {labs.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name} ({l.locations.filter((loc) => loc.status === "active").length} active cities)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-gray-700 block">
+                        Partner City / Location *
+                      </label>
+                      <span className="text-[10px] text-emerald-700 font-semibold">Only active locations</span>
+                    </div>
+                    <select
+                      value={assignLocationId}
+                      onChange={(e) => {
+                        const newLocId = e.target.value;
+                        setAssignLocationId(newLocId);
+                        if (assignBookingId && assignPartnerLabId) {
+                          void loadAssignRatePreview(assignPartnerLabId, newLocId, assignBookingId);
+                        }
+                      }}
+                      required
+                      className="w-full mt-1 rounded-xl border border-gray-200 p-2.5 text-xs font-semibold focus:border-[#FF6B00] focus:outline-none"
+                    >
+                      {activePartnerLocations.length === 0 ? (
+                        <option value="">No active locations for this partner</option>
+                      ) : (
+                        activePartnerLocations.map((loc) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.city} ({loc.id}) - {loc.pincode}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 3. Barcode Entry */}
                 <div>
-                  <label className="font-bold text-gray-700">City Location *</label>
-                  <select
-                    value={assignLocationId}
-                    onChange={(e) => setAssignLocationId(e.target.value)}
-                    required
-                    className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
+                  <label className="font-bold text-gray-700 block">
+                    SCOPEX Vacutainer Sample ID / Barcode
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SMP-902100 (Leave blank to auto-generate)"
+                    value={assignSampleBarcode}
+                    onChange={(e) => setAssignSampleBarcode(e.target.value)}
+                    className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs font-mono focus:border-[#FF6B00] focus:outline-none"
+                  />
+                </div>
+
+                {/* 4. Live Rate Validation & Test Mapping Table */}
+                <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5 text-[#008080]" />
+                      Partner Rate Hierarchy &amp; Test Mapping Preview
+                    </span>
+                    {assignPreviewLoading && (
+                      <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                        <RefreshCw className="h-3 w-3 animate-spin text-[#FF6B00]" />
+                        Checking rates...
+                      </span>
+                    )}
+                  </div>
+
+                  {assignPreviewData && (
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-gray-100/70 border-b text-[10px] uppercase font-bold text-gray-600">
+                          <tr>
+                            <th className="p-2">Required Test</th>
+                            <th className="p-2">Partner Mapping</th>
+                            <th className="p-2">Rate Scope Applied</th>
+                            <th className="p-2 text-right">Processing Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {assignPreviewData.tests.map((t) => (
+                            <tr key={t.testId} className={t.isMapped ? "bg-white" : "bg-rose-50/60"}>
+                              <td className="p-2 font-bold text-gray-900">{t.testName}</td>
+                              <td className="p-2">
+                                {t.isMapped ? (
+                                  <span className="text-gray-800">{t.partnerTestName || t.testName}</span>
+                                ) : (
+                                  <span className="text-rose-600 font-bold text-[10px]">
+                                    ⚠️ Unmapped / Missing Rate
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-2">
+                                {t.appliedScope === "single_city" ? (
+                                  <span className="rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                    Single City ({t.appliedScopeDescription || "City"})
+                                  </span>
+                                ) : t.appliedScope === "selected_cities" ? (
+                                  <span className="rounded bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-800">
+                                    Selected Cities
+                                  </span>
+                                ) : t.appliedScope === "pan_india" ? (
+                                  <span className="rounded bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[10px] font-bold text-blue-800">
+                                    Pan-India
+                                  </span>
+                                ) : (
+                                  <span className="text-rose-600 text-[10px] font-mono">None</span>
+                                )}
+                              </td>
+                              <td className="p-2 text-right font-bold text-emerald-700">
+                                {t.rate !== undefined ? `₹${t.rate}` : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-gray-50 border-t font-bold">
+                          <tr>
+                            <td colSpan={3} className="p-2 text-gray-700">Total Partner Processing Cost:</td>
+                            <td className="p-2 text-right text-emerald-800 text-sm">
+                              ₹{assignPreviewData.totalCost}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Warning banner if mapping is missing */}
+                  {assignPreviewData && !assignPreviewData.allMapped && (
+                    <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 space-y-2 text-rose-900">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold">Missing Partner Mapping or Rate</p>
+                          <p className="text-[11px] text-rose-700">
+                            Automatic assignment is blocked because one or more tests have no active rate for this partner location.
+                          </p>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 pt-1 border-t border-rose-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={assignOverrideException}
+                          onChange={(e) => setAssignOverrideException(e.target.checked)}
+                          className="rounded text-[#FF6B00] focus:ring-0"
+                        />
+                        <span className="text-[11px] font-bold text-rose-800">
+                          Authorize explicit Admin exception override
+                        </span>
+                      </label>
+                      {assignOverrideException && (
+                        <input
+                          type="text"
+                          placeholder="Mandatory exception remarks for audit log..."
+                          value={assignOverrideRemarks}
+                          onChange={(e) => setAssignOverrideRemarks(e.target.value)}
+                          className="w-full rounded-lg border border-rose-300 bg-white p-2 text-xs text-gray-800 focus:outline-none"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. Pre-Confirmation Summary Card */}
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-900 text-xs">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>Assignment Confirmation Summary</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 text-gray-700">
+                    <div>
+                      <span className="text-gray-500">Booking ID:</span>{" "}
+                      <strong className="text-gray-900">{selectedBooking?.booking_number || assignBookingId || "—"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Patient:</span>{" "}
+                      <strong className="text-gray-900">{patientName} ({patientCity})</strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Partner Lab:</span>{" "}
+                      <strong className="text-gray-900">
+                        {labs.find((l) => l.id === assignPartnerLabId)?.name || "—"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Partner Location:</span>{" "}
+                      <strong className="text-gray-900">
+                        {activePartnerLocations.find((l) => l.id === assignLocationId)?.city || "—"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Processing Rate:</span>{" "}
+                      <strong className="text-emerald-700">₹{assignPreviewData?.totalCost ?? 0}</strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Assignment Time:</span>{" "}
+                      <strong className="text-gray-900">{new Date().toLocaleTimeString()}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex justify-end gap-2 border-t pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAssignSampleModal(false)}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100"
                   >
-                    {labs
-                      .find((l) => l.id === assignPartnerLabId)
-                      ?.locations.map((loc) => (
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isConfirmDisabled}
+                    className="rounded-xl bg-[#008080] px-5 py-2 text-xs font-bold text-white hover:bg-[#006666] disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    Confirm Partner Lab Assignment
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ======================================================================= */}
+      {/* MODAL 5B: REASSIGN SAMPLE TO ANOTHER PARTNER LAB                         */}
+      {/* ======================================================================= */}
+      {showReassignModal && (() => {
+        const activePartnerLocations =
+          labs
+            .find((lb) => lb.id === reassignPartnerLabId)
+            ?.locations.filter((loc) => loc.status === "active") || [];
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-amber-600" />
+                    Reassign Sample to Another Partner Laboratory
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Transfers processing to a new partner lab, validates rates, and logs audit trail.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowReassignModal(null)}
+                  className="rounded-lg p-1 text-gray-400 hover:text-black"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleReassignSample} className="mt-4 space-y-3.5 text-xs">
+                {/* Current assignment snapshot */}
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs space-y-1">
+                  <div className="font-bold text-gray-700 text-[11px] uppercase tracking-wider">
+                    Current Assignment
+                  </div>
+                  <div className="flex items-center justify-between text-gray-800">
+                    <span>
+                      Sample: <strong className="font-mono">{showReassignModal.scopexSampleId}</strong> ({showReassignModal.patientName})
+                    </span>
+                    <span className="font-bold text-emerald-700">₹{showReassignModal.totalProcessingCost}</span>
+                  </div>
+                  <div className="text-[11px] text-gray-600">
+                    Partner: <strong>{showReassignModal.partnerLabName}</strong> ({showReassignModal.locationCity})
+                  </div>
+                </div>
+
+                {/* Reason for change (Mandatory) */}
+                <div>
+                  <label className="font-bold text-gray-700 block">
+                    Reason for Lab Reassignment * <span className="text-rose-600 font-semibold">(Mandatory for audit)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder="e.g. Analyzer breakdown at initial partner, specialized reflex testing required, patient travel..."
+                    value={reassignReason}
+                    onChange={(e) => setReassignReason(e.target.value)}
+                    className="w-full mt-1 rounded-xl border border-gray-200 p-2.5 text-xs focus:border-[#FF6B00] focus:outline-none"
+                  />
+                </div>
+
+                {/* New Partner & Location */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="font-bold text-gray-700 block">New Partner Laboratory *</label>
+                    <select
+                      value={reassignPartnerLabId}
+                      onChange={(e) => {
+                        const newLabId = e.target.value;
+                        setReassignPartnerLabId(newLabId);
+                        const selLab = labs.find((lb) => lb.id === newLabId);
+                        const firstLoc = selLab?.locations.find((l) => l.status === "active");
+                        const newLocId = firstLoc?.id || "";
+                        setReassignLocationId(newLocId);
+                        const testIds = showReassignModal.testSnapshots?.map((t: any) => t.testId) || ["cbc"];
+                        if (newLocId) void loadReassignRatePreview(newLabId, newLocId, testIds);
+                      }}
+                      required
+                      className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs font-bold text-gray-800 focus:outline-none"
+                    >
+                      {labs.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-gray-700 block">New Partner City / Location *</label>
+                    <select
+                      value={reassignLocationId}
+                      onChange={(e) => {
+                        const newLocId = e.target.value;
+                        setReassignLocationId(newLocId);
+                        const testIds = showReassignModal.testSnapshots?.map((t: any) => t.testId) || ["cbc"];
+                        if (reassignPartnerLabId) void loadReassignRatePreview(reassignPartnerLabId, newLocId, testIds);
+                      }}
+                      required
+                      className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs focus:outline-none"
+                    >
+                      {activePartnerLocations.map((loc) => (
                         <option key={loc.id} value={loc.id}>
                           {loc.city} ({loc.id})
                         </option>
                       ))}
-                  </select>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="font-bold text-gray-700">SCOPEX Vacutainer Sample ID / Barcode</label>
-                <input
-                  type="text"
-                  placeholder="e.g. SMP-902100 (Leave blank to auto-generate)"
-                  value={assignSampleBarcode}
-                  onChange={(e) => setAssignSampleBarcode(e.target.value)}
-                  className="w-full mt-1 rounded-xl border border-gray-200 p-2.5 text-xs font-mono focus:outline-none"
-                />
-              </div>
+                {/* Rate preview for new assignment */}
+                {reassignPreviewLoading && (
+                  <div className="p-3 text-center text-xs text-gray-500">Checking new partner rates...</div>
+                )}
+                {reassignPreviewData && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-1.5">
+                    <div className="flex items-center justify-between font-bold text-xs text-gray-900">
+                      <span>Rate Comparison</span>
+                      <span className="text-emerald-700">
+                        Old: ₹{showReassignModal.totalProcessingCost} → New: ₹{reassignPreviewData.totalCost}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-gray-600">
+                      {reassignPreviewData.allMapped ? (
+                        <span className="text-emerald-700 font-semibold">✓ All tests mapped with valid partner rates.</span>
+                      ) : (
+                        <span className="text-rose-600 font-bold">⚠️ Warning: Some tests have no rate configured at this location.</span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-              <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-blue-900 text-xs">
-                The system will automatically validate active partner & location status and snapshot the current partner test processing rates permanently for historical reporting.
-              </div>
-
-              <div className="mt-5 flex justify-end gap-2 border-t pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAssignSampleModal(false)}
-                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-[#008080] px-5 py-2 text-xs font-bold text-white hover:bg-[#006666]"
-                >
-                  Assign to Partner Lab
-                </button>
-              </div>
-            </form>
+                <div className="mt-5 flex justify-end gap-2 border-t pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowReassignModal(null)}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!reassignReason.trim()}
+                    className="rounded-xl bg-amber-600 px-5 py-2 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    Confirm Lab Reassignment
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ======================================================================= */}
       {/* MODAL 6: VERIFY HANDOVER & BARCODE PHOTO (PHASE 3 & 4)                  */}
