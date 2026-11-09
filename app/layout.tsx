@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
-import { Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { FloatingActions } from "@/components/floating-actions";
 import { HealthAdvisorPopup } from "@/components/health-advisor-popup";
 import { HomeCollectionPopup } from "@/components/home-collection-popup";
-
-const poppins = Poppins({ subsets: ["latin"], variable: "--font-poppins", weight: ["400", "600", "700"] });
-const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", weight: ["400", "700", "800"] });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.scopexdiagnostics.in";
 
@@ -38,9 +34,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/"
   },
-  verification: {
-    google: "PASTE_VERIFICATION_CODE_HERE"
-  },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   openGraph: {
     title: "Book Blood Test at Home | ScopeX Diagnostics India",
     description:
@@ -64,7 +60,7 @@ import { CompareFloatingBar } from "@/components/compare-floating-bar";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="light" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning className={`${poppins.variable} ${montserrat.variable} font-[var(--font-poppins)]`}>
+      <body suppressHydrationWarning className="font-[var(--font-poppins)] antialiased bg-white text-[#0D0D0D]">
         <CompareProvider>
           <SiteHeader />
           <main className="pb-28 md:pb-24">{children}</main>

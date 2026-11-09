@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getPackageById, packagesData } from "@/lib/data";
 import { getPackageSeoSlug, getSeoPackagePage } from "@/lib/seo-platform";
 import { seoMetadata } from "@/lib/seo-metadata";
+import { QuickLeadTrigger } from "@/components/quick-lead-trigger";
 
 type PackagePageProps = {
   params: Promise<{
@@ -53,23 +54,49 @@ export default async function PackageDetailPage({ params }: PackagePageProps) {
         <div className="rounded-[30px] border border-[#f1dfce] bg-white p-6 shadow-[0_18px_42px_rgba(16,24,40,0.06)] md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">{item.section}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold uppercase tracking-[0.18em] text-[#FF6B00]">{item.section}</span>
+                <span className="text-xs text-[#7c8f90]">·</span>
+                <span className="text-xs font-semibold text-stone-500">Fixed Package</span>
+              </div>
               <h1 className="mt-2 text-3xl font-bold text-[#0D0D0D] md:text-5xl">{item.name}</h1>
               <p className="mt-3 text-base leading-8 text-[#5f6868] md:text-lg">{item.tagline}</p>
             </div>
-            <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] px-5 py-4">
-              <p className="text-4xl font-extrabold text-[#FF6B00]">₹{new Intl.NumberFormat("en-IN").format(item.price)}</p>
-              <p className="mt-1 text-sm text-[#7c8f90]">ScopeX real package price</p>
-              <p className="mt-1 text-sm font-semibold text-[#FF6B00]">No fabricated reference-price claims</p>
+            <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] px-6 py-4">
+              <div className="flex items-baseline gap-3">
+                <p className="text-4xl font-extrabold text-[#FF6B00]">₹{new Intl.NumberFormat("en-IN").format(item.price)}</p>
+                {typeof item.mrp === "number" && item.mrp > item.price && (
+                  <p className="text-base font-semibold text-stone-400 line-through">
+                    ₹{new Intl.NumberFormat("en-IN").format(item.mrp)}
+                  </p>
+                )}
+              </div>
+              {typeof item.mrp === "number" && item.mrp > item.price ? (
+                <p className="mt-1 text-sm font-bold text-emerald-700">
+                  Save ₹{new Intl.NumberFormat("en-IN").format(item.mrp - item.price)} ({Math.round(((item.mrp - item.price) / item.mrp) * 100)}% Off)
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-[#7c8f90]">ScopeX verified package price</p>
+              )}
+              <p className="mt-1 text-xs text-[#5f6868]">
+                {item.allowExtraDiscount ? "Eligible for extra bundle discount" : "Fixed package price · No extra discount"}
+              </p>
             </div>
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             <div className="rounded-[24px] border border-[#f1dfce] bg-[#f8fbfb] p-5">
-              <h2 className="text-lg font-bold text-[#0D0D0D]">Test Overview</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-[#0D0D0D]">Included Tests ({item.overview.length})</h2>
+                <span className="text-xs font-medium text-stone-500">Locked Panel</span>
+              </div>
+              <p className="mt-1 text-xs text-[#7c8f90]">Curated by senior pathologists. Tests in fixed packages cannot be modified.</p>
               <ul className="mt-4 grid gap-2 text-sm leading-7 text-[#5f6868] sm:grid-cols-2">
                 {item.overview.map((test) => (
-                  <li key={test}>• {test}</li>
+                  <li key={test} className="flex items-center gap-1.5 truncate" title={test}>
+                    <span className="text-[#FF6B00]">✓</span>
+                    <span className="truncate">{test}</span>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -104,6 +131,15 @@ export default async function PackageDetailPage({ params }: PackagePageProps) {
             <Link href={`/book-home-collection?package=${encodeURIComponent(item.name)}`} className="cta-btn w-full sm:w-auto">
               Book Home Collection
             </Link>
+            <QuickLeadTrigger
+              itemType="package"
+              itemId={item.id}
+              itemName={item.name}
+              itemPrice={item.price}
+              label="Request Callback"
+              variant="outline"
+              className="w-full sm:w-auto"
+            />
             <Link href="/health-advisor" className="secondary-btn w-full sm:w-auto">
               Talk to Advisor
             </Link>

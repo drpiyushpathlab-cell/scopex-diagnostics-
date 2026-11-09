@@ -11,7 +11,37 @@ export type BookingCatalogItem = {
   discount: number;
   category: string;
   href: string;
+  packageType?: "fixed" | "custom";
+  allowExtraDiscount?: boolean;
+  testsIncluded?: string[];
+  discountCapPercent?: number;
+  discountCapRupees?: number;
+  isBundleEligible?: boolean;
+  savings?: number;
+  quantity?: number;
   searchAliases?: string[];
+};
+
+export type CustomPackageSummary = {
+  id: string;
+  name: string;
+  packageType: "custom";
+  testIds: string[];
+  tests: Array<{
+    id: string;
+    name: string;
+    price: number;
+    mrp: number;
+    discountCapPercent?: number;
+    discountCapRupees?: number;
+    isBundleEligible?: boolean;
+  }>;
+  subtotal: number;
+  referenceTotal: number;
+  bundlePercentage: number;
+  bundleDiscount: number;
+  payableAmount: number;
+  totalSavings: number;
 };
 
 export type FamilyMemberInput = {
@@ -62,6 +92,9 @@ export type BookingQuote = {
   payableAmount: number;
   appliedOffers: OfferBreakdown[];
   freeCollectionThreshold?: number;
+  validSavingsAmount?: number;
+  savingsPercent?: number;
+  priceSnapshot?: unknown;
 };
 
 export type BookingOrderPayload = {
@@ -72,6 +105,7 @@ export type BookingOrderPayload = {
   items: BookingCatalogItem[];
   quote: BookingQuote;
   paymentMethod: "online" | "cod";
+  priceSnapshot?: unknown;
 };
 
 export type AdminMetricCard = {

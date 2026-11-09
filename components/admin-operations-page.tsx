@@ -315,6 +315,12 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
                     <select value={String(row.booking_status || "")} onChange={(event) => updateBooking(String(row.id), { booking_status: event.target.value })} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-bold">
                       {bookingStatuses.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
                     </select>
+                    <a
+                      href={`/admin/partner-labs?tab=samples&assignBookingId=${row.id}`}
+                      className="rounded-full border border-[#008080] px-3 py-2 text-xs font-black text-[#008080] hover:bg-[#008080]/10 transition"
+                    >
+                      Assign Lab
+                    </a>
                     <button type="button" onClick={() => printRows([row])} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#FF6B00]">Print</button>
                     <button type="button" onClick={() => deleteRow(row)} className="rounded-full border border-[#ffd6bf] px-3 py-2 text-xs font-black text-[#FF6B00]">Delete</button>
                   </>
@@ -397,7 +403,13 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
           <pre className="mt-4 overflow-x-auto rounded-2xl bg-[#FFF8F2] p-4 text-xs text-[#0D0D0D]">{JSON.stringify(selected, null, 2)}</pre>
           {mode === "bookings" ? (
             <div className="mt-4 grid gap-3">
-              <button type="button" onClick={() => updateBooking(String(selected.id), { booking_status: "confirmed" })} className="cta-btn">Confirm Booking</button>
+              <a
+                href={`/admin/partner-labs?tab=samples&assignBookingId=${selected.id}`}
+                className="cta-btn text-center block"
+              >
+                Assign Partner Lab & Location
+              </a>
+              <button type="button" onClick={() => updateBooking(String(selected.id), { booking_status: "confirmed" })} className="secondary-btn">Confirm Booking</button>
               <button type="button" onClick={() => updateBooking(String(selected.id), { booking_status: "report_ready" })} className="secondary-btn">Mark Report Ready</button>
               <button type="button" onClick={() => updateBooking(String(selected.id), { booking_status: "completed" })} className="secondary-btn">Mark Completed</button>
               <button type="button" onClick={() => { const id = window.prompt("Enter phlebotomist/advisor ID"); if (id) void updateBooking(String(selected.id), { phlebotomist_id: id }); }} className="secondary-btn">Assign Advisor</button>

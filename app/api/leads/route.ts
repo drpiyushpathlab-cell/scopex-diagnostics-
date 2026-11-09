@@ -12,31 +12,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: validated.error }, { status: 400 });
     }
 
-    const supabaseResult = await storeLeadInSupabase(validated.data);
-    if (supabaseResult.duplicate) {
-      return NextResponse.json({ message: "You already submitted this request today." }, { status: 409 });
-    }
-
+    const crmResult = await storeLeadInSupabase(validated.data);
     const warnings: string[] = [];
-    try {
-      await appendLeadToGoogleSheet(validated.data);
-    } catch {
-      warnings.push("Google Sheets sync failed");
-    }
 
-    try {
-      await sendLeadNotification(validated.data);
-    } catch {
-      warnings.push("Email notification failed");
+    if (!crmResult.duplicate) {
+      try {
+        await appendLeadToGoogleSheet(validated.data);
+      } catch {
+        warnings.push("Google Sheets sync failed");
+      }
+
+      try {
+        await sendLeadNotification(validated.data);
+      } catch {
+        warnings.push("Email notification failed");
+      }
     }
 
     return NextResponse.json(
       {
         success: true,
-        message:
-          warnings.length > 0
-            ? "Lead saved successfully. Internal notification is delayed."
-            : "Lead submitted successfully.",
+        duplicate: crmResult.duplicate,
+        message: crmResult.duplicate
+          ? "We have updated your previous request. Our customer-care specialist will contact you shortly."
+          : warnings.length > 0
+          ? "Lead saved successfully. Internal notification is delayed."
+          : "Lead submitted successfully. Our team will contact you shortly.",
+        leadId: crmResult.lead?.id,
         warnings
       },
       { status: 200 }

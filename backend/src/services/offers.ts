@@ -1,6 +1,6 @@
 import { insforge } from "@/backend/src/lib/insforge";
 import type { BookingCatalogItem, FamilyMemberInput } from "@/lib/booking-types";
-import { calculateBookingQuote } from "@/lib/offers";
+import { calculateRealPriceQuote } from "@/lib/pricing";
 
 type OfferInput = {
   userId: string;
@@ -10,53 +10,30 @@ type OfferInput = {
 };
 
 export async function calculateQuoteWithOffers(input: OfferInput) {
-  const { count } = await insforge.database
-    .from("bookings")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", input.userId);
+  let couponOption = null;
 
-  const baseQuote = calculateBookingQuote({
-    items: input.items,
-    familyMembers: input.familyMembers,
-    isFirstOrder: !count || count === 0
-  });
+  if (input.couponCode) {
+    const { data: coupon } = await insforge.database
+      .from("offers")
+      .select("id, code, type, discount_type, value, is_active, conditions")
+      .eq("code", input.couponCode.toUpperCase())
+      .eq("type", "COUPON")
+      .eq("is_active", true)
+      .maybeSingle();
 
-  if (!input.couponCode) {
-    return baseQuote;
-  }
-
-  const { data: coupon } = await insforge.database
-    .from("offers")
-    .select("id, code, type, discount_type, value, is_active")
-    .eq("code", input.couponCode.toUpperCase())
-    .eq("type", "COUPON")
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (!coupon) {
-    return baseQuote;
-  }
-
-  const couponDiscount =
-    coupon.discount_type === "PERCENT"
-      ? Math.round((baseQuote.payableAmount * Number(coupon.value)) / 100)
-      : Math.round(Number(coupon.value));
-
-  const discountAmount = Math.min(couponDiscount, baseQuote.payableAmount);
-
-  return {
-    ...baseQuote,
-    subtotal: baseQuote.subtotal,
-    discountTotal: baseQuote.discountTotal + discountAmount,
-    payableAmount: Math.max(0, baseQuote.payableAmount - discountAmount),
-    appliedOffers: [
-      ...baseQuote.appliedOffers,
-      {
+    if (coupon) {
+      couponOption = {
         code: coupon.code,
-        title: `${coupon.code} saving code`,
-        discountAmount,
-        description: "Saving code applied"
-      }
-    ]
-  };
+        discountType: coupon.discount_type === "PERCENT" ? ("percent" as const) : ("fixed" as const),
+        value: Number(coupon.value),
+        allowStacking: Boolean((coupon as { conditions?: { allowStacking?: boolean } }).conditions?.allowStacking)
+      };
+    }
+  }
+
+  // Recalculate using full server pricing engine with Rule 5 duplicate discount prevention
+  return calculateRealPriceQuote({
+    items: input.items,
+    coupon: couponOption
+  });
 }

@@ -1,49 +1,85 @@
-import { getSupabaseServiceClient } from "@/lib/supabase";
+import { getSupabaseServiceClient, hasSupabasePublicConfig } from "@/lib/supabase";
 import type { LeadPayload } from "@/lib/validation";
-
-function startOfTodayIso() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today.toISOString();
-}
+import { createCrmLead, type InterestedItem } from "@/lib/crm-service";
 
 function leadEmail(payload: LeadPayload) {
-  return payload.officialEmail || null;
+  return payload.officialEmail || undefined;
 }
 
 export async function storeLeadInSupabase(payload: LeadPayload) {
-  const supabase = getSupabaseServiceClient();
   const phone = payload.mobileNumber;
   const email = leadEmail(payload);
-  const duplicateFilters = [`phone.eq.${phone}`, `mobile.eq.${phone}`, `mobile_number.eq.${phone}`];
-  if (email) duplicateFilters.push(`email.eq.${email}`, `official_email.eq.${email}`);
 
-  const { data: existing, error: lookupError } = await supabase
-    .from("leads")
-    .select("id, created_at")
-    .eq("lead_type", payload.leadType)
-    .gte("created_at", startOfTodayIso())
-    .or(duplicateFilters.join(","))
-    .limit(1);
+  // Extract interested items based on lead type and payload fields
+  const interestedItems: InterestedItem[] = [];
+  if (payload.leadType === "home_collection") {
+    interestedItems.push({
+      id: "home_collection_request",
+      name: `Home Sample Collection (${payload.familyMembers || "Self"})`,
+      kind: "general"
+    });
+  } else if (payload.leadType === "health_advisor") {
+    interestedItems.push({
+      id: "health_advisor_consult",
+      name: `Doctor Consultation (${payload.purpose === "after_test" ? "Report Discussion" : "Pre-Test Guidance"})`,
+      kind: "general"
+    });
+  } else if (payload.leadType === "growth_partner") {
+    interestedItems.push({
+      id: "growth_partner_enquiry",
+      name: `Corporate Partnership (${payload.businessType || payload.companyName})`,
+      kind: "general"
+    });
+  }
 
-  if (lookupError) throw new Error(lookupError.message || "Unable to check duplicate lead.");
-  if ((existing ?? []).length > 0) return { duplicate: true };
+  // Check if specific test or package was passed in raw payload or URL
+  const rawAny = payload as Record<string, unknown>;
+  if (typeof rawAny.testName === "string" && rawAny.testName) {
+    interestedItems.unshift({
+      id: String(rawAny.testId || "test_enquiry"),
+      name: rawAny.testName,
+      kind: "test",
+      price: typeof rawAny.testPrice === "number" ? rawAny.testPrice : undefined
+    });
+  } else if (typeof rawAny.packageName === "string" && rawAny.packageName) {
+    interestedItems.unshift({
+      id: String(rawAny.packageId || "pkg_enquiry"),
+      name: rawAny.packageName,
+      kind: "package",
+      price: typeof rawAny.packagePrice === "number" ? rawAny.packagePrice : undefined
+    });
+  }
 
-  const { error } = await supabase.from("leads").insert({
-    lead_type: payload.leadType,
+  // Feed into central CRM engine
+  const crmResult = await createCrmLead({
     name: payload.name,
     phone,
-    mobile: phone,
-    mobile_number: phone,
     email,
-    official_email: payload.officialEmail || null,
-    city: payload.city || null,
-    address: payload.address || null,
-    status: "new",
-    source: "website",
-    metadata: payload
+    location: payload.address,
+    city: payload.city,
+    pincode: typeof rawAny.pincode === "string" ? rawAny.pincode : undefined,
+    interestedItems,
+    source: payload.leadType,
+    campaign: typeof rawAny.campaign === "string" ? rawAny.campaign : undefined,
+    utmSource: typeof rawAny.utm_source === "string" ? rawAny.utm_source : undefined,
+    utmMedium: typeof rawAny.utm_medium === "string" ? rawAny.utm_medium : undefined,
+    utmCampaign: typeof rawAny.utm_campaign === "string" ? rawAny.utm_campaign : undefined,
+    consent: payload.consent ?? true,
+    contactPreferences: {
+      phone: true,
+      whatsapp: true,
+      email: Boolean(email),
+      preferredTimeSlot: payload.preferredTime
+    },
+    notes: payload.message || (payload.address ? `Address: ${payload.address}` : undefined),
+    priority: payload.leadType === "growth_partner" ? "High" : "Medium",
+    autoAssign: true,
+    performedBy: "Website Form"
   });
 
-  if (error) throw new Error(error.message || "Unable to save lead.");
-  return { duplicate: false };
+  return {
+    duplicate: crmResult.isDuplicate,
+    lead: crmResult.lead,
+    message: crmResult.duplicateMessage
+  };
 }

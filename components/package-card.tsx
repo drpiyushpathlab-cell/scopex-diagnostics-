@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, CheckCircle2, ChevronRight, Zap, Scale } from "lucide-react";
+import { Check, CheckCircle2, ChevronRight, Zap, Scale, Lock } from "lucide-react";
 import type { BadgeLabel, PackageItem } from "@/lib/data";
 import { useCompare, packageToComparable } from "@/lib/compare-context";
 
@@ -11,18 +11,6 @@ const trustPoints = [
   "Pathologist-Reviewed Digital Reports",
   "Doorstep Sample Collection Included"
 ];
-
-const badgeColors: Record<BadgeLabel, string> = {
-  "Most Popular": "bg-[#FFF4EA] text-[#FF6B00] border border-[#fbd8b5]",
-  "Start Here": "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  "Best Value": "bg-blue-50 text-blue-700 border border-blue-200",
-  Premium: "bg-amber-50 text-amber-800 border border-amber-200",
-  Recommended: "bg-orange-50 text-orange-700 border border-orange-200",
-  Advanced: "bg-purple-50 text-purple-700 border border-purple-200",
-  Specialized: "bg-stone-100 text-stone-800 border border-stone-200",
-  "Women Health": "bg-pink-50 text-pink-700 border border-pink-200",
-  Confidential: "bg-slate-100 text-slate-700 border border-slate-200"
-};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
@@ -35,6 +23,12 @@ export function PackageCard({ item }: { item: PackageItem }) {
   const compactOverview = item.overview.slice(0, 8);
   const visibleOverview = showDetails ? item.overview : compactOverview;
   const hasMoreDetails = item.overview.length > compactOverview.length;
+
+  // Automated savings calculation for TYPE 1: FIXED PACKAGES
+  const hasValidMrp = typeof item.mrp === "number" && item.mrp > item.price;
+  const mrp = hasValidMrp ? item.mrp : null;
+  const savingsAmount = hasValidMrp ? item.mrp - item.price : 0;
+  const savingsPercent = hasValidMrp ? Math.round((savingsAmount / item.mrp) * 100) : 0;
 
   return (
     <article
@@ -51,21 +45,46 @@ export function PackageCard({ item }: { item: PackageItem }) {
         <span className="rounded-lg bg-[#FFF4E8] px-2.5 py-1 text-xs font-bold text-[#FF6B00]">
           {item.badge}
         </span>
-        <span className="text-xs font-semibold text-[#626262]">
-          {item.overview.length} Tests Included
-        </span>
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#626262]">
+          <Lock className="h-3 w-3 text-stone-400" />
+          <span>{item.overview.length} Locked Tests</span>
+        </div>
       </div>
 
       {/* Title & Tagline */}
       <h3 className="mt-4 text-2xl font-extrabold text-[#0D0D0D] tracking-tight">{item.name}</h3>
       <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[#626262]">{item.tagline}</p>
 
-      {/* Pricing Block */}
-      <div className="mt-5 flex items-baseline gap-2 border-y border-[#EAEAEA] py-4">
-        <span className="text-3xl font-black text-[#0D0D0D] tabular-nums sm:text-4xl">
-          ₹{formatCurrency(item.price)}
-        </span>
-        <span className="text-xs text-[#8A8A8A]">/ verified price</span>
+      {/* Pricing Block with automated reference price & savings */}
+      <div className="mt-5 border-y border-[#EAEAEA] py-4">
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-3xl font-black text-[#0D0D0D] tabular-nums sm:text-4xl">
+            ₹{formatCurrency(item.price)}
+          </span>
+          {mrp && (
+            <span className="text-sm font-semibold text-stone-400 line-through tabular-nums">
+              ₹{formatCurrency(mrp)}
+            </span>
+          )}
+        </div>
+        <div className="mt-1 flex items-center justify-between text-xs">
+          {hasValidMrp ? (
+            <span className="font-bold text-emerald-700">
+              Save ₹{formatCurrency(savingsAmount)} ({savingsPercent}% Off)
+            </span>
+          ) : (
+            <span className="text-[#8A8A8A]">Fixed verified price</span>
+          )}
+          {item.allowExtraDiscount ? (
+            <span className="text-[11px] font-semibold text-emerald-700">
+              Extra bundle discount eligible
+            </span>
+          ) : (
+            <span className="text-[11px] text-[#8A8A8A]">
+              Fixed package price
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Tests Overview */}

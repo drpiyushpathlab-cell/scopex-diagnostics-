@@ -267,6 +267,65 @@ export function BookingFlow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Parse deep-linked package, custom package, or individual test parameters from URL
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const customTestsParam = params.get("customTests") || params.get("tests");
+    const pkgParam = params.get("package") || params.get("packageId");
+    const testParam = params.get("test") || params.get("testId");
+
+    if (customTestsParam) {
+      const rawIds = customTestsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      const resolvedIds: string[] = [];
+      for (const raw of rawIds) {
+        const found = bookingTests.find(
+          (t) =>
+            t.id.toLowerCase() === raw.toLowerCase() ||
+            t.slug?.toLowerCase() === raw.toLowerCase() ||
+            t.name.toLowerCase() === raw.toLowerCase()
+        );
+        if (found) {
+          resolvedIds.push(found.id);
+        } else {
+          resolvedIds.push(raw);
+        }
+      }
+      if (resolvedIds.length > 0) {
+        setSelectedIds(resolvedIds);
+        setCatalogMode("tests");
+        return;
+      }
+    }
+
+    if (pkgParam) {
+      const found = bookingPackages.find(
+        (p) =>
+          p.id.toLowerCase() === pkgParam.toLowerCase() ||
+          p.name.toLowerCase() === pkgParam.toLowerCase() ||
+          p.slug?.toLowerCase() === pkgParam.toLowerCase()
+      );
+      if (found) {
+        setSelectedIds([found.id]);
+        setCatalogMode("packages");
+        return;
+      }
+    }
+
+    if (testParam) {
+      const found = bookingTests.find(
+        (t) =>
+          t.id.toLowerCase() === testParam.toLowerCase() ||
+          t.name.toLowerCase() === testParam.toLowerCase() ||
+          t.slug?.toLowerCase() === testParam.toLowerCase()
+      );
+      if (found) {
+        setSelectedIds([found.id]);
+        setCatalogMode("tests");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!selectedIds.length) return;
     setBookingPatients((current) => {

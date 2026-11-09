@@ -4,6 +4,7 @@ import { asyncRoute } from "@/backend/src/lib/async-route";
 import { requireAuth, type AuthedRequest } from "@/backend/src/middleware/auth";
 import { insforge } from "@/backend/src/lib/insforge";
 import type { BookingCatalogItem } from "@/lib/booking-types";
+import { findBookingItemById } from "@/lib/booking-catalog";
 import { HttpError } from "@/backend/src/lib/http-error";
 import { calculateQuoteWithOffers } from "@/backend/src/services/offers";
 import {
@@ -216,9 +217,7 @@ bookingsRouter.post(
     const auth = request.auth;
     if (!auth?.userId || !auth?.patientId) throw new HttpError(401, "Patient session is missing.");
 
-    const cartRows = parsed.fromCart ? await getCartItems(auth.userId) : [];
-    const legacyItems = parsed.fromCart ? cartRows.map(toBookingItemFromCart) : (parsed.items as BookingCatalogItem[]);
-    const bookingPatients = parsed.bookingPatients?.length
+    const rawPatients = parsed.bookingPatients?.length
       ? parsed.bookingPatients.map((patient) => ({
           ...patient,
           tests: patient.tests as BookingCatalogItem[]
@@ -237,6 +236,29 @@ bookingsRouter.post(
             tests: legacyItems
           }
         ];
+
+    // RULE 7 & RULE 8: Never trust prices or discounts submitted by the browser.
+    // Securely recalculate on the server against canonical catalog definitions.
+    const bookingPatients = rawPatients.map((patient) => ({
+      ...patient,
+      tests: patient.tests.map((item) => {
+        const canonical = findBookingItemById(item.id);
+        if (canonical) {
+          return {
+            ...item,
+            price: canonical.price,
+            mrp: canonical.mrp,
+            discountCapPercent: canonical.discountCapPercent,
+            discountCapRupees: canonical.discountCapRupees,
+            isBundleEligible: canonical.isBundleEligible !== false,
+            allowExtraDiscount: canonical.allowExtraDiscount,
+            kind: canonical.kind
+          };
+        }
+        return item;
+      })
+    }));
+
     const items = bookingPatients.flatMap((patient) => patient.tests);
     if (items.length === 0) throw new HttpError(400, "Your cart is empty.");
 
@@ -333,7 +355,8 @@ bookingsRouter.post(
         payment_status: parsed.saveAsDraft ? "draft" : parsed.paymentMethod === "cod" ? "advance_required" : "created",
         booking_status: bookingStatus,
         is_draft: parsed.saveAsDraft,
-        offer_breakdown: quote.appliedOffers
+        offer_breakdown: quote.appliedOffers,
+        price_snapshot: quote.priceSnapshot || quote
       })
       .select("id, booking_id, payable_amount, advance_amount, payment_status, booking_status, is_draft")
       .single();

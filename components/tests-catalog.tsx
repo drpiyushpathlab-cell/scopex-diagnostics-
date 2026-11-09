@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { testsData } from "@/lib/data";
 import { Search, Clock, Droplet, ChevronDown, ChevronUp, ArrowRight, ShieldCheck, Sparkles, Scale } from "lucide-react";
 import { useCompare, testToComparable } from "@/lib/compare-context";
+import { getTestSeoSlug } from "@/lib/seo-platform";
 
 const filters = ["All", "Blood", "Hormone", "Profile"] as const;
 const groups = ["Basic Tests", "Profile Tests", "Organ Function Tests", "Hormone & Special Tests"] as const;
@@ -210,14 +211,39 @@ export function TestsCatalog() {
                           </div>
                         </div>
 
-                        {/* Title */}
-                        <h3 className="mt-3 text-lg font-bold text-[#0D0D0D] group-hover:text-[#FF6B00] transition-colors leading-snug">
+                        {/* Title - Clickable to open individual test detail page */}
+                        <Link
+                          href={`/tests/${getTestSeoSlug(test)}`}
+                          className="mt-3 block text-lg font-bold text-[#0D0D0D] group-hover:text-[#FF6B00] transition-colors leading-snug hover:underline"
+                        >
                           {test.name}
-                        </h3>
+                        </Link>
 
-                        {test.fastingHours ? (
-                          <p className="mt-1.5 text-xs text-[#626262] flex items-center gap-1">
-                            <span className="font-semibold text-[#0D0D0D]">Fasting:</span> {test.fastingHours}
+                        {/* Clinical Badges: Specimen Type & Fasting */}
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                          {test.specimenType ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-stone-100 px-2 py-0.5 font-medium text-[#0D0D0D]">
+                              <Droplet className="h-3 w-3 text-[#FF6B00]" />
+                              <span>{test.specimenType}</span>
+                            </span>
+                          ) : null}
+                          {test.fastingHours ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200/60 px-2 py-0.5 font-medium text-amber-900">
+                              <Clock className="h-3 w-3 text-amber-600" />
+                              <span>Fasting: {test.fastingHours}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 font-medium text-emerald-800">
+                              <span>No Fasting</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Preparation instructions */}
+                        {test.preparation ? (
+                          <p className="mt-2 text-xs text-[#626262] line-clamp-2 leading-relaxed">
+                            <span className="font-semibold text-[#0D0D0D]">Prep: </span>
+                            {test.preparation}
                           </p>
                         ) : null}
 
@@ -259,14 +285,34 @@ export function TestsCatalog() {
                       </div>
 
                       {/* Pricing & Booking Action */}
-                      <div className="mt-5 pt-3.5 border-t border-[#EAEAEA] flex items-center justify-between gap-2">
+                      <div className="mt-5 pt-3.5 border-t border-[#EAEAEA] flex items-end justify-between gap-2">
                         <div>
-                          <p className="text-[10px] font-semibold text-[#8A8A8A]">Real Price</p>
-                          <p className="text-xl font-black text-[#0D0D0D]">
-                            ₹{formatPrice(test.price)}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF6B00]">Real Price</span>
+                            {test.mrp && test.mrp > test.price ? (
+                              <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                Save {test.discount || Math.round(((test.mrp - test.price) / test.mrp) * 100)}%
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-0.5 flex items-baseline gap-2">
+                            <p className="text-xl font-black text-[#0D0D0D]">
+                              ₹{formatPrice(test.price)}
+                            </p>
+                            {test.mrp && test.mrp > test.price ? (
+                              <p className="text-xs font-semibold text-[#8A8A8A] line-through">
+                                ₹{formatPrice(test.mrp)}
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/tests/${getTestSeoSlug(test)}`}
+                            className="rounded-xl border border-[#EAEAEA] bg-white px-2.5 py-2 text-[11px] font-bold text-[#626262] hover:border-[#0D0D0D] hover:text-[#0D0D0D] transition"
+                          >
+                            Details
+                          </Link>
                           <button
                             type="button"
                             onClick={() => toggleItem(testToComparable(test))}

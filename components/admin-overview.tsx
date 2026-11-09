@@ -64,7 +64,13 @@ export function AdminOverview() {
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/admin/bookings" className="cta-btn text-xs">Booking Management</Link>
+        <Link href="/admin/partner-labs" className="cta-btn text-xs bg-emerald-700 border-emerald-700 text-white font-bold">Partner Laboratories</Link>
+        <Link href="/admin/customer-care" className="cta-btn text-xs bg-[#008080] border-[#008080] text-white font-bold">Customer Care & Dispatch</Link>
+        <Link href="/phlebotomist" className="cta-btn text-xs bg-indigo-600 border-indigo-600 text-white font-bold">Phlebotomist Portal</Link>
+        <Link href="/admin/crm" className="cta-btn text-xs bg-[#FF6B00] border-[#FF6B00] text-white font-bold">CRM Lead Desk</Link>
+        <Link href="/admin/tests" className="cta-btn text-xs">Test Master</Link>
+        <Link href="/admin/packages" className="secondary-btn text-xs font-bold border-[#FF6B00] text-[#FF6B00]">Fixed Packages</Link>
+        <Link href="/admin/bookings" className="secondary-btn text-xs">Booking Management</Link>
         <Link href="/admin/users" className="secondary-btn text-xs">User Management</Link>
         <Link href="/admin/roles-permissions" className="secondary-btn text-xs">Roles & Permissions</Link>
         <Link href="/admin/reports" className="secondary-btn text-xs">Report Management</Link>

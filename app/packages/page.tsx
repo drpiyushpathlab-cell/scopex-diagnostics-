@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { PackageCard } from "@/components/package-card";
+import { PackagesTabsView } from "@/components/packages-tabs-view";
 import { packagesData } from "@/lib/data";
 import { Sparkles, ShieldCheck, CheckCircle2, Clock, Home, ArrowRight } from "lucide-react";
 import { PackagesCompareTrigger } from "@/components/packages-compare-trigger";
@@ -78,34 +79,13 @@ export default function PackagesPage() {
           </div>
         </div>
 
-        {/* Section Groups */}
-        <div className="space-y-14">
-          {sectionOrder.map((sectionName) => {
-            const sectionItems = packagesData.filter((item) => item.section === sectionName);
-            if (!sectionItems.length) return null;
-            const desiredOrder = packageOrderBySection[sectionName];
-            const orderedItems = desiredOrder
-              .map((id) => sectionItems.find((item) => item.id === id))
-              .filter((item): item is NonNullable<typeof item> => Boolean(item));
-
-            return (
-              <div key={sectionName}>
-                <div className="mb-6 max-w-3xl border-b border-[#EAEAEA] pb-3">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#FF6B00]">{sectionName}</span>
-                  <p className="mt-1 text-xs sm:text-sm text-[#626262]">{sectionDescriptions[sectionName]}</p>
-                </div>
-
-                <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {orderedItems.map((item) => (
-                    <div key={item.id}>
-                      <PackageCard item={item} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Package Tabs: Type 1 Fixed Packages and Type 2 Custom Packages */}
+        <PackagesTabsView
+          fixedPackages={packagesData}
+          sectionOrder={sectionOrder}
+          sectionDescriptions={sectionDescriptions}
+          packageOrderBySection={packageOrderBySection}
+        />
 
         {/* Signature Carbon Black Annual Health & Advisory Section */}
         <div className="mt-16 overflow-hidden rounded-3xl border border-stone-800 bg-[#0D0D0D] p-8 sm:p-12 text-white relative shadow-xl">
