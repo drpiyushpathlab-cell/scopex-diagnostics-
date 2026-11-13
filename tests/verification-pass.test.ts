@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import { NextRequest } from "next/server";
 import {
   authenticateAdmin,
   createAdminStaff,
@@ -18,6 +19,8 @@ import { signAppToken } from "@/backend/src/lib/jwt";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
 import sitemap from "@/app/sitemap";
 import robots from "@/app/robots";
+import { GET as backendGet, POST as backendPost } from "@/app/api/backend/[...path]/route";
+import { inMemoryPartnerSamples } from "@/lib/partner-lab-service";
 import {
   approveClinicalReview,
   buildPageStructuredData,
@@ -43,6 +46,93 @@ test("Check 5: authenticateAdmin issues JWT for valid credentials and rejects in
     () => authenticateAdmin("admin@scopexdiagnostics.in", "WrongPassword123"),
     /Invalid email or password/
   );
+});
+
+test("production JWT signing refuses to use the development fallback secret", () => {
+  const mutableEnv = process.env as Record<string, string | undefined>;
+  const previousNodeEnv = mutableEnv.NODE_ENV;
+  const previousJwtSecret = mutableEnv.APP_JWT_SECRET;
+  mutableEnv.NODE_ENV = "production";
+  delete mutableEnv.APP_JWT_SECRET;
+
+  try {
+    assert.throws(
+      () => signAppToken({ userId: "prod-check", role: "admin" }),
+      /APP_JWT_SECRET must be configured with at least 32 characters in production/
+    );
+  } finally {
+    if (previousNodeEnv === undefined) delete mutableEnv.NODE_ENV;
+    else mutableEnv.NODE_ENV = previousNodeEnv;
+
+    if (previousJwtSecret === undefined) delete mutableEnv.APP_JWT_SECRET;
+    else mutableEnv.APP_JWT_SECRET = previousJwtSecret;
+  }
+});
+
+test("partner sample handover rejects unauthenticated requests", async () => {
+  const request = new NextRequest("http://localhost/api/backend/admin/partner-samples/sample-auth-check/handover", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ partnerBarcode: "DUMMY-001", barcodePhotoUrl: "https://example.invalid/dummy.jpg" })
+  });
+  const response = await backendPost(request, {
+    params: Promise.resolve({ path: ["admin", "partner-samples", "sample-auth-check", "handover"] })
+  });
+
+  assert.equal(response.status, 401);
+});
+
+test("phlebotomists only see partner samples for their assigned bookings", async () => {
+  const assignedBookingId = "booking-phleb-scope-check";
+  const otherBookingId = "booking-phleb-scope-other";
+  const assignedSampleId = "sample-phleb-scope-check";
+  const otherSampleId = "sample-phleb-scope-other";
+  const now = new Date().toISOString();
+  const makeSample = (id: string, bookingId: string) => ({
+    id,
+    bookingId,
+    bookingNumber: bookingId,
+    scopexSampleId: id,
+    partnerLabId: "PLAB-SECURITY-TEST",
+    partnerLabName: "Dummy Lab",
+    locationId: "LOC-DUM-01",
+    locationCity: "Indore",
+    patientName: "Dummy Patient",
+    patientPhone: "9000000000",
+    testIds: [],
+    testNames: [],
+    applicableRateSnapshot: [],
+    totalProcessingCost: 0,
+    status: "Assigned to Partner Lab" as const,
+    statusHistory: [],
+    adminVerified: false,
+    createdAt: now,
+    updatedAt: now
+  });
+
+  inMemoryBookings.set(assignedBookingId, { assigned_phlebotomist_id: "phleb-scope-check" });
+  inMemoryBookings.set(otherBookingId, { assigned_phlebotomist_id: "another-phleb" });
+  inMemoryPartnerSamples.set(assignedSampleId, makeSample(assignedSampleId, assignedBookingId));
+  inMemoryPartnerSamples.set(otherSampleId, makeSample(otherSampleId, otherBookingId));
+
+  try {
+    const token = signAppToken({ userId: "phleb-scope-check", role: "phlebotomist" });
+    const request = new NextRequest("http://localhost/api/backend/admin/partner-samples", {
+      headers: { authorization: `Bearer ${token}` }
+    });
+    const response = await backendGet(request, {
+      params: Promise.resolve({ path: ["admin", "partner-samples"] })
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 200, JSON.stringify(payload));
+    assert.deepEqual(payload.samples.map((sample: { id: string }) => sample.id), [assignedSampleId]);
+  } finally {
+    inMemoryBookings.delete(assignedBookingId);
+    inMemoryBookings.delete(otherBookingId);
+    inMemoryPartnerSamples.delete(assignedSampleId);
+    inMemoryPartnerSamples.delete(otherSampleId);
+  }
 });
 
 test("Check 5: requireAuthToken and requireAdminRole enforce RBAC and block patient role from admin routes", async () => {

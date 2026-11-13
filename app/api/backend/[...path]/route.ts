@@ -40,6 +40,7 @@ import {
   getBackendCatalog,
   getLeadActivities,
   getPatientBookings,
+  inMemoryBookings,
   getPhlebotomistList,
   logAuditAction,
   requireAdminRole,
@@ -1323,9 +1324,17 @@ async function handleBackendRequest(request: Request, path: string[]) {
 
   // Phase 3 & 4: Sample Assignment, Handover & Status Lifecycle
   if (joined === "/admin/partner-samples") {
-    requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support", "phlebotomist"]);
+    const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support", "phlebotomist"]);
     seedInitialPartnerLabDataIfEmpty();
     let samples = Array.from(inMemoryPartnerSamples.values());
+
+    if (auth.role === "phlebotomist") {
+      samples = samples.filter((sample) => {
+        const booking = inMemoryBookings.get(sample.bookingId);
+        return booking?.assigned_phlebotomist_id === auth.userId || booking?.phlebotomist_id === auth.userId;
+      });
+    }
+
     const partnerLabId = searchParams.get("partnerLabId");
     const status = searchParams.get("status");
     const q = searchParams.get("q")?.toLowerCase();
@@ -1382,13 +1391,8 @@ async function handleBackendRequest(request: Request, path: string[]) {
     seedInitialPartnerLabDataIfEmpty();
     const sampleRecordId = sampleHandoverMatch[1];
     const body = await jsonBody(request);
-    let performedBy = body.performedBy || "Phlebotomist";
-    try {
-      const auth = requireAuthToken(request);
-      performedBy = auth.email || performedBy;
-    } catch {
-      // Allow simulator in preview
-    }
+    const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "phlebotomist"]);
+    const performedBy = auth.email || auth.userId;
 
     const updated = recordPartnerLabBarcodeHandover({
       sampleRecordId,

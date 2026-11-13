@@ -24,6 +24,15 @@ const revokedTokens = new Set<string>();
 const defaultJwtSecret = "scopex-jwt-authentication-secret-key-32chars";
 
 function getEffectiveJwtSecret(): string {
+  // Never let the development fallback sign production tokens. A known secret
+  // would let anyone mint an admin or patient token without authenticating.
+  if (process.env.NODE_ENV === "production") {
+    const productionSecret = process.env.APP_JWT_SECRET;
+    if (!productionSecret || productionSecret.length < 32) {
+      throw new Error("APP_JWT_SECRET must be configured with at least 32 characters in production.");
+    }
+    return productionSecret;
+  }
   if (backendEnv.APP_JWT_SECRET && backendEnv.APP_JWT_SECRET.length >= 16) {
     return backendEnv.APP_JWT_SECRET;
   }

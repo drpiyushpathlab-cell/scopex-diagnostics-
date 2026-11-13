@@ -284,7 +284,11 @@ export async function authenticateAdmin(email: string, passwordPlain: string, cl
   }
 
   // 2. Fallback to in-memory / default super_admin account for seamless operations
-  if (normalizedEmail === defaultAdminEmail && passwordPlain === defaultAdminPassword) {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    normalizedEmail === defaultAdminEmail &&
+    passwordPlain === defaultAdminPassword
+  ) {
     const defaultSuperAdmin = {
       id: "admin-super-001",
       email: defaultAdminEmail,
