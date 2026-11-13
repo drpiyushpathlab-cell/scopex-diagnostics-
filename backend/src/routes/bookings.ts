@@ -217,6 +217,7 @@ bookingsRouter.post(
     const auth = request.auth;
     if (!auth?.userId || !auth?.patientId) throw new HttpError(401, "Patient session is missing.");
 
+    const legacyItems = ((parsed as { items?: BookingCatalogItem[] }).items || []) as BookingCatalogItem[];
     const rawPatients = parsed.bookingPatients?.length
       ? parsed.bookingPatients.map((patient) => ({
           ...patient,

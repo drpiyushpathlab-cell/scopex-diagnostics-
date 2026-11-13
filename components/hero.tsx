@@ -11,7 +11,8 @@ import {
   Phone,
   Home,
   Clock,
-  Sparkles
+  Sparkles,
+  BadgePercent
 } from "lucide-react";
 import { UploadPrescriptionModal } from "@/components/upload-prescription-modal";
 import { HealthAdvisorModal } from "@/components/health-advisor-modal";
@@ -49,25 +50,31 @@ export function Hero() {
               Real Prices. Faster Diagnostics. Better Guidance.
             </p>
 
-            {/* 4. 3 Trust Badges (Horizontal Icons matching Option C) */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1">
+            {/* 4. 4 Trust Badges (Aligned 2x2 Grid on desktop, clean wrap on mobile) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 pt-1 w-fit">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF4E8] text-[#FF6B00]">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF4E8] text-[#FF6B00]">
                   <Home className="h-3.5 w-3.5" />
                 </div>
                 <span className="text-xs font-bold text-[#0D0D0D]">Home Collection in 30 Mins</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF4E8] text-[#FF6B00]">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF4E8] text-[#FF6B00]">
                   <ShieldCheck className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-xs font-bold text-[#0D0D0D]">NABL Certified Labs</span>
+                <span className="text-xs font-bold text-[#0D0D0D]">NABL Quality Standards</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF4E8] text-[#FF6B00]">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF4E8] text-[#FF6B00]">
                   <Clock className="h-3.5 w-3.5" />
                 </div>
                 <span className="text-xs font-bold text-[#0D0D0D]">Same-Day Reports</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF4E8] text-[#FF6B00]">
+                  <BadgePercent className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-bold text-[#0D0D0D]">Zero Fake Discounts</span>
               </div>
             </div>
 

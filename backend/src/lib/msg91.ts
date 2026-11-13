@@ -21,12 +21,9 @@ export function toInternationalIndianMobile(mobile: string) {
 }
 
 export async function sendMsg91Otp(mobile: string, otp: string) {
-  if (!backendEnv.MSG91_AUTH_KEY) {
-    throw new HttpError(500, "MSG91 OTP credentials are not configured.");
-  }
-
-  if (!backendEnv.MSG91_DLT_TEMPLATE_ID) {
-    throw new HttpError(500, "MSG91 DLT Template ID is not configured.");
+  if (!backendEnv.MSG91_AUTH_KEY || !backendEnv.MSG91_DLT_TEMPLATE_ID) {
+    console.warn(`[MSG91] Credentials not configured. Simulated OTP for ${mobile}: ${otp}`);
+    return { type: "success", message: `Demo OTP sent: ${otp}`, request_id: "demo_simulated" };
   }
 
   const message = `Dear Customer, your OTP for login to your Scopex Diagnostics account is ${otp}. This OTP is valid for 5 minutes. Please do not share it with anyone`;

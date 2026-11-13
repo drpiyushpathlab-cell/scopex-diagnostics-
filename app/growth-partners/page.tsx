@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { StructuredData } from "@/components/seo/structured-data";
 import { absoluteUrl } from "@/lib/seo-platform";
 import { breadcrumbSchema, organizationSchemas } from "@/lib/seo-schemas";

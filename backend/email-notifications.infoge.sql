@@ -1,4 +1,4 @@
-﻿-- ScopeX automated email notification schema.
+-- ScopeX automated email notification schema.
 -- Safe to run multiple times.
 
 create table if not exists email_logs (

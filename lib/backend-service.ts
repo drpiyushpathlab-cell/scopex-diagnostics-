@@ -11,6 +11,11 @@ import {
   type BundleDiscountSlab,
   type PriceSnapshot
 } from "@/lib/pricing";
+import {
+  calculateAdjustedItem,
+  validateBulkAdjustmentConfig,
+  type BulkPriceAdjustmentConfig
+} from "@/lib/test-price-adjustment";
 
 export type AdminRole =
   | "super_admin"
@@ -48,8 +53,8 @@ export type AssignmentSettings = {
 export const inMemoryBookings = new Map<string, Record<string, unknown>>();
 export const inMemoryBookingItems = new Map<string, Array<Record<string, unknown>>>();
 export const inMemoryAdmins = new Map<string, Record<string, unknown>>();
-const inMemoryAuditLogs: Array<Record<string, unknown>> = [];
-const inMemoryLeadActivities = new Map<string, Array<Record<string, unknown>>>();
+export const inMemoryAuditLogs: Array<Record<string, unknown>> = [];
+export const inMemoryLeadActivities = new Map<string, Array<Record<string, unknown>>>();
 let inMemoryBundleSlabs: BundleDiscountSlab[] = [...defaultBundleSlabs];
 export const inMemoryTests = new Map<string, TestItem>(
   testsData.map((t) => [t.id, { ...t, isActive: t.isActive ?? true }])
@@ -152,7 +157,7 @@ const inMemoryServiceAreas = new Map<string, {
     active: true
   }
 ].map((s) => [s.id, s]));
-const inMemoryPhlebotomists: Array<Record<string, unknown>> = [
+export const inMemoryPhlebotomists: Array<Record<string, unknown>> = [
   {
     id: "phleb-001",
     name: "Ramesh Sharma",
@@ -214,13 +219,24 @@ export function requireAuthToken(request: Request): AppJwtPayload {
   return verifyAppToken(token);
 }
 
+const DEFAULT_ADMIN_ROLES: AdminRole[] = [
+  "super_admin",
+  "admin",
+  "manager",
+  "booking_manager",
+  "report_manager",
+  "finance_manager",
+  "customer_support"
+];
+
 export function requireAdminRole(request: Request, allowedRoles?: AdminRole[]): AppJwtPayload {
   const payload = requireAuthToken(request);
   const normalizedRole = payload.role === "super-admin" ? "super_admin" : payload.role;
   const isSuper = normalizedRole === "super_admin";
+  const rolesToCheck = allowedRoles && allowedRoles.length > 0 ? allowedRoles : DEFAULT_ADMIN_ROLES;
 
-  if (!isSuper && allowedRoles && !allowedRoles.includes(normalizedRole as AdminRole)) {
-    throw new HttpError(403, `Access denied. Requires one of: ${allowedRoles.join(", ")}`);
+  if (!isSuper && !rolesToCheck.includes(normalizedRole as AdminRole)) {
+    throw new HttpError(403, `Access denied. Requires one of: ${rolesToCheck.join(", ")}`);
   }
 
   return { ...payload, role: normalizedRole };
@@ -977,6 +993,124 @@ export async function bulkUpsertAdminTests(
   };
 }
 
+export interface BulkPriceAdjustmentParams extends BulkPriceAdjustmentConfig {
+  testIds: string[];
+}
+
+export async function bulkAdjustAdminTestPrices(
+  params: BulkPriceAdjustmentParams,
+  adminUser: AppJwtPayload
+): Promise<{
+  success: boolean;
+  totalUpdated: number;
+  updatedTests: TestItem[];
+  summary: {
+    totalOriginalValue: number;
+    totalNewValue: number;
+    netDelta: number;
+    averagePercentChange: number;
+  };
+  message: string;
+}> {
+  const { testIds, ...config } = params;
+
+  if (!Array.isArray(testIds) || testIds.length === 0) {
+    throw new HttpError(400, "No tests selected for price adjustment.");
+  }
+
+  const validation = validateBulkAdjustmentConfig(config);
+  if (!validation.valid) {
+    throw new HttpError(400, validation.error || "Invalid price adjustment parameters.");
+  }
+
+  const updatedTests: TestItem[] = [];
+  let totalOriginalValue = 0;
+  let totalNewValue = 0;
+
+  for (const id of testIds) {
+    const existing = inMemoryTests.get(id);
+    if (!existing) continue;
+
+    const adjustment = calculateAdjustedItem(
+      {
+        id: existing.id,
+        name: existing.name,
+        price: existing.price,
+        mrp: existing.mrp
+      },
+      config
+    );
+
+    totalOriginalValue += adjustment.originalPrice;
+    totalNewValue += adjustment.newPrice;
+
+    const updated: TestItem = {
+      ...existing,
+      price: adjustment.newPrice,
+      mrp: adjustment.newMrp,
+      discount: adjustment.newDiscountPercent
+    };
+
+    inMemoryTests.set(existing.id, updated);
+    updatedTests.push(updated);
+  }
+
+  if (updatedTests.length === 0) {
+    throw new HttpError(404, "None of the selected tests were found in the database.");
+  }
+
+  // Attempt Supabase sync if service client is configured
+  try {
+    const supabase = getServiceClient();
+    await supabase.from("tests").upsert(
+      updatedTests.map((t) => ({
+        slug: t.slug || t.id,
+        name: t.name,
+        price: t.mrp,
+        real_price: t.price,
+        active: t.isActive
+      })),
+      { onConflict: "slug" }
+    );
+  } catch {
+    // In-memory fallback
+  }
+
+  const netDelta = totalNewValue - totalOriginalValue;
+  const averagePercentChange =
+    totalOriginalValue > 0 ? Math.round((netDelta / totalOriginalValue) * 1000) / 10 : 0;
+
+  logAuditAction({
+    actorEmail: adminUser.email || adminUser.userId,
+    role: adminUser.role,
+    action: "bulk_adjust_test_prices",
+    entityType: "tests",
+    entityId: `batch_${Date.now()}`,
+    newVal: {
+      count: updatedTests.length,
+      direction: config.direction,
+      percentage: config.percentage,
+      rounding: config.rounding || "round",
+      netDelta,
+      updatedTestIds: updatedTests.map((t) => t.id)
+    }
+  });
+
+  const sign = config.direction === "increase" ? "+" : "-";
+  return {
+    success: true,
+    totalUpdated: updatedTests.length,
+    updatedTests,
+    summary: {
+      totalOriginalValue,
+      totalNewValue,
+      netDelta,
+      averagePercentChange
+    },
+    message: `Successfully adjusted prices for ${updatedTests.length} tests (${sign}${config.percentage}%).`
+  };
+}
+
 // -----------------------------------------------------------------------------
 // FIXED PACKAGES MANAGEMENT (TYPE 1: FIXED PACKAGES)
 // -----------------------------------------------------------------------------
@@ -1258,6 +1392,11 @@ export function updateAdminServiceArea(
 // 4. BOOKING CREATION & CUSTOMER-CARE OPERATIONS
 // -----------------------------------------------------------------------------
 
+const bookingPatientItemSchema = z.union([
+  z.string(),
+  z.object({ id: z.string() }).passthrough()
+]);
+
 export const bookingCreateInputSchema = z.object({
   customer: z.object({
     fullName: z.string().trim().min(2),
@@ -1278,19 +1417,22 @@ export const bookingCreateInputSchema = z.object({
       dob: z.string().optional(),
       gender: z.string().optional(),
       mobile: z.string().optional(),
-      itemIds: z.array(z.string()).min(1)
+      itemIds: z.array(z.string()).optional(),
+      tests: z.array(bookingPatientItemSchema).optional()
     })
   ).min(1),
+  items: z.array(bookingPatientItemSchema).optional(),
   collectionType: z.enum(["HOME_COLLECTION", "CENTRE_VISIT"]).default("HOME_COLLECTION"),
   paymentMethod: z.enum(["online", "cod"]).default("online"),
   notes: z.string().trim().optional()
 });
 
 export async function createBooking(
-  input: z.infer<typeof bookingCreateInputSchema>,
+  rawInput: z.input<typeof bookingCreateInputSchema>,
   authUser?: AppJwtPayload | null,
   clientIp?: string
 ) {
+  const input = bookingCreateInputSchema.parse(rawInput);
   const bookingNumber = generateBookingNumber();
   const bookingId = crypto.randomUUID();
 
@@ -1310,8 +1452,12 @@ export async function createBooking(
 
   for (const patient of input.bookingPatients) {
     const currentPatientItems: QuoteItem[] = [];
+    const resolvedIds: string[] =
+      patient.itemIds && patient.itemIds.length > 0
+        ? patient.itemIds
+        : (patient.tests || []).map((t) => (typeof t === "string" ? t : t.id));
 
-    for (const itemId of patient.itemIds) {
+    for (const itemId of resolvedIds) {
       const pkg = pkgMap.get(itemId);
       const test = testMap.get(itemId);
 
@@ -1354,6 +1500,10 @@ export async function createBooking(
       patientGender: patient.gender,
       items: currentPatientItems
     });
+  }
+
+  if (flatItems.length === 0) {
+    throw new HttpError(400, "Add at least one valid test or package before booking.");
   }
 
   const quote = calculateRealPricingQuote(flatItems, input.customer.city);
@@ -1439,6 +1589,7 @@ export async function createBooking(
 
   return {
     success: true,
+    orderId: bookingId,
     bookingId,
     bookingNumber,
     payableAmount: quote.payableAmount,

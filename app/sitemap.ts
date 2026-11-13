@@ -1,26 +1,26 @@
 import type { MetadataRoute } from "next";
-import { absoluteUrl, getAllSeoPages, seoPackages } from "@/lib/seo-platform";
+import { absoluteUrl } from "@/lib/seo-platform";
+import { listSeoPages } from "@/lib/seo-service";
 
 type ChangeFrequency = NonNullable<MetadataRoute.Sitemap[number]["changeFrequency"]>;
 
 const staticRoutes = [
-  { path: "/", frequency: "daily", priority: 1 },
-  { path: "/tests", frequency: "weekly", priority: 0.8 },
-  { path: "/packages", frequency: "weekly", priority: 0.8 },
-  { path: "/blogs", frequency: "weekly", priority: 0.7 },
-  { path: "/cities", frequency: "weekly", priority: 0.7 },
-  { path: "/diseases", frequency: "weekly", priority: 0.7 },
-  { path: "/book-home-collection", frequency: "weekly", priority: 0.8 },
+  { path: "/", frequency: "daily", priority: 1.0 },
+  { path: "/tests", frequency: "daily", priority: 0.9 },
+  { path: "/packages", frequency: "daily", priority: 0.9 },
+  { path: "/blogs", frequency: "weekly", priority: 0.8 },
+  { path: "/cities", frequency: "weekly", priority: 0.8 },
+  { path: "/diseases", frequency: "weekly", priority: 0.8 },
+  { path: "/book-home-collection", frequency: "weekly", priority: 0.9 },
   { path: "/growth-partners", frequency: "monthly", priority: 0.7 },
   { path: "/about", frequency: "monthly", priority: 0.6 },
   { path: "/contact", frequency: "monthly", priority: 0.6 },
-  { path: "/medical-advisory-board", frequency: "monthly", priority: 0.5 },
-  { path: "/quality-assurance", frequency: "monthly", priority: 0.5 },
-  { path: "/nabl", frequency: "monthly", priority: 0.5 },
-  { path: "/careers", frequency: "monthly", priority: 0.4 },
+  { path: "/medical-advisory-board", frequency: "monthly", priority: 0.6 },
+  { path: "/quality-assurance", frequency: "monthly", priority: 0.6 },
+  { path: "/nabl", frequency: "monthly", priority: 0.6 },
   { path: "/partner-with-us", frequency: "monthly", priority: 0.6 },
   { path: "/corporate", frequency: "monthly", priority: 0.6 },
-  { path: "/government-projects", frequency: "monthly", priority: 0.6 },
+  { path: "/government-projects", frequency: "monthly", priority: 0.5 },
   { path: "/privacy-policy", frequency: "yearly", priority: 0.3 },
   { path: "/terms-and-conditions", frequency: "yearly", priority: 0.3 },
   { path: "/refund-policy", frequency: "yearly", priority: 0.3 }
@@ -28,6 +28,8 @@ const staticRoutes = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
+
+  // 1. Static routes
   const staticEntries: MetadataRoute.Sitemap = staticRoutes.map((route) => ({
     url: absoluteUrl(route.path),
     lastModified: now,
@@ -35,34 +37,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route.priority
   }));
 
-  const seoEntries: MetadataRoute.Sitemap = getAllSeoPages().flatMap((page) => {
-    const entries: MetadataRoute.Sitemap = [
-      {
-        url: absoluteUrl(page.canonicalPath),
-        lastModified: now,
-        changeFrequency: page.kind === "blog" ? "monthly" : "weekly",
-        priority: page.kind === "city" ? 0.75 : 0.7
-      }
-    ];
+  // 2. Dynamic published SEO pages from SEO service
+  // Respects index/no-index and published status
+  const publishedSeoPages = listSeoPages({ status: "published" }).filter(
+    (page) => !page.robots.includes("noindex")
+  );
 
-    if (page.kind === "test") entries.push({ url: absoluteUrl(`/tests/${page.slug}`), lastModified: now, changeFrequency: "weekly", priority: 0.65 });
-    if (page.kind === "disease") entries.push({ url: absoluteUrl(`/diseases/${page.slug}`), lastModified: now, changeFrequency: "weekly", priority: 0.65 });
-    if (page.kind === "city") entries.push({ url: absoluteUrl(`/cities/${page.slug}`), lastModified: now, changeFrequency: "weekly", priority: 0.65 });
-    if (page.kind === "corporate") entries.push({ url: absoluteUrl(`/corporate/${page.slug}`), lastModified: now, changeFrequency: "monthly", priority: 0.65 });
-
-    return entries;
-  });
-
-  const packageEntries: MetadataRoute.Sitemap = seoPackages.map((entry) => ({
-    url: absoluteUrl(`/packages/${entry.slug}`),
-    lastModified: now,
-    changeFrequency: "weekly",
-    priority: 0.65
+  const dynamicEntries: MetadataRoute.Sitemap = publishedSeoPages.map((page) => ({
+    url: page.canonicalUrl || absoluteUrl(page.canonicalPath),
+    lastModified: page.updatedAt ? new Date(page.updatedAt) : now,
+    changeFrequency: (page.changeFrequency || "weekly") as ChangeFrequency,
+    priority: page.priority || 0.7
   }));
 
+  // Ensure unique URLs
   const unique = new Map<string, MetadataRoute.Sitemap[number]>();
-  [...staticEntries, ...seoEntries, ...packageEntries].forEach((entry) => unique.set(entry.url, entry));
+  [...staticEntries, ...dynamicEntries].forEach((entry) => unique.set(entry.url, entry));
   return Array.from(unique.values());
 }
-
-

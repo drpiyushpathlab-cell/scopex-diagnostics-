@@ -23,6 +23,7 @@ import {
   createAdminFixedPackage,
   createAdminServiceArea,
   bulkUpsertAdminTests,
+  bulkAdjustAdminTestPrices,
   createAdminStaff,
   createAdminTest,
   createBooking,
@@ -65,6 +66,7 @@ import {
   convertLeadToBooking,
   getCrmAnalyticsReport,
   inMemoryTeamMembers,
+  inMemoryLeads,
   type LeadPriority,
   type LeadStatus
 } from "@/lib/crm-service";
@@ -291,18 +293,34 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const body = await jsonBody(request);
     const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = body;
 
-    let isValidSignature = true;
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return NextResponse.json(
+        { success: false, message: "Missing payment verification fields (razorpayOrderId, razorpayPaymentId, razorpaySignature)." },
+        { status: 400 }
+      );
+    }
+
+    let isValidSignature = false;
     try {
-      if (razorpayOrderId && razorpayPaymentId && razorpaySignature) {
-        isValidSignature = verifyRazorpaySignature({
-          razorpayOrderId,
-          razorpayPaymentId,
-          razorpaySignature
-        });
+      isValidSignature = verifyRazorpaySignature({
+        razorpayOrderId: String(razorpayOrderId),
+        razorpayPaymentId: String(razorpayPaymentId),
+        razorpaySignature: String(razorpaySignature)
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      const isMissingCreds = msg.toLowerCase().includes("credential");
+      const isDevMockOrder =
+        process.env.NODE_ENV !== "production" &&
+        String(razorpayOrderId).startsWith("order_mock_");
+      if (isMissingCreds && isDevMockOrder) {
+        isValidSignature = true;
+      } else {
+        return NextResponse.json(
+          { success: false, message: msg || "Unable to verify payment signature." },
+          { status: isMissingCreds ? 401 : 500 }
+        );
       }
-    } catch {
-      // Allow mock verifications in dev sandbox
-      isValidSignature = true;
     }
 
     if (!isValidSignature) {
@@ -684,6 +702,13 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const body = await jsonBody(request);
     const rows = Array.isArray(body) ? body : (body.tests || body.rows || []);
     const result = await bulkUpsertAdminTests(rows, admin);
+    return NextResponse.json(result);
+  }
+
+  if (joined === "/admin/tests/bulk-adjust-prices" && request.method === "POST") {
+    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
+    const body = await jsonBody(request);
+    const result = await bulkAdjustAdminTestPrices(body, admin);
     return NextResponse.json(result);
   }
 

@@ -24,8 +24,20 @@ import {
   Upload,
   Download,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Percent,
+  TrendingUp,
+  TrendingDown,
+  CheckSquare,
+  Layers,
+  X
 } from "lucide-react";
+import {
+  previewBulkPriceAdjustments,
+  validateBulkAdjustmentConfig,
+  type RoundingMode,
+  type PriceAdjustmentDirection
+} from "@/lib/test-price-adjustment";
 
 type DiagnosticTest = {
   id: string;
@@ -83,6 +95,8 @@ type ServiceArea = {
   minimum_order_value: number;
   active: boolean;
 };
+
+export const dynamic = "force-dynamic";
 
 export default function AdminTestsManagementPage() {
   return (
@@ -219,6 +233,111 @@ function AdminTestsContent() {
       errorMessage?: string;
     }>
   >([]);
+
+  // Bulk Test Selection State
+  const [selectedTestIds, setSelectedTestIds] = useState<Set<string>>(new Set());
+
+  // Bulk Price Adjustment Modal State
+  const [isBulkAdjustModalOpen, setIsBulkAdjustModalOpen] = useState(false);
+  const [bulkAdjustForm, setBulkAdjustForm] = useState<{
+    direction: "increase" | "decrease";
+    percentage: number;
+    rounding: RoundingMode;
+    adjustMrp: boolean;
+  }>({
+    direction: "increase",
+    percentage: 10,
+    rounding: "round",
+    adjustMrp: false
+  });
+  const [isSubmittingBulkAdjust, setIsSubmittingBulkAdjust] = useState(false);
+
+  function toggleSelectTest(id: string) {
+    setSelectedTestIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function handleSelectAllFiltered() {
+    const allFilteredSelected =
+      filteredTests.length > 0 && filteredTests.every((t) => selectedTestIds.has(t.id));
+
+    setSelectedTestIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filteredTests.forEach((t) => next.delete(t.id));
+      } else {
+        filteredTests.forEach((t) => next.add(t.id));
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedTestIds(new Set());
+  }
+
+  function selectAllTests() {
+    setSelectedTestIds(new Set(tests.map((t) => t.id)));
+  }
+
+  function handleOpenBulkAdjust() {
+    if (selectedTestIds.size === 0) {
+      notify("Please select at least one test to adjust prices.", "error");
+      return;
+    }
+    setIsBulkAdjustModalOpen(true);
+  }
+
+  async function handleApplyBulkPriceAdjustment() {
+    if (selectedTestIds.size === 0) {
+      notify("Please select at least one test to adjust prices.", "error");
+      return;
+    }
+
+    const validation = validateBulkAdjustmentConfig({
+      direction: bulkAdjustForm.direction,
+      percentage: Number(bulkAdjustForm.percentage)
+    });
+    if (!validation.valid) {
+      notify(validation.error || "Please enter a valid percentage.", "error");
+      return;
+    }
+
+    setIsSubmittingBulkAdjust(true);
+    try {
+      const res = await backendFetch("/admin/tests/bulk-adjust-prices", {
+        method: "POST",
+        body: JSON.stringify({
+          testIds: Array.from(selectedTestIds),
+          direction: bulkAdjustForm.direction,
+          percentage: Number(bulkAdjustForm.percentage),
+          rounding: bulkAdjustForm.rounding,
+          adjustMrp: bulkAdjustForm.adjustMrp
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to adjust test prices.");
+
+      // Update local state with the updated tests
+      const updatedMap = new Map((data.updatedTests as DiagnosticTest[]).map((t) => [t.id, t]));
+      setTests((prev) => prev.map((t) => updatedMap.get(t.id) || t));
+
+      notify(data.message || `Successfully adjusted selling prices for ${selectedTestIds.size} tests.`);
+      setIsBulkAdjustModalOpen(false);
+      clearSelection();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Error applying bulk price adjustment.", "error");
+    } finally {
+      setIsSubmittingBulkAdjust(false);
+    }
+  }
 
   function downloadCsvTemplate() {
     const templateContent = [
@@ -841,6 +960,16 @@ function AdminTestsContent() {
             </button>
             {activeTab === "tests" ? (
               <div className="flex items-center gap-2">
+                {selectedTestIds.size > 0 ? (
+                  <button
+                    type="button"
+                    onClick={handleOpenBulkAdjust}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#FF6B00] hover:bg-[#E05E00] px-3.5 py-2 text-xs font-bold text-white shadow-xs transition cursor-pointer"
+                  >
+                    <Percent className="h-4 w-4" />
+                    <span>Apply % Change ({selectedTestIds.size})</span>
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => {
@@ -1003,12 +1132,77 @@ function AdminTestsContent() {
               </div>
             </div>
 
+            {/* Bulk Action Toolbar */}
+            {selectedTestIds.size > 0 ? (
+              <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-[#FF6B00] text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0">
+                    {selectedTestIds.size}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#0D0D0D]">
+                      {selectedTestIds.size} of {tests.length} tests selected
+                    </p>
+                    <p className="text-[11px] text-[#626262]">
+                      Total Selected Value: ₹{tests.filter((t) => selectedTestIds.has(t.id)).reduce((sum, t) => sum + (t.price || 0), 0).toLocaleString("en-IN")} • Ready for bulk price modification
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleOpenBulkAdjust}
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#FF6B00] hover:bg-[#E05E00] px-4 py-2 text-xs font-black text-white shadow-xs transition cursor-pointer"
+                  >
+                    <Percent className="h-4 w-4" />
+                    <span>Apply % Increase / Decrease</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSelectAllFiltered}
+                    className="inline-flex items-center justify-center gap-1 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition cursor-pointer whitespace-nowrap"
+                  >
+                    <span>
+                      {filteredTests.length > 0 && filteredTests.every((t) => selectedTestIds.has(t.id))
+                        ? "Deselect Visible"
+                        : `Select Visible (${filteredTests.length})`}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="inline-flex items-center justify-center rounded-xl border border-amber-300 bg-white p-2 text-stone-500 hover:text-stone-800 transition cursor-pointer"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             {/* Tests Master Table */}
             <div className="overflow-hidden rounded-2xl border border-[#EAEAEA] bg-white shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-[#EAEAEA] bg-[#F7F7F7] text-[11px] font-bold uppercase tracking-wider text-[#626262]">
                     <tr>
+                      <th className="px-3 py-3.5 w-12 text-center">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all visible tests"
+                          checked={filteredTests.length > 0 && filteredTests.every((t) => selectedTestIds.has(t.id))}
+                          ref={(el) => {
+                            if (el) {
+                              const someSelected = filteredTests.some((t) => selectedTestIds.has(t.id));
+                              const allSelected =
+                                filteredTests.length > 0 && filteredTests.every((t) => selectedTestIds.has(t.id));
+                              el.indeterminate = someSelected && !allSelected;
+                            }
+                          }}
+                          onChange={handleSelectAllFiltered}
+                          className="h-4 w-4 rounded border-stone-300 text-[#FF6B00] accent-[#FF6B00] focus:ring-[#FF6B00] cursor-pointer"
+                        />
+                      </th>
                       <th className="px-4 py-3.5">Test / Slug</th>
                       <th className="px-4 py-3.5">Category & Group</th>
                       <th className="px-4 py-3.5">Real Selling Price</th>
@@ -1023,6 +1217,7 @@ function AdminTestsContent() {
                   <tbody className="divide-y divide-[#EAEAEA]">
                     {filteredTests.map((test) => {
                       const isActive = test.isActive !== false;
+                      const isSelected = selectedTestIds.has(test.id);
                       const mrp = test.mrp || Math.round(test.price * 1.5);
                       const savings = Math.max(0, mrp - test.price);
                       const savingsPercent = Math.round((savings / mrp) * 100);
@@ -1032,8 +1227,17 @@ function AdminTestsContent() {
                           key={test.id}
                           className={`hover:bg-[#FFFDFB] transition-colors ${
                             !isActive ? "opacity-60 bg-stone-50" : ""
-                          }`}
+                          } ${isSelected ? "bg-[#FFF8F2] border-l-4 border-l-[#FF6B00]" : ""}`}
                         >
+                          <td className="px-3 py-3.5 w-12 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${test.name}`}
+                              checked={isSelected}
+                              onChange={() => toggleSelectTest(test.id)}
+                              className="h-4 w-4 rounded border-stone-300 text-[#FF6B00] accent-[#FF6B00] focus:ring-[#FF6B00] cursor-pointer"
+                            />
+                          </td>
                           <td className="px-4 py-3.5">
                             <p className="font-bold text-[#0D0D0D] text-sm">{test.name}</p>
                             <p className="text-[10px] text-[#8A8A8A] font-mono mt-0.5">/{test.slug || test.id}</p>
@@ -2252,6 +2456,328 @@ function AdminTestsContent() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        ) : null}
+
+        {/* BULK PRICE ADJUSTMENT MODAL */}
+        {isBulkAdjustModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
+            <div className="relative my-8 w-full max-w-4xl rounded-3xl border border-[#EAEAEA] bg-white p-6 shadow-2xl sm:p-8">
+              {/* Modal Header */}
+              <div className="flex items-start justify-between border-b border-[#EAEAEA] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF6B00] to-orange-600 text-white flex items-center justify-center shadow-md">
+                    <Percent className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#0D0D0D]">
+                      Bulk Price Adjustment
+                    </h2>
+                    <p className="text-xs text-[#626262] mt-0.5">
+                      Apply percentage increase or decrease across <span className="font-bold text-[#0D0D0D]">{selectedTestIds.size}</span> selected diagnostic tests.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBulkAdjustModalOpen(false)}
+                  className="rounded-xl border border-[#EAEAEA] bg-white p-2 text-stone-500 hover:text-black transition cursor-pointer"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="mt-6 space-y-6">
+                {/* 1. Operation Direction Toggle */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#626262] mb-2">
+                    Adjustment Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setBulkAdjustForm((prev) => ({ ...prev, direction: "increase" }))}
+                      className={`flex items-center justify-center gap-2 rounded-2xl p-3.5 border text-xs font-black transition cursor-pointer ${
+                        bulkAdjustForm.direction === "increase"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-900 shadow-xs ring-2 ring-emerald-500/20"
+                          : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                      }`}
+                    >
+                      <TrendingUp className={`h-4 w-4 ${bulkAdjustForm.direction === "increase" ? "text-emerald-600" : "text-stone-400"}`} />
+                      <span>Percentage Increase (+)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBulkAdjustForm((prev) => ({ ...prev, direction: "decrease" }))}
+                      className={`flex items-center justify-center gap-2 rounded-2xl p-3.5 border text-xs font-black transition cursor-pointer ${
+                        bulkAdjustForm.direction === "decrease"
+                          ? "border-rose-500 bg-rose-50 text-rose-900 shadow-xs ring-2 ring-rose-500/20"
+                          : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                      }`}
+                    >
+                      <TrendingDown className={`h-4 w-4 ${bulkAdjustForm.direction === "decrease" ? "text-rose-600" : "text-stone-400"}`} />
+                      <span>Percentage Decrease (-)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Percentage Input & Quick Presets */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-bold text-[#0D0D0D]">
+                      Percentage Value (%) *
+                    </label>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        min={0.1}
+                        max={bulkAdjustForm.direction === "decrease" ? 99.9 : 500}
+                        step={0.5}
+                        value={bulkAdjustForm.percentage}
+                        onChange={(e) =>
+                          setBulkAdjustForm((prev) => ({
+                            ...prev,
+                            percentage: Math.max(0, Number(e.target.value))
+                          }))
+                        }
+                        placeholder="e.g. 10"
+                        className="w-full rounded-2xl border border-[#FFD9C0] bg-[#FFF8F2] pl-4 pr-10 py-3 text-base font-black text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
+                        required
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-stone-400">
+                        %
+                      </span>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-stone-400 mr-1">Presets:</span>
+                      {[5, 10, 15, 20, 25].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => setBulkAdjustForm((prev) => ({ ...prev, percentage: pct }))}
+                          className={`rounded-lg px-2.5 py-1 text-[11px] font-bold border transition cursor-pointer ${
+                            bulkAdjustForm.percentage === pct
+                              ? "bg-[#0D0D0D] text-white border-[#0D0D0D]"
+                              : "bg-white text-stone-700 border-stone-200 hover:border-stone-300"
+                          }`}
+                        >
+                          {bulkAdjustForm.direction === "increase" ? `+${pct}%` : `-${pct}%`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Rounding & Options */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-[#0D0D0D]">
+                        Price Rounding Rule
+                      </label>
+                      <select
+                        value={bulkAdjustForm.rounding}
+                        onChange={(e) =>
+                          setBulkAdjustForm((prev) => ({
+                            ...prev,
+                            rounding: e.target.value as RoundingMode
+                          }))
+                        }
+                        className="mt-1 w-full rounded-2xl border border-[#EAEAEA] bg-[#F7F7F7] px-4 py-3 text-xs font-semibold text-[#0D0D0D] focus:border-[#FF6B00] focus:outline-none"
+                      >
+                        <option value="round">Round to nearest ₹1 (e.g. ₹349) [Recommended]</option>
+                        <option value="nearest_10">Round to nearest ₹10 (e.g. ₹350)</option>
+                        <option value="nearest_5">Round to nearest ₹5 (e.g. ₹345)</option>
+                        <option value="ceil">Always Round Up (Ceil)</option>
+                        <option value="floor">Always Round Down (Floor)</option>
+                        <option value="none">Exact Decimals (no integer rounding)</option>
+                      </select>
+                    </div>
+
+                    <div className="pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={bulkAdjustForm.adjustMrp}
+                          onChange={(e) =>
+                            setBulkAdjustForm((prev) => ({
+                              ...prev,
+                              adjustMrp: e.target.checked
+                            }))
+                          }
+                          className="h-4 w-4 rounded border-stone-300 text-[#FF6B00] accent-[#FF6B00] focus:ring-[#FF6B00]"
+                        />
+                        <span className="text-xs font-bold text-[#0D0D0D]">
+                          Also scale Reference Market MRP by {bulkAdjustForm.percentage}%
+                        </span>
+                      </label>
+                      <p className="text-[10px] text-stone-500 ml-6 mt-0.5">
+                        If unchecked, existing reference MRPs remain intact (unless new price exceeds it).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Live Impact Summary KPI Bar & Preview Table */}
+                {(() => {
+                  const selectedTestsList = tests.filter((t) => selectedTestIds.has(t.id));
+                  const preview = previewBulkPriceAdjustments(
+                    selectedTestsList.map((t) => ({ id: t.id, name: t.name, price: t.price, mrp: t.mrp })),
+                    {
+                      direction: bulkAdjustForm.direction,
+                      percentage: Number(bulkAdjustForm.percentage) || 0,
+                      rounding: bulkAdjustForm.rounding,
+                      adjustMrp: bulkAdjustForm.adjustMrp
+                    }
+                  );
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Summary Cards */}
+                      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-black uppercase tracking-wider text-[#626262] flex items-center gap-1.5">
+                            <Layers className="h-3.5 w-3.5 text-[#FF6B00]" />
+                            <span>Aggregated Portfolio Impact</span>
+                          </span>
+                          <span className="text-[11px] font-bold text-stone-500">
+                            {preview.summary.totalTests} Tests Selected
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                          <div className="rounded-xl bg-white p-3 border border-stone-200/80 shadow-xs">
+                            <p className="text-[10px] uppercase font-bold text-stone-400">Current Total</p>
+                            <p className="text-sm sm:text-base font-black text-stone-800 mt-0.5">
+                              ₹{preview.summary.totalOriginalValue.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3 border border-stone-200/80 shadow-xs">
+                            <p className="text-[10px] uppercase font-bold text-stone-400">New Total</p>
+                            <p className="text-sm sm:text-base font-black text-stone-900 mt-0.5">
+                              ₹{preview.summary.totalNewValue.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3 border border-stone-200/80 shadow-xs">
+                            <p className="text-[10px] uppercase font-bold text-stone-400">Net Delta</p>
+                            <p
+                              className={`text-sm sm:text-base font-black mt-0.5 ${
+                                preview.summary.netDelta >= 0 ? "text-emerald-600" : "text-rose-600"
+                              }`}
+                            >
+                              {preview.summary.netDelta >= 0 ? "+" : ""}₹{preview.summary.netDelta.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-white p-3 border border-stone-200/80 shadow-xs">
+                            <p className="text-[10px] uppercase font-bold text-stone-400">Effective Change</p>
+                            <p
+                              className={`text-sm sm:text-base font-black mt-0.5 ${
+                                preview.summary.averagePercentChange >= 0 ? "text-emerald-600" : "text-rose-600"
+                              }`}
+                            >
+                              {preview.summary.averagePercentChange >= 0 ? "+" : ""}
+                              {preview.summary.averagePercentChange}%
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4. Live Impact Preview Table */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-bold text-[#0D0D0D]">
+                            Individual Test Preview ({preview.items.length})
+                          </label>
+                          <span className="text-[10px] text-stone-500">
+                            Showing calculated prices after rounding
+                          </span>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto rounded-2xl border border-stone-200 bg-white">
+                          <table className="w-full text-left text-xs">
+                            <thead className="sticky top-0 bg-stone-100 border-b border-stone-200 text-[10px] font-bold uppercase text-stone-600">
+                              <tr>
+                                <th className="px-4 py-2.5">Test Name</th>
+                                <th className="px-4 py-2.5">Current Price</th>
+                                <th className="px-4 py-2.5">New Price</th>
+                                <th className="px-4 py-2.5">Difference</th>
+                                <th className="px-4 py-2.5">Reference MRP</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-stone-100">
+                              {preview.items.map((item) => (
+                                <tr key={item.id} className="hover:bg-stone-50">
+                                  <td className="px-4 py-2 font-bold text-stone-900">
+                                    <p>{item.name}</p>
+                                    {item.warning ? (
+                                      <p className="text-[10px] text-amber-600 font-semibold">{item.warning}</p>
+                                    ) : null}
+                                  </td>
+                                  <td className="px-4 py-2 text-stone-500 font-semibold">
+                                    ₹{item.originalPrice}
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <span className="font-black text-stone-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                      ₹{item.newPrice}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <span
+                                      className={`text-[11px] font-bold ${
+                                        item.priceDelta >= 0 ? "text-emerald-700" : "text-rose-700"
+                                      }`}
+                                    >
+                                      {item.priceDelta >= 0 ? `+₹${item.priceDelta}` : `-₹${Math.abs(item.priceDelta)}`} ({item.percentChange >= 0 ? "+" : ""}{item.percentChange}%)
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2 text-stone-500">
+                                    <span>₹{item.newMrp}</span>
+                                    {item.newMrp !== item.originalMrp ? (
+                                      <span className="text-[10px] text-stone-400 line-through ml-1.5">
+                                        ₹{item.originalMrp}
+                                      </span>
+                                    ) : null}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Modal Footer Actions */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#EAEAEA]">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkAdjustModalOpen(false)}
+                    disabled={isSubmittingBulkAdjust}
+                    className="rounded-xl border border-stone-300 bg-white px-5 py-2.5 text-xs font-bold text-stone-700 hover:bg-stone-50 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyBulkPriceAdjustment}
+                    disabled={isSubmittingBulkAdjust || !bulkAdjustForm.percentage || bulkAdjustForm.percentage <= 0}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#FF6B00] hover:bg-[#E05E00] px-6 py-2.5 text-xs font-black text-white shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingBulkAdjust ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Percent className="h-4 w-4" />
+                    )}
+                    <span>
+                      {isSubmittingBulkAdjust
+                        ? "Applying Price Updates..."
+                        : `Confirm & Apply to ${selectedTestIds.size} Tests`}
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         ) : null}

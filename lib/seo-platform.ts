@@ -10,7 +10,7 @@ export type FaqItem = {
   answer: string;
 };
 
-export type SeoEntityKind = "test" | "package" | "disease" | "city" | "corporate" | "blog" | "ai";
+export type SeoEntityKind = "test" | "package" | "disease" | "city" | "corporate" | "blog" | "ai" | "custom";
 
 export type SeoLandingPage = {
   kind: SeoEntityKind;
@@ -32,7 +32,7 @@ export type SeoLandingPage = {
   reviewer?: string;
 };
 
-const defaultCities = [
+export const defaultCities = [
   "Lucknow",
   "Delhi",
   "Mumbai",

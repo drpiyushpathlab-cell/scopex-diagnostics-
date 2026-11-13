@@ -1,4 +1,4 @@
-﻿-- ScopeX Diagnostics Supabase booking foundation
+-- ScopeX Diagnostics Supabase booking foundation
 -- Apply in Supabase SQL editor or with: supabase db push
 
 create extension if not exists pgcrypto;

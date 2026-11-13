@@ -1,4 +1,4 @@
-﻿import { absoluteUrl, brandName, businessEmail, businessPhone, type SeoLandingPage } from "@/lib/seo-platform";
+import { absoluteUrl, brandName, businessEmail, businessPhone, type SeoLandingPage } from "@/lib/seo-platform";
 import type { PackageItem, TestItem } from "@/lib/data";
 
 type Crumb = {

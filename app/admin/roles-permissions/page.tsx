@@ -1,4 +1,4 @@
-﻿import { AdminRolesPermissions } from "@/components/admin-roles-permissions";
+import { AdminRolesPermissions } from "@/components/admin-roles-permissions";
 import { AdminSessionGuard } from "@/components/admin-session-guard";
 
 export default function RolesPermissionsPage() {

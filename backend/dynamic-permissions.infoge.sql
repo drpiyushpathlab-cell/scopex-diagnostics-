@@ -1,4 +1,4 @@
-﻿-- ScopeX dynamic roles and permissions migration.
+-- ScopeX dynamic roles and permissions migration.
 -- Safe to run multiple times.
 
 alter table admin_roles add column if not exists display_name text;

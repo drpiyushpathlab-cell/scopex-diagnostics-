@@ -33,7 +33,7 @@ export default function PackagesPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#FFD9C0] bg-[#FFF4E8] px-3.5 py-1 text-xs font-bold text-[#FF6B00]">
               <Sparkles className="h-3.5 w-3.5 text-[#FF6B00]" />
-              <span>NABL Certified Labs · Transparent Bundle Savings</span>
+              <span>NABL Quality Standards · Transparent Bundle Savings</span>
             </div>
             <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-black text-[#0D0D0D] tracking-tight leading-[1.08]">
               Preventive Health Packages for Every Family.

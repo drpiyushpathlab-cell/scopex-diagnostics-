@@ -1,4 +1,4 @@
-﻿import nodemailer from "nodemailer";
+import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { backendEnv } from "@/backend/src/config/env";
 import { insforge } from "@/backend/src/lib/insforge";

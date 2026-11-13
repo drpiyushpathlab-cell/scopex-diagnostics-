@@ -1,8 +1,10 @@
 {
-  "name": "ScopeX Diagnostics",
+  "name": "ScopeX Diagnostics 10_11",
   "description": "Real Prices. Faster Diagnostics. Better Guidance. Your Health. Decoded. Book blood tests at home, preventive health packages, and certified diagnostic services across India.",
   "version": "1.0.0",
   "capabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  ],
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

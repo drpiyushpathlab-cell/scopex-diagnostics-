@@ -309,7 +309,7 @@ export function CustomPackageBuilder({ initialSelectedIds = [] }: { initialSelec
               </div>
             ) : (
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                {pricing.testBreakdown.map((item) => (
+                {(pricing.testBreakdown || []).map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between rounded-lg border border-[#EAEAEA] bg-[#FBFBFB] p-2.5 text-xs"

@@ -104,8 +104,15 @@ interface PartnerSampleRecord {
   locationCity: string;
   patientName: string;
   patientPhone: string;
+  testIds?: string[];
   testNames: string[];
   applicableRateSnapshot: Array<{
+    testId: string;
+    testName: string;
+    processingRate: number;
+    mappingVersion: number;
+  }>;
+  testSnapshots?: Array<{
     testId: string;
     testName: string;
     processingRate: number;
@@ -543,7 +550,9 @@ export function AdminPartnerLabs() {
 
   useEffect(() => {
     if (showReassignModal && reassignPartnerLabId && reassignLocationId) {
-      const testIds = showReassignModal.testSnapshots?.map((t: any) => t.testId) || ["cbc"];
+      const testIds = showReassignModal.testIds?.length
+        ? showReassignModal.testIds
+        : (showReassignModal.applicableRateSnapshot?.map((t: any) => t.testId) || ["cbc"]);
       void loadReassignRatePreview(reassignPartnerLabId, reassignLocationId, testIds);
     }
   }, [showReassignModal, reassignPartnerLabId, reassignLocationId, loadReassignRatePreview]);
@@ -2731,11 +2740,12 @@ export function AdminPartnerLabs() {
             .find((lb) => lb.id === assignPartnerLabId)
             ?.locations.filter((loc) => loc.status === "active") || [];
 
-        const isConfirmDisabled =
+        const isConfirmDisabled = Boolean(
           !assignBookingId ||
           !assignPartnerLabId ||
           !assignLocationId ||
-          (assignPreviewData && !assignPreviewData.allMapped && !assignOverrideException);
+          (assignPreviewData && !assignPreviewData.allMapped && !assignOverrideException)
+        );
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">

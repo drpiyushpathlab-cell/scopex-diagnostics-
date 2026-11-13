@@ -1,4 +1,4 @@
-﻿import { AdminEmailLogs } from "@/components/admin-email-logs";
+import { AdminEmailLogs } from "@/components/admin-email-logs";
 import { AdminSessionGuard } from "@/components/admin-session-guard";
 
 export default function AdminEmailLogsPage() {

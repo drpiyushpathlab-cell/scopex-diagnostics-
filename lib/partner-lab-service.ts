@@ -911,7 +911,7 @@ export function registerPartnerLab(
     email: string;
     status?: PartnerLabStatus;
   },
-  adminUser: { email?: string; userId?: string }
+  adminUser: { email?: string | null; userId?: string }
 ): PartnerLab {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -958,7 +958,7 @@ export function registerPartnerLab(
 export function updatePartnerLab(
   id: string,
   patch: Partial<PartnerLab>,
-  adminUser: { email?: string; userId?: string }
+  adminUser: { email?: string | null; userId?: string }
 ): PartnerLab {
   seedInitialPartnerLabDataIfEmpty();
   const lab = inMemoryPartnerLabs.get(id);
@@ -999,7 +999,7 @@ export function addPartnerLabLocation(
     operatingDays: string[];
     status?: PartnerLabLocationStatus;
   },
-  adminUser: { email?: string; userId?: string }
+  adminUser: { email?: string | null; userId?: string }
 ): PartnerLabLocation {
   seedInitialPartnerLabDataIfEmpty();
   const lab = inMemoryPartnerLabs.get(partnerLabId);
@@ -1050,7 +1050,7 @@ export function updatePartnerLabLocation(
   partnerLabId: string,
   locationId: string,
   patch: Partial<PartnerLabLocation>,
-  adminUser: { email?: string; userId?: string }
+  adminUser: { email?: string | null; userId?: string }
 ): PartnerLabLocation {
   seedInitialPartnerLabDataIfEmpty();
   const lab = inMemoryPartnerLabs.get(partnerLabId);
@@ -1427,7 +1427,7 @@ export function createOrUpdateManualPartnerTestMapping(
     status?: "active" | "inactive";
     resolutionStrategy?: DuplicateResolutionStrategy;
   },
-  adminUser: { email?: string; userId?: string }
+  adminUser: { email?: string | null; userId?: string }
 ): PartnerTestMapping {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -1790,7 +1790,7 @@ export function validateBulkPartnerTestUpload(params: {
 export function commitBulkPartnerTestImport(params: {
   preview: BulkUploadPreview;
   duplicateStrategy: DuplicateResolutionStrategy;
-  adminUser: { email?: string; userId?: string };
+  adminUser: { email?: string | null; userId?: string };
 }): {
   importedCount: number;
   skippedCount: number;
@@ -1823,6 +1823,9 @@ export function commitBulkPartnerTestImport(params: {
         const record: PartnerTestMapping = {
           id: `${mappingKey}-v${newVersion}`,
           partnerLabId: norm.partnerLabId!,
+          applicability: (norm as any).applicability || existing.applicability || "single_city",
+          city: (norm as any).city || existing.city,
+          applicableCities: (norm as any).applicableCities || existing.applicableCities,
           locationId: norm.locationId!,
           scopexTestId: norm.scopexTestId!,
           scopexTestName: norm.scopexTestName!,
@@ -1867,6 +1870,9 @@ export function commitBulkPartnerTestImport(params: {
     const newRecord: PartnerTestMapping = {
       id: mappingKey,
       partnerLabId: norm.partnerLabId!,
+      applicability: (norm as any).applicability || "single_city",
+      city: (norm as any).city,
+      applicableCities: (norm as any).applicableCities,
       locationId: norm.locationId!,
       scopexTestId: norm.scopexTestId!,
       scopexTestName: norm.scopexTestName!,
@@ -1908,7 +1914,7 @@ export function assignSampleToPartnerLab(params: {
   scopexSampleId?: string;
   partnerLabId: string;
   locationId: string;
-  adminUser: { email?: string; userId?: string };
+  adminUser: { email?: string | null; userId?: string };
   remarks?: string;
 }): PartnerSampleRecord {
   seedInitialPartnerLabDataIfEmpty();
@@ -2080,7 +2086,7 @@ export function reassignPartnerSample(params: {
   newPartnerLabId: string;
   newLocationId: string;
   reason: string;
-  adminUser: { email?: string; userId?: string };
+  adminUser: { email?: string | null; userId?: string };
 }): PartnerSampleRecord {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -2281,7 +2287,7 @@ export function verifyPartnerSampleHandoverByAdmin(params: {
   correctedPartnerBarcode?: string;
   verified: boolean;
   remarks?: string;
-  adminUser: { email?: string; userId?: string };
+  adminUser: { email?: string | null; userId?: string };
 }): PartnerSampleRecord {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -2323,7 +2329,7 @@ export function updatePartnerSampleStatus(params: {
   newStatus: PartnerSampleStatus;
   remarks?: string;
   exceptionType?: PartnerSampleRecord["exceptionType"];
-  adminUser: { email?: string; userId?: string };
+  adminUser: { email?: string | null; userId?: string };
 }): PartnerSampleRecord {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -2364,7 +2370,7 @@ export function uploadPartnerLabReport(params: {
   fileUrl: string;
   fileName: string;
   remarks?: string;
-  adminUser: { email?: string; userId?: string };
+  adminUser: { email?: string | null; userId?: string };
 }): PartnerLabReport {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -2454,7 +2460,7 @@ export function verifyAndPublishPartnerReport(params: {
   reportId: string;
   action: "verify" | "reject" | "publish";
   remarks?: string;
-  adminUser: { email?: string; userId?: string };
+  adminUser: { email?: string | null; userId?: string };
 }): PartnerLabReport {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -2629,7 +2635,7 @@ export function recordPartnerInvoice(
     remarks?: string;
     invoicePdfUrl?: string;
   },
-  adminUser: { email?: string; userId?: string }
+  adminUser: { email?: string | null; userId?: string }
 ): PartnerInvoice {
   seedInitialPartnerLabDataIfEmpty();
 
@@ -2739,7 +2745,7 @@ export function recordPartnerPayment(
     receiptUrl?: string;
     remarks?: string;
   },
-  adminUser: { email?: string; userId?: string }
+  adminUser: { email?: string | null; userId?: string }
 ): PartnerPaymentRecord {
   seedInitialPartnerLabDataIfEmpty();
 

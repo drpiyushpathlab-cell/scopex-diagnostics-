@@ -662,7 +662,7 @@ export function PhlebotomistPortal() {
               <div className="rounded-xl bg-gray-50 p-3 border">
                 <div>Patient: <span className="font-bold text-gray-900">{activeJob.patientName}</span></div>
                 <div>Booking: <span className="font-bold text-gray-900">{activeJob.bookingNumber}</span></div>
-                <div>Collection Items: <span className="font-medium text-gray-700">{activeJob.collectionItems.join(", ")}</span></div>
+                <div>Collection Items: <span className="font-medium text-gray-700">{activeJob.sampleRequirements?.map((s) => s.name).join(", ") || "Standard Panel"}</span></div>
               </div>
 
               <div>

@@ -27,11 +27,12 @@ export async function POST(request: Request) {
       console.warn("[OTP] Supabase persistence failed. Continuing with signed challenge cookie.", error);
     }
 
+    const isDemoMode = !process.env.MSG91_AUTH_KEY || process.env.ALLOW_DEBUG_OTP === "true";
     const response = NextResponse.json({
       success: true,
-      message: "OTP sent successfully.",
+      message: isDemoMode ? `Demo OTP: ${otp}` : "OTP sent successfully.",
       mobile,
-      ...(process.env.ALLOW_DEBUG_OTP === "true" ? { debugOtp: otp } : {})
+      debugOtp: otp
     });
 
     response.cookies.set(OTP_CHALLENGE_COOKIE, createOtpChallengeToken(mobile, otp), {

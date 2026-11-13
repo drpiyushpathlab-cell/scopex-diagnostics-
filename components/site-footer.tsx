@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { LaboratoryDisclaimerToggle } from "@/components/laboratory-disclaimer-toggle";
 import { Phone, Mail, MapPin, ShieldCheck, Heart } from "lucide-react";
 
 const popularTests = [
@@ -143,6 +144,7 @@ export function SiteFooter() {
           <p>
             Diagnostic tests and preventive health packages provided through ScopeX Diagnostics are intended for clinical investigation, routine screening, and wellness tracking. All tests are conducted by certified medical technicians and processed through accredited partner pathology laboratories. Reports should always be interpreted in consultation with a qualified medical practitioner.
           </p>
+          <LaboratoryDisclaimerToggle />
         </div>
 
         {/* Bottom Legal Bar */}

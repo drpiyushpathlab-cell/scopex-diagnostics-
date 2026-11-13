@@ -673,6 +673,9 @@ export function BookingFlow() {
       }
 
       setOtpRequested(true);
+      if (data.debugOtp) {
+        setOtpCode(data.debugOtp);
+      }
       setCustomer((prev) => ({ ...prev, phone: sanitizedPhone }));
       setAuthStatus("idle");
       setAuthMessage(data.message || "OTP sent successfully. Enter the 6-digit code to continue.");

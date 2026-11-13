@@ -68,6 +68,7 @@ export function AdminOverview() {
         <Link href="/admin/customer-care" className="cta-btn text-xs bg-[#008080] border-[#008080] text-white font-bold">Customer Care & Dispatch</Link>
         <Link href="/phlebotomist" className="cta-btn text-xs bg-indigo-600 border-indigo-600 text-white font-bold">Phlebotomist Portal</Link>
         <Link href="/admin/crm" className="cta-btn text-xs bg-[#FF6B00] border-[#FF6B00] text-white font-bold">CRM Lead Desk</Link>
+        <Link href="/admin/seo" className="cta-btn text-xs bg-purple-700 border-purple-700 text-white font-bold">SEO, AEO & GEO Hub</Link>
         <Link href="/admin/tests" className="cta-btn text-xs">Test Master</Link>
         <Link href="/admin/packages" className="secondary-btn text-xs font-bold border-[#FF6B00] text-[#FF6B00]">Fixed Packages</Link>
         <Link href="/admin/bookings" className="secondary-btn text-xs">Booking Management</Link>
