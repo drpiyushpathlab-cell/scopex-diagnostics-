@@ -52,10 +52,7 @@ export const backendEnv = {
     process.env.ANON_KEY ||
     "",
   MSG91_AUTH_KEY:
-    data.MSG91_AUTH_KEY ||
-    process.env.ScopexOTPKey ||
-    process.env.SCOPEX_OTP_KEY ||
-    "",
+    data.MSG91_AUTH_KEY,
   MSG91_TEMPLATE_ID:
     data.MSG91_TEMPLATE_ID ||
     process.env.MSG91_FLOW_ID ||

@@ -17,7 +17,6 @@ type SendOtpResponse = {
   success?: boolean;
   message?: string;
   mobile?: string;
-  debugOtp?: string;
   token?: string;
 };
 
@@ -61,9 +60,6 @@ export function OtpLoginCard({
       }
 
       setStatus("sent");
-      if (data.debugOtp) {
-        setOtp(data.debugOtp);
-      }
       setMessage(data.message || "OTP sent successfully. Enter the 6-digit code below.");
     } catch (error) {
       setStatus("error");

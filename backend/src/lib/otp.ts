@@ -19,17 +19,32 @@ type LocalOtpRecord = {
 
 const localOtpStore = new Map<string, LocalOtpRecord>();
 
+function getOtpSecret() {
+  if (process.env.NODE_ENV === "production") {
+    const secret = process.env.OTP_HASH_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new HttpError(503, "OTP service is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
+    }
+    return secret;
+  }
+  return backendEnv.OTP_HASH_SECRET || "scopex_demo_otp_secret_key_diagnostics_2026";
+}
+
+export function assertOtpSecurityConfigured() {
+  getOtpSecret();
+}
+
 export function generateOtp() {
   return crypto.randomInt(100000, 999999).toString();
 }
 
 export function hashOtp(mobile: string, otp: string) {
-  const secret = backendEnv.OTP_HASH_SECRET || "scopex_demo_otp_secret_key_diagnostics_2026";
+  const secret = getOtpSecret();
   return crypto.createHash("sha256").update(`${mobile}:${otp}:${secret}`).digest("hex");
 }
 
 function signValue(value: string) {
-  const secret = backendEnv.OTP_HASH_SECRET || "scopex_demo_otp_secret_key_diagnostics_2026";
+  const secret = getOtpSecret();
   return crypto.createHmac("sha256", secret).update(value).digest("base64url");
 }
 
@@ -60,30 +75,30 @@ export function createOtpChallengeToken(mobile: string, otp: string) {
 
 export function verifyOtpChallengeToken(token: string | undefined | null, mobile: string, otp: string) {
   if (!token) {
-    throw new HttpError(404, "No OTP request found for this mobile number.");
+    throw new HttpError(404, "No OTP request found. Please request a new code.", "OTP_EXPIRED");
   }
 
   const [payload, signature] = token.split(".");
   if (!payload || !signature) {
-    throw new HttpError(400, "OTP request is invalid. Please request a new code.");
+    throw new HttpError(400, "OTP request is invalid. Please request a new code.", "OTP_INVALID");
   }
 
   const expectedSignature = signValue(payload);
   if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-    throw new HttpError(400, "OTP request is invalid. Please request a new code.");
+    throw new HttpError(400, "OTP request is invalid. Please request a new code.", "OTP_INVALID");
   }
 
   const data = decode<{ mobile: string; otp_hash: string; expires_at: string }>(payload);
   if (data.mobile !== mobile) {
-    throw new HttpError(400, "OTP was requested for a different mobile number.");
+    throw new HttpError(400, "OTP was requested for a different mobile number.", "OTP_INVALID");
   }
 
   if (new Date(data.expires_at).getTime() < Date.now()) {
-    throw new HttpError(400, "OTP expired. Please request a new code.");
+    throw new HttpError(400, "OTP expired. Please request a new code.", "OTP_EXPIRED");
   }
 
   if (hashOtp(mobile, otp) !== data.otp_hash) {
-    throw new HttpError(400, "Invalid OTP. Please try again.");
+    throw new HttpError(400, "Invalid OTP. Please try again.", "OTP_INVALID");
   }
 }
 
@@ -103,8 +118,11 @@ function persistLocalOtp(params: { mobile: string; otp: string; providerResponse
   });
 }
 
-function warnLocalFallback(action: string, message?: string) {
-  console.warn(`[OTP] Supabase ${action} failed. Using local OTP fallback. ${message ?? ""}`.trim());
+function warnLocalFallback(action: string, sqlState?: string) {
+  console.warn("[OTP] Supabase operation failed; using local fallback.", {
+    operation: action,
+    sqlState: sqlState || "unknown"
+  });
 }
 
 export async function persistOtpRequest(params: {
@@ -121,11 +139,11 @@ export async function persistOtpRequest(params: {
 
   if (deleteError) {
     if (canUseLocalOtpFallback()) {
-      warnLocalFallback("delete", deleteError.message);
+      warnLocalFallback("delete", deleteError.code);
       persistLocalOtp(params);
       return;
     }
-    throw new HttpError(500, deleteError.message || "Unable to clear previous OTP request.");
+    throw new HttpError(503, "OTP verification service is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
   }
 
   const { error } = await supabase
@@ -140,11 +158,11 @@ export async function persistOtpRequest(params: {
 
   if (error) {
     if (canUseLocalOtpFallback()) {
-      warnLocalFallback("insert", error.message);
+      warnLocalFallback("insert", error.code);
       persistLocalOtp(params);
       return;
     }
-    throw new HttpError(500, error.message || "Unable to persist OTP request.");
+    throw new HttpError(503, "OTP verification service is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
   }
 
   const { error: logError } = await supabase
@@ -159,10 +177,10 @@ export async function persistOtpRequest(params: {
 
   if (logError) {
     if (canUseLocalOtpFallback()) {
-      warnLocalFallback("audit insert", logError.message);
+      warnLocalFallback("audit insert", logError.code);
       return;
     }
-    throw new HttpError(500, logError.message || "Unable to persist OTP audit log.");
+    throw new HttpError(503, "OTP verification service is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
   }
 }
 
@@ -179,11 +197,11 @@ export async function verifyPersistedOtp(mobile: string, otp: string) {
 
   if (error) {
     if (canUseLocalOtpFallback()) {
-      warnLocalFallback("fetch", error.message);
+      warnLocalFallback("fetch", error.code);
       verifyLocalOtp(mobile, otp);
       return;
     }
-    throw new HttpError(500, error.message || "Unable to fetch OTP request.");
+    throw new HttpError(503, "OTP verification service is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
   }
 
   if (!data) {
@@ -191,12 +209,12 @@ export async function verifyPersistedOtp(mobile: string, otp: string) {
       verifyLocalOtp(mobile, otp);
       return;
     }
-    throw new HttpError(404, "No OTP request found for this mobile number.");
+    throw new HttpError(404, "No OTP request found. Please request a new code.", "OTP_EXPIRED");
   }
 
   if (new Date(data.expires_at).getTime() < Date.now()) {
     await supabase.from("otp_verification").delete().eq("id", data.id);
-    throw new HttpError(400, "OTP expired. Please request a new code.");
+    throw new HttpError(400, "OTP expired. Please request a new code.", "OTP_EXPIRED");
   }
 
   if ((data.attempts ?? 0) >= MAX_VERIFY_ATTEMPTS) {
@@ -208,7 +226,7 @@ export async function verifyPersistedOtp(mobile: string, otp: string) {
       .from("otp_verification")
       .update({ attempts: (data.attempts ?? 0) + 1, updated_at: new Date().toISOString() })
       .eq("id", data.id);
-    throw new HttpError(400, "Invalid OTP. Please try again.");
+    throw new HttpError(400, "Invalid OTP. Please try again.", "OTP_INVALID");
   }
 
   const { error: updateError } = await supabase
@@ -218,10 +236,10 @@ export async function verifyPersistedOtp(mobile: string, otp: string) {
 
   if (updateError) {
     if (canUseLocalOtpFallback()) {
-      warnLocalFallback("verify update", updateError.message);
+      warnLocalFallback("verify update", updateError.code);
       return;
     }
-    throw new HttpError(500, updateError.message || "Unable to mark OTP as verified.");
+    throw new HttpError(503, "OTP verification service is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
   }
 }
 
@@ -229,12 +247,12 @@ function verifyLocalOtp(mobile: string, otp: string) {
   const data = localOtpStore.get(mobile);
 
   if (!data || data.verified_at) {
-    throw new HttpError(404, "No OTP request found for this mobile number.");
+    throw new HttpError(404, "No OTP request found. Please request a new code.", "OTP_EXPIRED");
   }
 
   if (new Date(data.expires_at).getTime() < Date.now()) {
     localOtpStore.delete(mobile);
-    throw new HttpError(400, "OTP expired. Please request a new code.");
+    throw new HttpError(400, "OTP expired. Please request a new code.", "OTP_EXPIRED");
   }
 
   if (data.attempts >= MAX_VERIFY_ATTEMPTS) {
@@ -244,7 +262,7 @@ function verifyLocalOtp(mobile: string, otp: string) {
   if (hashOtp(mobile, otp) !== data.otp_hash) {
     data.attempts += 1;
     localOtpStore.set(mobile, data);
-    throw new HttpError(400, "Invalid OTP. Please try again.");
+    throw new HttpError(400, "Invalid OTP. Please try again.", "OTP_INVALID");
   }
 
   data.verified_at = new Date().toISOString();

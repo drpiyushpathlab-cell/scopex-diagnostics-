@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { z } from "zod";
 import { HttpError } from "@/backend/src/lib/http-error";
 import { verifyAppToken, type AppJwtPayload } from "@/backend/src/lib/jwt";
@@ -11,8 +10,6 @@ type PatientUser = {
   role?: string | null;
   patient_id?: string | null;
 };
-
-const localPatientUsers = new Map<string, Required<Pick<PatientUser, "id" | "mobile" | "role" | "patient_id">>>();
 
 const profileSelect =
   "id, user_id, full_name, mobile, email, dob, age, gender, address, city, pincode, preferred_collection_address, google_id, avatar_url, auth_provider, is_profile_complete, created_at, updated_at";
@@ -69,20 +66,6 @@ function isCompleteProfile(profile: Record<string, unknown>) {
   );
 }
 
-function getLocalPatientUser(mobile: string) {
-  const existing = localPatientUsers.get(mobile);
-  if (existing) return existing;
-
-  const user = {
-    id: crypto.randomUUID(),
-    mobile,
-    role: "patient",
-    patient_id: crypto.randomUUID()
-  };
-  localPatientUsers.set(mobile, user);
-  return user;
-}
-
 function serviceClient() {
   return getSupabaseServiceClient();
 }
@@ -98,46 +81,40 @@ export function normalizePatientUser(user: PatientUser, fallbackMobile: string) 
 
 export async function upsertPatientUser(mobile: string) {
   const normalizedMobile = normalizeMobile(mobile);
+  if (normalizedMobile.length !== 10) {
+    throw new HttpError(400, "Enter a valid 10-digit mobile number.");
+  }
+
   try {
     const supabase = serviceClient();
-    const { data: existingUser, error: existingUserError } = await supabase
-      .from("users")
-      .select("id, phone, mobile, role, patient_id")
-      .or(`phone.eq.${normalizedMobile},mobile.eq.${normalizedMobile}`)
-      .maybeSingle();
-
-    if (existingUserError) throw existingUserError;
-    if (existingUser) return existingUser;
-
-    const { data: patient, error: patientError } = await supabase
-      .from("patients")
-      .insert({ full_name: null, mobile: normalizedMobile, email: null })
-      .select("id")
-      .single();
-
-    if (patientError || !patient) throw patientError || new Error("Unable to create patient profile.");
-
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .insert({
-        phone: normalizedMobile,
-        mobile: normalizedMobile,
-        role: "patient",
-        patient_id: patient.id,
-        is_active: true,
-        auth_provider: "mobile_otp"
-      })
-      .select("id, phone, mobile, role, patient_id")
-      .single();
-
-    if (userError || !user) throw userError || new Error("Unable to create patient user.");
-    return user;
+    const { data, error } = await supabase.rpc("upsert_patient_user_by_mobile", {
+      p_mobile: normalizedMobile
+    });
+    if (error || !data) throw error || new Error("Empty patient registration result");
+    return (Array.isArray(data) ? data[0] : data) as PatientUser;
   } catch (error) {
-    if (process.env.NODE_ENV !== "production" || process.env.ALLOW_DEBUG_OTP === "true") {
-      console.warn("[Supabase] Patient upsert failed. Using local fallback.", error);
-      return getLocalPatientUser(normalizedMobile);
-    }
-    throw new HttpError(500, error instanceof Error ? error.message : "Unable to create patient user.");
+    const candidate = error as { code?: string; details?: unknown; hint?: unknown; message?: unknown };
+    const sqlState = typeof candidate?.code === "string" ? candidate.code : "unknown";
+    const isDuplicate = sqlState === "23505";
+    const safeMessage = typeof candidate?.message === "string" ? candidate.message : "";
+    const errorCode = isDuplicate
+      ? "DUPLICATE_MOBILE"
+      : safeMessage === "PATIENT_CREATION_FAILED"
+        ? "PATIENT_CREATION_FAILED"
+        : "USER_CREATION_FAILED";
+    console.error("[patient-registration] database operation failed", {
+      operation: "upsert_patient_user_by_mobile",
+      sqlState
+    });
+    throw new HttpError(
+      isDuplicate ? 409 : 500,
+      isDuplicate
+        ? "An account for this mobile number already exists. Please sign in."
+        : errorCode === "PATIENT_CREATION_FAILED"
+          ? "Unable to create your patient profile. Please try again."
+          : "Unable to create your patient account. Please try again.",
+      errorCode
+    );
   }
 }
 
@@ -233,7 +210,7 @@ export async function updatePatientProfile(auth: AppJwtPayload, body: unknown) {
   const linkedMobile = normalizeMobile((data as { mobile?: string | null }).mobile || "");
   const userUpdate: Record<string, unknown> = { updated_at: nowIso() };
   if (linkedMobile) {
-    userUpdate.mobile = linkedMobile;
+    // users.mobile is a generated column backed by users.phone.
     userUpdate.phone = linkedMobile;
   }
   if ((data as { email?: string | null }).email) userUpdate.email = (data as { email?: string | null }).email;

@@ -7,6 +7,9 @@ type Msg91Response = {
   request_id?: string;
 };
 
+type Msg91Config = { authKey?: string; templateId?: string };
+type FetchLike = typeof fetch;
+
 export function normalizeIndianMobile(input: string | undefined | null) {
   const digits = (input ?? "").replace(/\D/g, "");
 
@@ -20,38 +23,48 @@ export function toInternationalIndianMobile(mobile: string) {
   return `91${mobile}`;
 }
 
-export async function sendMsg91Otp(mobile: string, otp: string) {
-  if (!backendEnv.MSG91_AUTH_KEY || !backendEnv.MSG91_DLT_TEMPLATE_ID) {
-    console.warn(`[MSG91] Credentials not configured. Simulated OTP for ${mobile}: ${otp}`);
-    return { type: "success", message: `Demo OTP sent: ${otp}`, request_id: "demo_simulated" };
-  }
+export function createMsg91OtpSender(config: Msg91Config, fetcher: FetchLike = fetch) {
+  return async (mobile: string, otp: string) => {
+    if (!config.authKey || !config.templateId) {
+      throw new HttpError(503, "OTP service is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
+    }
 
-  const message = `Dear Customer, your OTP for login to your Scopex Diagnostics account is ${otp}. This OTP is valid for 5 minutes. Please do not share it with anyone`;
-  const query = new URLSearchParams({
-    authkey: backendEnv.MSG91_AUTH_KEY,
-    mobile: toInternationalIndianMobile(mobile),
-    sender: backendEnv.MSG91_SENDER_ID,
-    otp,
-    message,
-    DLT_TE_ID: backendEnv.MSG91_DLT_TEMPLATE_ID
-  });
+    const query = new URLSearchParams({
+      template_id: config.templateId,
+      mobile: toInternationalIndianMobile(mobile),
+      otp,
+      otp_length: "6",
+      otp_expiry: "5"
+    });
 
-  const response = await fetch(`https://control.msg91.com/api/sendotp.php?${query.toString()}`, {
-    method: "GET",
-    cache: "no-store"
-  });
+    let response: Response;
+    try {
+      response = await fetcher(`https://control.msg91.com/api/v5/otp?${query.toString()}`, {
+        method: "POST",
+        headers: { authkey: config.authKey, "content-type": "application/json" },
+        body: "{}",
+        cache: "no-store"
+      });
+    } catch {
+      throw new HttpError(502, "OTP provider is temporarily unavailable.", "OTP_PROVIDER_UNAVAILABLE");
+    }
 
-  const raw = await response.text();
-  let payload: Msg91Response = {};
-  try {
-    payload = raw ? (JSON.parse(raw) as Msg91Response) : {};
-  } catch {
-    payload = { message: raw };
-  }
+    let payload: Msg91Response = {};
+    try {
+      payload = (await response.json()) as Msg91Response;
+    } catch {
+      // Treat malformed provider responses as a temporary provider failure.
+    }
 
-  if (!response.ok || payload.type === "error") {
-    throw new HttpError(502, payload.message || "MSG91 OTP delivery failed.");
-  }
+    if (!response.ok || payload.type !== "success") {
+      throw new HttpError(502, "OTP provider could not send a code. Please try again.", "OTP_PROVIDER_UNAVAILABLE");
+    }
 
-  return payload;
+    return { type: "success", request_id: payload.request_id };
+  };
 }
+
+export const sendMsg91Otp = createMsg91OtpSender({
+  authKey: backendEnv.MSG91_AUTH_KEY,
+  templateId: backendEnv.MSG91_TEMPLATE_ID
+});

@@ -4,7 +4,10 @@ import { HttpError } from "@/backend/src/lib/http-error";
 
 export function apiErrorResponse(error: unknown, fallback = "Unexpected server error.") {
   if (error instanceof HttpError) {
-    return NextResponse.json({ success: false, message: error.message }, { status: error.statusCode });
+    return NextResponse.json(
+      { success: false, message: error.message, ...(error.code ? { code: error.code } : {}) },
+      { status: error.statusCode }
+    );
   }
 
   if (error instanceof ZodError) {

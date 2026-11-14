@@ -37,7 +37,7 @@ authRouter.post(
 
     const otp = generateOtp();
     const providerResponse =
-      process.env.ALLOW_DEBUG_OTP === "true"
+      process.env.NODE_ENV !== "production" && process.env.ALLOW_DEBUG_OTP === "true"
         ? { type: "debug", message: "Local debug OTP generated; SMS delivery skipped." }
         : await sendMsg91Otp(mobile, otp);
     await persistOtpRequest({ mobile, otp, providerResponse });
@@ -45,8 +45,7 @@ authRouter.post(
     response.json({
       success: true,
       message: "OTP sent successfully.",
-      mobile,
-      ...(process.env.ALLOW_DEBUG_OTP === "true" ? { debugOtp: otp } : {})
+      mobile
     });
   })
 );

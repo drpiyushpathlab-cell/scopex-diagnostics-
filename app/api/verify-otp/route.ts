@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { apiErrorResponse } from "../_utils/errors";
 import { normalizeIndianMobile } from "@/backend/src/lib/msg91";
 import { OTP_CHALLENGE_COOKIE, verifyOtpChallengeToken, verifyPersistedOtp } from "@/backend/src/lib/otp";
 import { signAppToken } from "@/backend/src/lib/jwt";
@@ -66,6 +65,19 @@ export async function POST(request: Request) {
     response.cookies.set(OTP_CHALLENGE_COOKIE, "", { path: "/", maxAge: 0 });
     return response;
   } catch (error) {
-    return apiErrorResponse(error, "Unable to verify OTP.");
+    if (error instanceof HttpError) {
+      return NextResponse.json(
+        { success: false, message: error.message, ...(error.code ? { code: error.code } : {}) },
+        { status: error.statusCode }
+      );
+    }
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ success: false, message: "Invalid verification request." }, { status: 400 });
+    }
+    console.error("[patient-login] verification operation failed", { operation: "verify_otp_or_create_session" });
+    return NextResponse.json(
+      { success: false, code: "USER_CREATION_FAILED", message: "Unable to complete patient login. Please try again." },
+      { status: 500 }
+    );
   }
 }

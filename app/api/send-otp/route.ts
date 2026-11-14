@@ -6,6 +6,7 @@ import {
   generateOtp,
   getOtpChallengeMaxAgeSeconds,
   OTP_CHALLENGE_COOKIE,
+  assertOtpSecurityConfigured,
   persistOtpRequest
 } from "@/backend/src/lib/otp";
 import { normalizeIndianMobile, sendMsg91Otp } from "@/backend/src/lib/msg91";
@@ -19,20 +20,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Enter a valid 10-digit mobile number." }, { status: 400 });
     }
 
+    assertOtpSecurityConfigured();
     const otp = generateOtp();
     const providerResponse = await sendMsg91Otp(mobile, otp);
     try {
       await persistOtpRequest({ mobile, otp, providerResponse });
-    } catch (error) {
-      console.warn("[OTP] Supabase persistence failed. Continuing with signed challenge cookie.", error);
+    } catch {
+      // The signed, HttpOnly challenge remains the verification source when OTP storage is unavailable.
+      // Do not log provider payloads, phone numbers, or OTP-related data here.
     }
 
-    const isDemoMode = !process.env.MSG91_AUTH_KEY || process.env.ALLOW_DEBUG_OTP === "true";
     const response = NextResponse.json({
       success: true,
-      message: isDemoMode ? `Demo OTP: ${otp}` : "OTP sent successfully.",
-      mobile,
-      debugOtp: otp
+      message: "OTP sent successfully.",
+      mobile
     });
 
     response.cookies.set(OTP_CHALLENGE_COOKIE, createOtpChallengeToken(mobile, otp), {
