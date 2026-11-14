@@ -1,8 +1,8 @@
 .next
 .next_backup_*
 node_modules
-.env
-.env.local
+.env*
+!.env.example
 .vercel
 .codex
 *.log
