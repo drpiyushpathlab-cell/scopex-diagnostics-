@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { HttpError } from "@/backend/src/lib/http-error";
 import { backendEnv } from "@/backend/src/config/env";
-import { getSupabaseServiceClient } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
 
 const OTP_TTL_MINUTES = 5;
 const MAX_VERIFY_ATTEMPTS = 5;

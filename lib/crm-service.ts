@@ -1,5 +1,6 @@
 import crypto from "crypto";
-import { getSupabaseServiceClient, hasSupabasePublicConfig } from "@/lib/supabase";
+import { hasSupabasePublicConfig } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
 import { packagesData, testsData } from "@/lib/data";
 
 export type LeadStatus =

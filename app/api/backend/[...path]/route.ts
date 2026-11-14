@@ -53,7 +53,8 @@ import {
   type AdminRole
 } from "@/lib/backend-service";
 import { createRazorpayOrder, getRazorpayKeyId, verifyRazorpaySignature } from "@/lib/razorpay";
-import { getSupabaseServiceClient, hasSupabasePublicConfig } from "@/lib/supabase";
+import { hasSupabasePublicConfig } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
 import {
   queryLeads,
   createCrmLead,
@@ -266,6 +267,10 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const amount = Math.round(Number(body.amount));
     const receipt = String(body.receipt || body.orderId || "order_" + Date.now());
 
+    if (!Number.isSafeInteger(amount) || amount < 100) {
+      return NextResponse.json({ success: false, message: "A valid payment amount is required." }, { status: 400 });
+    }
+
     try {
       const order = await createRazorpayOrder({ amount, currency: "INR", receipt });
       return NextResponse.json({
@@ -276,17 +281,10 @@ async function handleBackendRequest(request: Request, path: string[]) {
         currency: order.currency,
         keyId: getRazorpayKeyId()
       });
-    } catch {
-      // Fallback sandbox mock for development without keys configured
-      const mockOrderId = `order_mock_${Date.now()}`;
-      return NextResponse.json({
-        success: true,
-        order: { id: mockOrderId, amount, currency: "INR", receipt },
-        id: mockOrderId,
-        amount,
-        currency: "INR",
-        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_mockKey"
-      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create payment order.";
+      const status = message.toLowerCase().includes("credential") ? 503 : 502;
+      return NextResponse.json({ success: false, message }, { status });
     }
   }
 

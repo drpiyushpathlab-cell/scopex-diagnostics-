@@ -52,6 +52,16 @@ export function signAppToken(payload: AppJwtPayload) {
   });
 }
 
+export function signAdminAppToken(payload: AppJwtPayload) {
+  const secret = getEffectiveJwtSecret();
+
+  return jwt.sign(payload, secret, {
+    expiresIn: "8h",
+    issuer: "scopex-backend",
+    audience: "scopex-app"
+  });
+}
+
 export function revokeAppToken(token: string) {
   revokedTokens.add(token);
 }

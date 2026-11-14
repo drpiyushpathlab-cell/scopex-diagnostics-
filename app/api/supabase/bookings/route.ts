@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabaseServiceClient } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
 import { bookingItemSchema, getUtmPayload, indianMobileSchema, normalizeMoney, pincodeSchema } from "@/lib/supabase-booking";
 
 export const runtime = "nodejs";

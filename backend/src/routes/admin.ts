@@ -5,7 +5,7 @@ import { requireAuth, type AuthedRequest } from "@/backend/src/middleware/auth";
 import { insforge } from "@/backend/src/lib/insforge";
 import { HttpError } from "@/backend/src/lib/http-error";
 import { authenticateAdmin } from "@/backend/src/services/admin";
-import { signAppToken } from "@/backend/src/lib/jwt";
+import { signAdminAppToken } from "@/backend/src/lib/jwt";
 import { logAudit, logLogin } from "@/backend/src/services/activity";
 import { hashPassword, verifyPassword } from "@/backend/src/lib/password";
 import { resendLoggedEmail, sendEmail, sendPasswordResetEmail } from "@/backend/src/services/email";
@@ -55,7 +55,7 @@ adminRouter.post(
   asyncRoute(async (request, response) => {
     const parsed = adminLoginSchema.parse(request.body);
     const admin = await authenticateAdmin(parsed.email, parsed.password);
-    const token = signAppToken({
+    const token = signAdminAppToken({
       userId: admin.id,
       email: admin.email,
       role: admin.role === "super-admin" ? "super_admin" : admin.role

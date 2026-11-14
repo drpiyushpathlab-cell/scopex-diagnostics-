@@ -8,7 +8,7 @@ type PatientSessionPayload = {
 };
 
 function getSessionSecret() {
-  return process.env.PATIENT_SESSION_SECRET || process.env.OTP_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  return process.env.PATIENT_SESSION_SECRET || process.env.OTP_HASH_SECRET || "";
 }
 
 function base64UrlEncode(value: string) {

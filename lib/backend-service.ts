@@ -1,9 +1,10 @@
 import crypto from "crypto";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
-import { getSupabaseServiceClient, hasSupabasePublicConfig } from "@/lib/supabase";
+import { hasSupabasePublicConfig } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
+import { authenticateSupabaseAdmin, isSupabaseAdminRole } from "@/lib/supabase-admin-auth";
 import { HttpError } from "@/backend/src/lib/http-error";
-import { signAppToken, verifyAppToken, type AppJwtPayload } from "@/backend/src/lib/jwt";
+import { signAdminAppToken, verifyAppToken, type AppJwtPayload } from "@/backend/src/lib/jwt";
 import { packagesData, testsData, type PackageItem, type TestItem } from "@/lib/data";
 import {
   calculateRealPriceQuote,
@@ -52,7 +53,6 @@ export type AssignmentSettings = {
 // In-memory fallback stores for when Supabase is not provisioned or offline during dev/demo
 export const inMemoryBookings = new Map<string, Record<string, unknown>>();
 export const inMemoryBookingItems = new Map<string, Array<Record<string, unknown>>>();
-export const inMemoryAdmins = new Map<string, Record<string, unknown>>();
 export const inMemoryAuditLogs: Array<Record<string, unknown>> = [];
 export const inMemoryLeadActivities = new Map<string, Array<Record<string, unknown>>>();
 let inMemoryBundleSlabs: BundleDiscountSlab[] = [...defaultBundleSlabs];
@@ -243,89 +243,19 @@ export function requireAdminRole(request: Request, allowedRoles?: AdminRole[]): 
 }
 
 export async function authenticateAdmin(email: string, passwordPlain: string, clientIp?: string) {
-  const normalizedEmail = email.trim().toLowerCase();
-  const defaultAdminEmail = (process.env.ADMIN_EMAIL || "admin@scopexdiagnostics.in").toLowerCase();
-  const defaultAdminPassword = process.env.ADMIN_PASSWORD || "ScopexAdmin#2026";
+  const admin = await authenticateSupabaseAdmin(email, passwordPlain);
+  const token = signAdminAppToken({ userId: admin.id, email: admin.email, role: admin.role });
 
-  // 1. Try querying Supabase
-  try {
-    const supabase = getServiceClient();
-    const { data: adminRecord, error } = await supabase
-      .from("admins")
-      .select("id, email, password_hash, role, is_active, name")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
+  void logAuditAction({
+    actorEmail: admin.email,
+    role: admin.role,
+    action: "login",
+    entityType: "admin_session",
+    entityId: admin.id,
+    ipAddress: clientIp
+  });
 
-    if (!error && adminRecord) {
-      if (!adminRecord.is_active) throw new HttpError(403, "Account is disabled.");
-      const match = await bcrypt.compare(passwordPlain, adminRecord.password_hash);
-      if (!match) throw new HttpError(401, "Invalid email or password.");
-
-      const token = signAppToken({
-        userId: adminRecord.id,
-        email: adminRecord.email,
-        role: adminRecord.role
-      });
-
-      void logAuditAction({
-        actorEmail: adminRecord.email,
-        role: adminRecord.role,
-        action: "login",
-        entityType: "admin_session",
-        entityId: adminRecord.id,
-        ipAddress: clientIp
-      });
-
-      return { token, admin: { id: adminRecord.id, email: adminRecord.email, role: adminRecord.role, name: adminRecord.name } };
-    }
-  } catch (err) {
-    if (err instanceof HttpError) throw err;
-    // Continue to fallback
-  }
-
-  // 2. Fallback to in-memory / default super_admin account for seamless operations
-  if (
-    process.env.NODE_ENV !== "production" &&
-    normalizedEmail === defaultAdminEmail &&
-    passwordPlain === defaultAdminPassword
-  ) {
-    const defaultSuperAdmin = {
-      id: "admin-super-001",
-      email: defaultAdminEmail,
-      role: "super_admin" as AdminRole,
-      name: "ScopeX Super Administrator"
-    };
-
-    const token = signAppToken({
-      userId: defaultSuperAdmin.id,
-      email: defaultSuperAdmin.email,
-      role: defaultSuperAdmin.role
-    });
-
-    void logAuditAction({
-      actorEmail: defaultSuperAdmin.email,
-      role: defaultSuperAdmin.role,
-      action: "login",
-      entityType: "admin_session",
-      entityId: defaultSuperAdmin.id,
-      ipAddress: clientIp
-    });
-
-    return { token, admin: defaultSuperAdmin };
-  }
-
-  // Check in-memory store
-  const stored = inMemoryAdmins.get(normalizedEmail);
-  if (stored && (await bcrypt.compare(passwordPlain, String(stored.password_hash)))) {
-    const token = signAppToken({
-      userId: String(stored.id),
-      email: String(stored.email),
-      role: String(stored.role)
-    });
-    return { token, admin: { id: stored.id, email: stored.email, role: stored.role, name: stored.name } };
-  }
-
-  throw new HttpError(401, "Invalid email or password.");
+  return { token, admin };
 }
 
 export async function createAdminStaff(
@@ -335,41 +265,45 @@ export async function createAdminStaff(
   if (creator.role !== "super_admin") {
     throw new HttpError(403, "Only super administrators can create admin staff.");
   }
+  if (!isSupabaseAdminRole(data.role)) {
+    throw new HttpError(400, "The requested role is not supported for admin accounts.");
+  }
 
   const normalizedEmail = data.email.trim().toLowerCase();
-  const passwordHash = await bcrypt.hash(data.password, 10);
-  const newId = crypto.randomUUID();
+  const name = data.name?.trim() || normalizedEmail.split("@")[0];
+  const supabase = getSupabaseServiceClient();
+  const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
+    email: normalizedEmail,
+    password: data.password,
+    email_confirm: true,
+    user_metadata: { full_name: name }
+  });
 
-  try {
-    const supabase = getServiceClient();
-    const { data: created, error } = await supabase
-      .from("admins")
-      .insert({
-        id: newId,
-        email: normalizedEmail,
-        password_hash: passwordHash,
-        role: data.role,
-        name: data.name || normalizedEmail.split("@")[0],
-        is_active: true
-      })
-      .select("id, email, role, name, is_active, created_at")
-      .single();
-
-    if (error) throw error;
-    return created;
-  } catch {
-    const inMem = {
-      id: newId,
-      email: normalizedEmail,
-      password_hash: passwordHash,
-      role: data.role,
-      name: data.name || normalizedEmail.split("@")[0],
-      is_active: true,
-      created_at: nowIso()
-    };
-    inMemoryAdmins.set(normalizedEmail, inMem);
-    return inMem;
+  if (createError || !createdUser.user) {
+    throw new HttpError(400, "Unable to create the Supabase Auth user.");
   }
+
+  const { error: roleError } = await supabase.from("admin_roles").insert({
+    user_id: createdUser.user.id,
+    role: data.role
+  });
+
+  if (roleError) {
+    const { error: rollbackError } = await supabase.auth.admin.deleteUser(createdUser.user.id);
+    if (rollbackError) {
+      throw new HttpError(500, "Admin role assignment failed; remove the unassigned user in Supabase Auth.");
+    }
+    throw new HttpError(400, "Unable to assign the admin role.");
+  }
+
+  return {
+    id: createdUser.user.id,
+    email: createdUser.user.email || normalizedEmail,
+    role: data.role,
+    name,
+    is_active: true,
+    created_at: createdUser.user.created_at
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -1535,7 +1469,7 @@ export async function createBooking(
     preferred_date: input.customer.preferredDate,
     preferred_time: input.customer.preferredTime,
     collection_type: input.collectionType,
-    booking_status: "confirmed" as BookingStatus,
+    booking_status: (input.paymentMethod === "cod" ? "confirmed" : "pending_confirmation") as BookingStatus,
     payment_status: (input.paymentMethod === "cod" ? "cod_pending" : "pending") as PaymentStatus,
     payment_method: input.paymentMethod,
     subtotal: quote.subtotal,

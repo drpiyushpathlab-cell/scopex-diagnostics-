@@ -3,7 +3,7 @@ import { z } from "zod";
 import { asyncRoute } from "@/backend/src/lib/async-route";
 import { generateOtp, persistOtpRequest, verifyPersistedOtp } from "@/backend/src/lib/otp";
 import { normalizeIndianMobile, sendMsg91Otp } from "@/backend/src/lib/msg91";
-import { revokeAppToken, signAppToken } from "@/backend/src/lib/jwt";
+import { revokeAppToken, signAdminAppToken, signAppToken } from "@/backend/src/lib/jwt";
 import { normalizePatientUser, upsertPatientUser } from "@/backend/src/services/users";
 import { authenticateAdmin } from "@/backend/src/services/admin";
 import { HttpError } from "@/backend/src/lib/http-error";
@@ -140,7 +140,7 @@ authRouter.post(
   asyncRoute(async (request, response) => {
     const parsed = adminLoginSchema.parse(request.body);
     const admin = await authenticateAdmin(parsed.email, parsed.password);
-    const token = signAppToken({
+    const token = signAdminAppToken({
       userId: admin.id,
       email: admin.email,
       role: admin.role === "super-admin" ? "super_admin" : admin.role

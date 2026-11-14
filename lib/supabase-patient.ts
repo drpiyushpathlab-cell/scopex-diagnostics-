@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import { HttpError } from "@/backend/src/lib/http-error";
 import { verifyAppToken, type AppJwtPayload } from "@/backend/src/lib/jwt";
-import { getSupabaseServiceClient } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
 
 type PatientUser = {
   id: string;

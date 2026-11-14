@@ -1,4 +1,5 @@
-import { getSupabaseServiceClient, hasSupabasePublicConfig } from "@/lib/supabase";
+import { hasSupabasePublicConfig } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
 import type { LeadPayload } from "@/lib/validation";
 import { createCrmLead, type InterestedItem } from "@/lib/crm-service";
 

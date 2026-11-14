@@ -2,44 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getDashboardHrefForRole, getStoredAuthToken, getStoredAuthUser, storeAuthToken } from "@/lib/backend-client";
-
-type LoginDebugState = {
-  clicked: boolean;
-  apiStatus: string;
-  tokenPresent: boolean;
-  userEmail: string;
-  role: string;
-  redirectTo: string;
-};
+import { getDashboardHrefForRole, storeAuthToken } from "@/lib/backend-client";
 
 export function AdminLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [debug, setDebug] = useState<LoginDebugState>({
-    clicked: false,
-    apiStatus: "Not started",
-    tokenPresent: Boolean(getStoredAuthToken()),
-    userEmail: getStoredAuthUser()?.email || "-",
-    role: String(getStoredAuthUser()?.role || "-"),
-    redirectTo: "-"
-  });
   const router = useRouter();
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log("Login Clicked");
     const formData = new FormData(event.currentTarget);
     const submittedEmail = String(formData.get("email") || email).trim();
     const submittedPassword = String(formData.get("password") || password);
-    setDebug((current) => ({ ...current, clicked: true, apiStatus: "Validating form" }));
 
     if (!submittedEmail || !submittedPassword) {
       setStatus("error");
       setMessage("Enter admin email and password.");
-      setDebug((current) => ({ ...current, apiStatus: "Validation failed" }));
       return;
     }
 
@@ -51,18 +31,7 @@ export function AdminLoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: submittedEmail, password: submittedPassword })
       });
-      console.log("API Response", response);
       const data = await response.json().catch(() => ({ message: "Login failed. Please try again." }));
-      console.log("User", data.user);
-      console.log("Role", data.user?.role);
-      console.log("Token", data.token ? `${String(data.token).slice(0, 14)}...redacted` : "");
-      setDebug((current) => ({
-        ...current,
-        apiStatus: `${response.status} ${response.ok ? "OK" : "Failed"}`,
-        userEmail: data.user?.email || "-",
-        role: String(data.user?.role || "-"),
-        tokenPresent: Boolean(data.token)
-      }));
 
       if (!response.ok) {
         setStatus("error");
@@ -79,14 +48,11 @@ export function AdminLoginForm() {
       storeAuthToken(data.token);
       setMessage("Login successful. Opening dashboard...");
       const route = getDashboardHrefForRole(data.user?.role);
-      console.log("Redirecting To", route);
-      setDebug((current) => ({ ...current, tokenPresent: Boolean(getStoredAuthToken()), redirectTo: route }));
       router.push(route);
       router.refresh();
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Unable to sign in. Please check backend connection.");
-      setDebug((current) => ({ ...current, apiStatus: "Request crashed" }));
     }
   }
 
@@ -107,15 +73,6 @@ export function AdminLoginForm() {
         {message ? <p className={`text-sm ${status === "error" ? "text-red-600" : "text-[#FF6B00]"}`}>{message}</p> : null}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-[#cfe3df] bg-[#FFF8F2] p-4 text-xs leading-6 text-[#45666a]">
-        <p className="font-bold uppercase tracking-[0.16em] text-[#FF6B00]">Temporary Auth Debug</p>
-        <p>Clicked: {String(debug.clicked)}</p>
-        <p>API: {debug.apiStatus}</p>
-        <p>User: {debug.userEmail}</p>
-        <p>Role: {debug.role}</p>
-        <p>Token Present: {String(debug.tokenPresent)}</p>
-        <p>Redirecting To: {debug.redirectTo}</p>
-      </div>
     </form>
   );
 }

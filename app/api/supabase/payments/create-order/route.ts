@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createRazorpayOrder, getRazorpayKeyId } from "@/lib/razorpay";
-import { getSupabaseServiceClient } from "@/lib/supabase";
+import { getSupabaseServiceClient } from "@/lib/supabase-server";
 import { calculatePayablePaise } from "@/lib/supabase-booking";
 
 export const runtime = "nodejs";
