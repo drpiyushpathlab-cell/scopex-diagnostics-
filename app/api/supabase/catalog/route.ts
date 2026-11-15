@@ -1,48 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAnonServerClient, hasSupabasePublicConfig } from "@/lib/supabase";
 import { normalizeMoney, type SupabaseCatalogItem } from "@/lib/supabase-booking";
-import { packagesData, testsData } from "@/lib/data";
 
 export const runtime = "nodejs";
-
-function localFallbackCatalog(message: string, status = 200) {
-  const tests: SupabaseCatalogItem[] = testsData.map((test) => ({
-    id: test.id,
-    type: "test",
-    slug: test.id,
-    name: test.name,
-    description: test.components?.slice(0, 4).join(", ") || test.group,
-    price: normalizeMoney(test.price),
-    mrp: normalizeMoney(test.price),
-    referencePrice: null,
-    category: test.group,
-    categorySlug: test.group.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-    source: "local_fallback",
-    active: true
-  }));
-
-  const packages: SupabaseCatalogItem[] = packagesData.map((item) => ({
-    id: item.id,
-    type: "package",
-    slug: item.id,
-    name: item.name,
-    description: item.tagline,
-    price: normalizeMoney(item.price),
-    mrp: normalizeMoney(item.price),
-    referencePrice: null,
-    category: item.section,
-    categorySlug: item.section.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-    source: "local_fallback",
-    active: true
-  }));
-
-  return NextResponse.json({ success: true, source: "local_fallback", message, tests, packages, items: [...packages, ...tests] }, { status });
-}
 
 export async function GET(request: Request) {
   try {
     if (!hasSupabasePublicConfig()) {
-      return localFallbackCatalog("Supabase public configuration is not set. Showing local fallback catalog.");
+      return NextResponse.json({ success: false, source: "unavailable", message: "The diagnostic catalog is not configured." }, { status: 503 });
     }
 
     const supabase = getSupabaseAnonServerClient();
@@ -51,12 +16,12 @@ export async function GET(request: Request) {
     const [prdTestsResult, prdPackagesResult] = await Promise.all([
       supabase
         .from("tests")
-        .select("id, slug, name, display_name, description, price, discounted_price, real_price, active, category:test_categories(slug,name)")
+        .select("id, slug, name, display_name, description, price, discounted_price, real_price, active, sample_type, preparation_instructions, fasting_required, report_tat_hours, schema_json, category:test_categories(slug,name)")
         .eq("active", true)
         .order("name"),
       supabase
         .from("packages")
-        .select("id, slug, name, description, regular_price, selling_price, real_price, active")
+        .select("id, slug, name, description, regular_price, selling_price, real_price, active, featured, schema_json, package_tests(test_id)")
         .eq("active", true)
         .order("name")
     ]);
@@ -107,12 +72,17 @@ export async function GET(request: Request) {
           name: test.display_name || test.name,
           description: test.description,
           price: realPrice,
-          mrp: realPrice,
+          mrp: normalizeMoney(test.price),
           referencePrice,
           category: category?.name || null,
           categorySlug: category?.slug || null,
           source: "supabase_prd",
-          active: test.active
+          active: test.active,
+          sampleType: test.sample_type,
+          preparationInstructions: test.preparation_instructions,
+          fastingRequired: test.fasting_required,
+          reportTatHours: test.report_tat_hours,
+          schema: test.schema_json || {}
         };
       });
 
@@ -126,57 +96,20 @@ export async function GET(request: Request) {
           name: item.name,
           description: item.description,
           price: realPrice,
-          mrp: realPrice,
+          mrp: normalizeMoney(item.regular_price),
           referencePrice,
+          featured: item.featured,
+          testIds: (item.package_tests || []).map((link: { test_id: string }) => link.test_id),
+          schema: item.schema_json || {},
           source: "supabase_prd",
           active: item.active
         };
       });
 
-      return NextResponse.json({ success: true, source: "supabase_prd", tests, packages, items: [...packages, ...tests] });
+      return NextResponse.json({ success: true, source: "supabase_prd", tests, packages, items: [...packages, ...tests] }, { headers: { "Cache-Control": "no-store, max-age=0" } });
     }
-
-    const [testsResult, packagesResult] = await Promise.all([
-      supabase.from("tests").select("id, slug, name, description, price, discounted_price, active").eq("active", true).order("name"),
-      supabase.from("packages").select("id, slug, name, description, regular_price, selling_price, active").eq("active", true).order("name")
-    ]);
-
-    if (testsResult.error) throw testsResult.error;
-    if (packagesResult.error) throw packagesResult.error;
-
-    const tests: SupabaseCatalogItem[] = (testsResult.data || []).map((test) => {
-      const mrp = normalizeMoney(test.price);
-      const price = normalizeMoney(test.discounted_price || test.price);
-      return {
-        id: test.id,
-        type: "test",
-        slug: test.slug,
-        name: test.name,
-        description: test.description,
-        price,
-        mrp: price,
-        referencePrice: mrp > price ? mrp : null,
-        source: "supabase_legacy",
-        active: test.active
-      };
-    });
-
-    const packages: SupabaseCatalogItem[] = (packagesResult.data || []).map((item) => ({
-      id: item.id,
-      type: "package",
-      slug: item.slug,
-      name: item.name,
-      description: item.description,
-      price: normalizeMoney(item.selling_price),
-      mrp: normalizeMoney(item.selling_price),
-      referencePrice: normalizeMoney(item.regular_price) > normalizeMoney(item.selling_price) ? normalizeMoney(item.regular_price) : null,
-      source: "supabase_legacy",
-      active: item.active
-    }));
-
-    return NextResponse.json({ success: true, source: "supabase_legacy", tests, packages, items: [...packages, ...tests] });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to load Supabase catalog.";
-    return localFallbackCatalog(`Supabase catalog unavailable. ${message}`);
+    return NextResponse.json({ success: false, source: "unavailable", message: "Unable to load the diagnostic catalog." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
+  } catch {
+    return NextResponse.json({ success: false, source: "unavailable", message: "Unable to load the diagnostic catalog." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
   }
 }

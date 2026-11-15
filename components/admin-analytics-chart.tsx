@@ -25,71 +25,14 @@ export type DailyDataPoint = {
 };
 
 interface AdminAnalyticsChartProps {
-  initialBookings?: Array<Record<string, unknown>>;
-  totalRevenue?: number;
-}
-
-// Generate realistic last 30 days data calibrated with ScopeX catalog prices
-function generate30DayTrendData(baseRecentBookings: Array<Record<string, unknown>> = []): DailyDataPoint[] {
-  const points: DailyDataPoint[] = [];
-  const now = new Date();
-  let cumulative = 45000;
-
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
-    const displayDate = d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
-
-    // Seed realistic curve with weekend variations and upward trajectory
-    const dayOfWeek = d.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const baseVolume = 8 + Math.floor((30 - i) * 0.4); // general upward growth trend
-    const noise = Math.floor(Math.sin(i * 0.7) * 4) + (isWeekend ? 5 : 2);
-    const bookings = Math.max(3, baseVolume + noise);
-    const completed = Math.max(2, Math.floor(bookings * (0.82 + (i < 3 ? -0.2 : 0.1)))); // recent ones may be pending
-
-    // Average booking order value ~ ₹1,400 to ₹2,800
-    const avgOrderValue = 1650 + Math.floor(Math.cos(i) * 350);
-    const revenue = completed * avgOrderValue;
-    cumulative += revenue;
-
-    points.push({
-      date: dateStr,
-      displayDate,
-      bookings,
-      completedBookings: completed,
-      revenue,
-      cumulativeRevenue: cumulative
-    });
-  }
-
-  // If real recent bookings exist, merge the last 7 days counts
-  if (baseRecentBookings.length > 0) {
-    const recentCounts: Record<string, number> = {};
-    baseRecentBookings.forEach((b) => {
-      const createdAt = typeof b.created_at === "string" ? b.created_at.split("T")[0] : "";
-      if (createdAt) {
-        recentCounts[createdAt] = (recentCounts[createdAt] || 0) + 1;
-      }
-    });
-
-    points.forEach((p) => {
-      if (recentCounts[p.date]) {
-        p.bookings = Math.max(p.bookings, recentCounts[p.date]);
-        p.completedBookings = Math.min(p.bookings, Math.max(1, p.completedBookings));
-      }
-    });
-  }
-
-  return points;
+  data?: DailyDataPoint[];
 }
 
 function formatINR(val: number): string {
   return `₹${new Intl.NumberFormat("en-IN").format(val)}`;
 }
 
-export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChartProps) {
+export function AdminAnalyticsChart({ data = [] }: AdminAnalyticsChartProps) {
   const [mounted, setMounted] = useState(false);
   const [timeRange, setTimeRange] = useState<"7" | "14" | "30">("30");
   const [viewMode, setViewMode] = useState<"both" | "bookings" | "revenue">("both");
@@ -98,7 +41,7 @@ export function AdminAnalyticsChart({ initialBookings = [] }: AdminAnalyticsChar
     setMounted(true);
   }, []);
 
-  const fullData = useMemo(() => generate30DayTrendData(initialBookings), [initialBookings]);
+  const fullData = useMemo(() => data, [data]);
 
   const filteredData = useMemo(() => {
     const days = parseInt(timeRange, 10);

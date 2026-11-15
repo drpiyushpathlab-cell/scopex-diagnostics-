@@ -23,6 +23,7 @@ alter table public.leads add column if not exists assignment_reason text;
 alter table public.leads add column if not exists priority text not null default 'Medium' check (priority in ('Low','Medium','High','Urgent'));
 alter table public.leads add column if not exists notes text;
 alter table public.leads add column if not exists follow_up_date timestamptz;
+alter table public.leads add column if not exists follow_up_notes text;
 alter table public.leads add column if not exists is_duplicate boolean not null default false;
 alter table public.leads add column if not exists duplicate_count integer not null default 0;
 alter table public.leads add column if not exists primary_lead_id uuid references public.leads(id) on delete set null;
@@ -35,7 +36,7 @@ alter table public.leads add column if not exists updated_at timestamptz not nul
 
 -- 2. CRM Team Members / Customer Care Desk table
 create table if not exists public.crm_team_members (
-  id text primary key,
+  id text primary key default gen_random_uuid()::text,
   name text not null,
   email text not null,
   phone text not null,
@@ -49,9 +50,18 @@ create table if not exists public.crm_team_members (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table public.crm_team_members alter column id set default gen_random_uuid()::text;
 
 -- 3. Lead Activities extension
 alter table public.lead_activities add column if not exists title text;
+alter table public.lead_activities drop constraint if exists lead_activities_activity_type_check;
+alter table public.lead_activities
+  add constraint lead_activities_activity_type_check
+  check (activity_type in (
+    'created','assigned','transferred','status_changed','call','whatsapp','email','note',
+    'follow_up_scheduled','follow_up_completed','duplicate_detected','booking_converted',
+    'auto_assignment_failed','status_change','meeting'
+  ));
 
 -- 4. CRM Performance Indexes
 create index if not exists leads_phone_normalized_idx on public.leads(normalized_phone);
@@ -61,12 +71,4 @@ create index if not exists leads_follow_up_date_idx on public.leads(follow_up_da
 create index if not exists leads_city_pincode_idx on public.leads(city, pincode);
 create index if not exists crm_team_city_status_idx on public.crm_team_members(city, status, active);
 
--- 5. Seed default CRM team members
-insert into public.crm_team_members (id, name, email, phone, role, city, covered_pincodes, active, status, max_daily_workload)
-values
-  ('team-ind-01', 'Priya Sharma', 'priya.crm@scopexdiagnostics.in', '9876543201', 'customer_support', 'Indore', array['452001','452010','452011'], true, 'available', 20),
-  ('team-ind-02', 'Rohit Verma', 'rohit.crm@scopexdiagnostics.in', '9876543202', 'customer_support', 'Indore', array['452012','452016','452020'], true, 'available', 20),
-  ('team-bhp-01', 'Amit Saxena', 'amit.crm@scopexdiagnostics.in', '9876543203', 'customer_support', 'Bhopal', array['462001','462016','462022'], true, 'available', 20),
-  ('team-del-01', 'Neha Kapoor', 'neha.crm@scopexdiagnostics.in', '9876543204', 'customer_support', 'Delhi', array['110001','110002','110025'], true, 'available', 20),
-  ('team-nat-01', 'Sunil Joshi', 'sunil.crm@scopexdiagnostics.in', '9876543205', 'booking_manager', 'National Desk', array[]::text[], true, 'available', 50)
-on conflict (id) do nothing;
+-- Team records are created by an authorized administrator; this migration adds no sample staff.

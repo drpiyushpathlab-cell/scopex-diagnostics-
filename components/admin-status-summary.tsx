@@ -37,7 +37,7 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-blue-50/70",
     borderLight: "border-blue-200",
     href: "/admin/bookings",
-    defaultFallbackCount: 3
+    defaultFallbackCount: 0
   },
   {
     key: "pending_confirmation",
@@ -48,7 +48,7 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-amber-50/70",
     borderLight: "border-amber-200",
     href: "/admin/bookings/pending",
-    defaultFallbackCount: 5
+    defaultFallbackCount: 0
   },
   {
     key: "confirmed",
@@ -59,7 +59,7 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-indigo-50/70",
     borderLight: "border-indigo-200",
     href: "/admin/bookings",
-    defaultFallbackCount: 8
+    defaultFallbackCount: 0
   },
   {
     key: "sample_collected",
@@ -70,7 +70,7 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-purple-50/70",
     borderLight: "border-purple-200",
     href: "/admin/bookings",
-    defaultFallbackCount: 6
+    defaultFallbackCount: 0
   },
   {
     key: "processing",
@@ -81,7 +81,7 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-pink-50/70",
     borderLight: "border-pink-200",
     href: "/admin/bookings",
-    defaultFallbackCount: 4
+    defaultFallbackCount: 0
   },
   {
     key: "report_ready",
@@ -92,7 +92,7 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-teal-50/70",
     borderLight: "border-teal-200",
     href: "/admin/reports",
-    defaultFallbackCount: 2
+    defaultFallbackCount: 0
   },
   {
     key: "completed",
@@ -103,7 +103,7 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-emerald-50/70",
     borderLight: "border-emerald-200",
     href: "/admin/bookings/completed",
-    defaultFallbackCount: 24
+    defaultFallbackCount: 0
   },
   {
     key: "cancelled",
@@ -114,16 +114,17 @@ const STATUS_DEFINITIONS: StatusItem[] = [
     bgLight: "bg-rose-50/70",
     borderLight: "border-rose-200",
     href: "/admin/bookings",
-    defaultFallbackCount: 1
+    defaultFallbackCount: 0
   }
 ];
 
 interface AdminStatusSummaryProps {
   bookings?: Array<Record<string, unknown>>;
   metrics?: AdminMetricCard[];
+  statusCounts?: Record<string, number>;
 }
 
-export function AdminStatusSummary({ bookings = [], metrics = [] }: AdminStatusSummaryProps) {
+export function AdminStatusSummary({ bookings = [], metrics = [], statusCounts = {} }: AdminStatusSummaryProps) {
   // Compute counts from live bookings or metrics
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -151,8 +152,9 @@ export function AdminStatusSummary({ bookings = [], metrics = [] }: AdminStatusS
       }
     });
 
+    for (const [key, value] of Object.entries(statusCounts)) map[key] = value;
     return map;
-  }, [bookings, metrics]);
+  }, [bookings, metrics, statusCounts]);
 
   return (
     <div className="mt-8 rounded-3xl border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">

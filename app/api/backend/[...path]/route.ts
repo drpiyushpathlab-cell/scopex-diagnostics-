@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBackendBaseUrl } from "../../_utils/backend";
 import { apiErrorResponse } from "../../_utils/errors";
+import { authorizeBackendRoute } from "@/lib/backend-route-auth";
+import { ADMIN_PERMISSION_GROUPS, ADMIN_PERMISSION_KEYS, enforceStoredAdminPermission, validateBuiltInRole, validatePermissionList } from "@/lib/admin-permissions";
 import {
   addFamilyMember,
   deleteFamilyMember,
@@ -31,12 +33,10 @@ import {
   deleteAdminTest,
   getAdminBookingsList,
   getAdminCategoriesList,
-  getAdminMetrics,
   getAdminPackagesList,
   getAdminServiceAreas,
   getAdminTestsList,
   getAssignmentSettings,
-  getAuditLogsList,
   getBackendCatalog,
   getLeadActivities,
   getPatientBookings,
@@ -55,6 +55,8 @@ import {
 import { createRazorpayOrder, getRazorpayKeyId, verifyRazorpaySignature } from "@/lib/razorpay";
 import { hasSupabasePublicConfig } from "@/lib/supabase";
 import { getSupabaseServiceClient } from "@/lib/supabase-server";
+import { getCustomerCareDashboardFromDatabase, recordCustomerCareInteraction, updateBookingFromCustomerCare } from "@/lib/supabase-customer-care";
+import { HttpError } from "@/backend/src/lib/http-error";
 import {
   queryLeads,
   createCrmLead,
@@ -72,6 +74,20 @@ import {
   type LeadPriority,
   type LeadStatus
 } from "@/lib/crm-service";
+import {
+  addCrmLeadActivityToDatabase,
+  assignCrmLeadInDatabase,
+  bulkAutoAssignCrmLeadsFromDatabase,
+  convertCrmLeadToBookingInDatabase,
+  createCrmLeadInDatabase,
+  getCrmLeadFromDatabase,
+  listCrmLeadActivitiesFromDatabase,
+  listCrmLeadsFromDatabase,
+  listCrmTeamFromDatabase,
+  getCrmAnalyticsFromDatabase,
+  updateCrmLeadInDatabase,
+  upsertCrmTeamMemberInDatabase
+} from "@/lib/supabase-crm";
 import {
   inMemoryCollectionJobs,
   inMemoryPhlebotomistTeam,
@@ -131,8 +147,17 @@ async function jsonBody(request: Request) {
   return request.json().catch(() => ({}));
 }
 
-function getClientIp(request: Request) {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+function getClientIp(request: Request): string | undefined {
+  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+}
+
+function csvCell(value: unknown) {
+  const raw = value == null ? "" : String(value);
+  return `"${raw.replace(/"/g, '""')}"`;
+}
+
+function toCsv(rows: Array<Record<string, unknown>>, columns: string[]) {
+  return [columns.map(csvCell).join(","), ...rows.map((row) => columns.map((key) => csvCell(row[key])).join(","))].join("\r\n");
 }
 
 // Full-featured server handlers for the Next.js runtime environment
@@ -157,6 +182,11 @@ async function handleBackendRequest(request: Request, path: string[]) {
 
   if (request.method === "POST" && joined === "/auth/logout") {
     return NextResponse.json({ success: true, message: "Logged out successfully." });
+  }
+
+  const routeAuth = authorizeBackendRoute(request, joined);
+  if (routeAuth && hasSupabasePublicConfig()) {
+    await enforceStoredAdminPermission(joined, request.method, routeAuth.userId, routeAuth.role);
   }
 
   // ---------------------------------------------------------------------------
@@ -371,18 +401,112 @@ async function handleBackendRequest(request: Request, path: string[]) {
   // ---------------------------------------------------------------------------
   // ADMIN DASHBOARD & OPERATIONS MANAGEMENT
   // ---------------------------------------------------------------------------
-  if (joined === "/admin/overview" && request.method === "GET") {
+  if ((joined === "/admin/overview" || joined === "/admin/dashboard") && request.method === "GET") {
     requireAdminRole(request);
-    const metrics = await getAdminMetrics();
-    return NextResponse.json({ success: true, ...metrics });
+    const supabase = getSupabaseServiceClient();
+    const periodStart = new Date();
+    periodStart.setDate(periodStart.getDate() - 29);
+    periodStart.setHours(0, 0, 0, 0);
+    const periodStartIso = periodStart.toISOString();
+    const bookingStatuses = ["STARTED", "DETAILS_ENTERED", "SLOT_SELECTED", "PAYMENT_STARTED", "PENDING_PAYMENT", "PAID", "CONFIRMED", "ASSIGNED", "COLLECTION_STARTED", "SAMPLE_COLLECTED", "PROCESSING", "REPORT_READY", "COMPLETED", "CANCELLED", "REFUNDED", "ABANDONED"];
+    const [bookings, patients, reports, recentBookings, recentUploads, periodBookings, periodPayments, ...statusResults] = await Promise.all([
+      supabase.from("bookings").select("id", { count: "exact", head: true }),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "patient").eq("is_active", true),
+      supabase.from("report_uploads").select("id", { count: "exact", head: true }),
+      supabase.from("bookings").select("id,booking_number,contact_name,booking_status,created_at").order("created_at", { ascending: false }).limit(8),
+      supabase.from("report_uploads").select("id,file_name,patient_name,mobile_number,created_at").order("created_at", { ascending: false }).limit(8),
+      supabase.from("bookings").select("created_at,booking_status").gte("created_at", periodStartIso).order("created_at", { ascending: true }),
+      supabase.from("payments").select("amount,created_at").eq("status", "PAID").gte("created_at", periodStartIso).order("created_at", { ascending: true }),
+      ...bookingStatuses.map((status) => supabase.from("bookings").select("id", { count: "exact", head: true }).eq("booking_status", status))
+    ]);
+    if (bookings.error || patients.error || reports.error || recentBookings.error || recentUploads.error || periodBookings.error || periodPayments.error || statusResults.some((result) => result.error)) {
+      throw new HttpError(500, "Unable to load live admin dashboard data.");
+    }
+
+    const rawStatusCounts = Object.fromEntries(bookingStatuses.map((status, index) => [status.toLowerCase(), statusResults[index].count || 0]));
+    const statusCounts = {
+      new: rawStatusCounts.started || 0,
+      pending_confirmation: (rawStatusCounts.details_entered || 0) + (rawStatusCounts.slot_selected || 0) + (rawStatusCounts.payment_started || 0) + (rawStatusCounts.pending_payment || 0),
+      confirmed: rawStatusCounts.confirmed || 0,
+      sample_collected: rawStatusCounts.sample_collected || 0,
+      processing: rawStatusCounts.processing || 0,
+      report_ready: rawStatusCounts.report_ready || 0,
+      completed: rawStatusCounts.completed || 0,
+      cancelled: rawStatusCounts.cancelled || 0
+    };
+    let revenue = 0;
+    for (let page = 0; ; page += 1) {
+      const { data, error } = await supabase.from("payments").select("amount").eq("status", "PAID").range(page * 1000, page * 1000 + 999);
+      if (error) throw new HttpError(500, "Unable to load reconciled payment totals.");
+      for (const payment of data || []) revenue += Number(payment.amount || 0);
+      if (!data || data.length < 1000) break;
+    }
+    const metrics = [
+      { title: "Total users", value: String(patients.count || 0), note: "Active patient accounts" },
+      { title: "Total bookings", value: String(bookings.count || 0), note: "Live booking records" },
+      { title: "Pending confirmation", value: String(statusCounts.pending_confirmation + statusCounts.new), note: "Awaiting confirmation" },
+      { title: "Completed bookings", value: String(statusCounts.completed), note: "Completed bookings" },
+      { title: "Uploaded reports", value: String(reports.count || 0), note: "Report records" },
+      { title: "Active users", value: String(patients.count || 0), note: "Active patient accounts" },
+      { title: "Paid revenue", value: `₹${revenue.toLocaleString("en-IN")}`, note: "Captured payments only" }
+    ];
+    const daily = new Map<string, { bookings: number; completedBookings: number; revenue: number }>();
+    for (const booking of periodBookings.data || []) {
+      const date = String(booking.created_at || "").slice(0, 10);
+      if (!date) continue;
+      const item = daily.get(date) || { bookings: 0, completedBookings: 0, revenue: 0 };
+      item.bookings += 1;
+      if (String(booking.booking_status).toUpperCase() === "COMPLETED") item.completedBookings += 1;
+      daily.set(date, item);
+    }
+    for (const payment of periodPayments.data || []) {
+      const date = String(payment.created_at || "").slice(0, 10);
+      if (!date) continue;
+      const item = daily.get(date) || { bookings: 0, completedBookings: 0, revenue: 0 };
+      item.revenue += Number(payment.amount || 0);
+      daily.set(date, item);
+    }
+    let cumulativeRevenue = 0;
+    const dailyAnalytics = Array.from({ length: 30 }, (_, index) => {
+      const day = new Date(periodStart);
+      day.setDate(periodStart.getDate() + index);
+      const date = day.toISOString().slice(0, 10);
+      const values = daily.get(date) || { bookings: 0, completedBookings: 0, revenue: 0 };
+      cumulativeRevenue += values.revenue;
+      return {
+        date,
+        displayDate: day.toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+        ...values,
+        cumulativeRevenue
+      };
+    });
+    return NextResponse.json({
+      success: true,
+      metrics,
+      recentActivities: [],
+      recentBookings: recentBookings.data || [],
+      recentUploads: recentUploads.data || [],
+      dailyAnalytics,
+      statusCounts,
+      unavailableSources: ["audit_logs"]
+    });
   }
 
   if (joined === "/admin/bookings-management") {
     requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const q = searchParams.get("q") || "";
     const status = searchParams.get("status") || "";
-    const bookings = await getAdminBookingsList({ q, status });
-    return NextResponse.json({ success: true, rows: bookings, total: bookings.length });
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 50)));
+    const supabase = getSupabaseServiceClient();
+    let query = supabase.from("bookings").select("*", { count: "exact" }).order("created_at", { ascending: false });
+    if (status) query = query.eq("booking_status", status.toUpperCase());
+    const safeQ = q.replace(/[,%()"\\]/g, " ").trim();
+    if (safeQ) query = query.or(`booking_number.ilike.%${safeQ}%,contact_name.ilike.%${safeQ}%,contact_phone.ilike.%${safeQ}%,city.ilike.%${safeQ}%`);
+    const start = (page - 1) * pageSize;
+    const { data, error, count } = await query.range(start, start + pageSize - 1);
+    if (error) throw new HttpError(500, "Unable to load live bookings.");
+    return NextResponse.json({ success: true, rows: data || [], total: count ?? (data || []).length, page, pageSize });
   }
 
   const adminBookingMatch = joined.match(/^\/admin\/bookings-management\/([^/]+)$/);
@@ -391,84 +515,235 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const bookingId = adminBookingMatch[1];
     if (request.method === "PATCH") {
       const body = await jsonBody(request);
-      const updated = await updateBookingAdmin(bookingId, body, admin);
-      return NextResponse.json({ success: true, data: updated });
+      const allowedFields: Record<string, string> = {
+        booking_status: "booking_status",
+        payment_status: "payment_status",
+        preferred_date: "preferred_date",
+        preferred_time: "preferred_time",
+        assigned_phlebotomist_id: "phlebotomist_id",
+        internal_notes: "notes"
+      };
+      const patch = Object.fromEntries(
+        Object.entries(allowedFields).filter(([key]) => Object.prototype.hasOwnProperty.call(body, key)).map(([key, column]) => [column, body[key]])
+      );
+      if (!Object.keys(patch).length) throw new HttpError(400, "No supported booking fields were provided.");
+      const bookingStatuses = new Set(["STARTED", "DETAILS_ENTERED", "SLOT_SELECTED", "PAYMENT_STARTED", "PENDING_PAYMENT", "PAID", "CONFIRMED", "ASSIGNED", "COLLECTION_STARTED", "SAMPLE_COLLECTED", "PROCESSING", "REPORT_READY", "COMPLETED", "CANCELLED", "REFUNDED", "ABANDONED"]);
+      const paymentStatuses = new Set(["PENDING", "PAID", "FAILED", "REFUNDED"]);
+      if (patch.booking_status && !bookingStatuses.has(String(patch.booking_status).toUpperCase())) {
+        throw new HttpError(400, "Unsupported booking status.");
+      }
+      if (patch.payment_status && !paymentStatuses.has(String(patch.payment_status).toUpperCase())) {
+        throw new HttpError(400, "Unsupported payment status.");
+      }
+      if (patch.booking_status) patch.booking_status = String(patch.booking_status).toUpperCase();
+      if (patch.payment_status) patch.payment_status = String(patch.payment_status).toUpperCase();
+      patch.updated_at = new Date().toISOString();
+      const { data, error } = await getSupabaseServiceClient().from("bookings").update(patch).eq("id", bookingId).select("*").maybeSingle();
+      if (error) throw new HttpError(500, "Unable to update booking.");
+      if (!data) throw new HttpError(404, "Booking not found.");
+      logAuditAction({ actorEmail: admin.email || admin.userId, role: admin.role, action: "update_booking", entityType: "bookings", entityId: bookingId, newVal: patch });
+      return NextResponse.json({ success: true, data });
     }
   }
 
   if (joined === "/admin/revenue" && request.method === "GET") {
     requireAdminRole(request, ["super_admin", "admin", "finance_manager"]);
-    const bookings = await getAdminBookingsList({});
-    const rows = bookings
-      .filter((b) => b.payment_status === "paid")
-      .map((b) => ({
-        id: b.id,
-        booking_id: b.booking_number || b.id,
-        provider_order_id: b.razorpay_order_id || `ORD-${String(b.id || "").slice(0, 8)}`,
-        provider_payment_id: b.razorpay_payment_id || `PAY-${String(b.id || "").slice(0, 8)}`,
-        status: b.payment_status,
-        amount: b.payable_amount,
-        created_at: b.created_at
-      }));
-
-    const totalRevenue = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-    return NextResponse.json({ success: true, rows, totalRevenue });
+    const supabase = getSupabaseServiceClient();
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 50)));
+    const start = (page - 1) * pageSize;
+    const { data: payments, error, count } = await supabase.from("payments").select("id,booking_id,provider_order_id,provider_payment_id,status,amount,currency,created_at", { count: "exact" }).order("created_at", { ascending: false }).range(start, start + pageSize - 1);
+    if (error) throw new HttpError(500, "Unable to load payment reconciliation records.");
+    const bookingIds = [...new Set((payments || []).map((payment) => payment.booking_id).filter(Boolean))];
+    const bookingNumbers = new Map<string, string>();
+    if (bookingIds.length) {
+      const { data: bookings, error: bookingError } = await supabase.from("bookings").select("id,booking_number").in("id", bookingIds);
+      if (bookingError) throw new HttpError(500, "Unable to load payment booking references.");
+      for (const booking of bookings || []) bookingNumbers.set(booking.id, booking.booking_number || booking.id);
+    }
+    const rows = (payments || []).map((payment) => ({
+      ...payment,
+      booking_id: bookingNumbers.get(payment.booking_id) || payment.booking_id,
+      status: String(payment.status || "").toLowerCase()
+    }));
+    let totalRevenue = 0;
+    for (let pageIndex = 0; ; pageIndex += 1) {
+      const { data, error: revenueError } = await supabase.from("payments").select("amount").eq("status", "PAID").range(pageIndex * 1000, pageIndex * 1000 + 999);
+      if (revenueError) throw new HttpError(500, "Unable to load reconciled payment totals.");
+      for (const payment of data || []) totalRevenue += Number(payment.amount || 0);
+      if (!data || data.length < 1000) break;
+    }
+    return NextResponse.json({ success: true, rows, total: count || 0, page, pageSize, totalRevenue });
   }
 
   if (joined === "/admin/sessions" && request.method === "GET") {
     requireAdminRole(request, ["super_admin", "admin"]);
-    const logs = getAuditLogsList(50).map((l) => ({
-      id: l.id,
-      role: l.role,
-      event: l.action,
-      user_id: l.actor_email,
-      ip_address: l.ip_address || "127.0.0.1",
-      created_at: l.created_at
-    }));
-    return NextResponse.json({ success: true, rows: logs });
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 25)));
+    const start = (page - 1) * pageSize;
+    const { data, error, count } = await getSupabaseServiceClient().from("login_logs").select("id,user_id,admin_id,email,role,event,created_at", { count: "exact" }).order("created_at", { ascending: false }).range(start, start + pageSize - 1);
+    if (error) throw new HttpError(503, "Unable to load persisted admin session history.");
+    return NextResponse.json({ success: true, rows: data || [], total: count || 0, page, pageSize, source: "supabase" });
   }
 
   if (joined === "/admin/audit-logs" && request.method === "GET") {
     requireAdminRole(request);
-    const logs = getAuditLogsList(100);
-    return NextResponse.json({ success: true, logs });
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 50)));
+    const start = (page - 1) * pageSize;
+    const { data, error, count } = await getSupabaseServiceClient().from("audit_logs").select("id,actor_id,actor_email,role,action,entity_type,entity_id,ip_address,metadata,created_at", { count: "exact" }).order("created_at", { ascending: false }).range(start, start + pageSize - 1);
+    if (error) throw new HttpError(503, "Unable to load persisted audit history.");
+    return NextResponse.json({ success: true, logs: data || [], total: count || 0, page, pageSize, source: "supabase" });
   }
 
   if (joined === "/admin/users" && request.method === "GET") {
     requireAdminRole(request, ["super_admin", "admin"]);
-    const bookings = await getAdminBookingsList({});
-    const uniqueUsersMap = new Map<string, Record<string, unknown>>();
+    const { data, error } = await getSupabaseServiceClient().from("users").select("id,phone,mobile,email,role,is_active,created_at").eq("role", "patient").order("created_at", { ascending: false }).limit(1000);
+    if (error) throw new HttpError(500, "Unable to load patient accounts.");
+    return NextResponse.json({ success: true, rows: data || [] });
+  }
 
-    for (const b of bookings) {
-      const phone = String(b.customer_phone || "");
-      if (phone && !uniqueUsersMap.has(phone)) {
-        uniqueUsersMap.set(phone, {
-          id: b.user_id || `usr-${phone}`,
-          phone,
-          email: b.customer_email || "-",
-          auth_provider: "mobile_otp",
-          role: "patient",
-          is_active: true,
-          created_at: b.created_at
-        });
+  if (joined === "/admin/roles-permissions") {
+    const admin = requireAdminRole(request, ["super_admin"]);
+    if (request.method === "GET") {
+      const supabase = getSupabaseServiceClient();
+      const { data: permissionRows, error } = await supabase.from("admin_role_permissions").select("role,permission,allowed");
+      if (error) throw new HttpError(503, "Unable to load saved role permissions.");
+      const allowedByRole = new Map<string, string[]>();
+      for (const row of permissionRows || []) {
+        if (row.allowed) allowedByRole.set(row.role, [...(allowedByRole.get(row.role) || []), row.permission]);
+      }
+      const roleNames = ["super_admin", "admin", "manager", "booking_manager", "report_manager", "finance_manager", "customer_support"];
+      const roles = roleNames.map((role) => ({
+        id: role,
+        role,
+        display_name: role.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+        description: "Built-in administrator role",
+        permissions: allowedByRole.get(role) || [],
+        is_system: true
+      }));
+      const { data: roleAssignments, error: rolesError } = await supabase.from("admin_roles").select("user_id,role");
+      if (rolesError) throw new HttpError(503, "Unable to load admin role assignments.");
+      const overridesResult = await supabase.from("admin_user_permission_overrides").select("user_id,permission,allowed");
+      if (overridesResult.error) throw new HttpError(503, "Unable to load user permission overrides.");
+      const customByUser = new Map<string, { allowed: string[]; exists: boolean }>();
+      for (const row of overridesResult.data || []) {
+        const current = customByUser.get(row.user_id) || { allowed: [], exists: true };
+        if (row.allowed) current.allowed.push(row.permission);
+        customByUser.set(row.user_id, current);
+      }
+      const roleByUser = new Map((roleAssignments || []).map((row) => [row.user_id, row.role]));
+      const authUsers: Array<{ id: string; email?: string; created_at?: string; banned_until?: string; user_metadata?: Record<string, unknown> }> = [];
+      for (let page = 1; ; page += 1) {
+        const { data, error: authError } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        if (authError) throw new HttpError(503, "Unable to load admin account records.");
+        authUsers.push(...data.users);
+        if (data.users.length < 1000) break;
+      }
+      const users = authUsers.filter((user) => roleByUser.has(user.id)).map((user) => {
+        const custom = customByUser.get(user.id);
+        return {
+          id: user.id,
+          email: user.email || "",
+          role: roleByUser.get(user.id),
+          name: String(user.user_metadata?.full_name || user.email?.split("@")[0] || "Admin"),
+          is_active: !user.banned_until || Date.parse(user.banned_until) < Date.now(),
+          created_at: user.created_at || null,
+          custom_permissions_enabled: Boolean(custom),
+          custom_permissions: custom?.allowed || []
+        };
+      });
+      return NextResponse.json({ success: true, catalog: ADMIN_PERMISSION_GROUPS, roles, users });
+    }
+    if (request.method === "POST") throw new HttpError(400, "Only supported built-in administrator roles can be configured.");
+  }
+
+  const rolePermissionMatch = joined.match(/^\/admin\/roles-permissions\/([^/]+)$/);
+  if (rolePermissionMatch && request.method === "PATCH") {
+    const admin = requireAdminRole(request, ["super_admin"]);
+    const role = validateBuiltInRole(decodeURIComponent(rolePermissionMatch[1]));
+    if (role === "super_admin") throw new HttpError(400, "Super administrator access is fixed and cannot be narrowed here.");
+    const body = await jsonBody(request);
+    if (body.role && body.role !== role) throw new HttpError(400, "Built-in role identifiers cannot be changed.");
+    const permissions = new Set(validatePermissionList(body.permissions));
+    const now = new Date().toISOString();
+    const rows = ADMIN_PERMISSION_KEYS.map((permission) => ({ role, permission, allowed: permissions.has(permission), updated_by: admin.userId, updated_at: now }));
+    const { error } = await getSupabaseServiceClient().from("admin_role_permissions").upsert(rows, { onConflict: "role,permission" });
+    if (error) throw new HttpError(503, "Unable to save administrator role permissions.");
+    return NextResponse.json({ success: true, role, permissions: [...permissions] });
+  }
+  if (rolePermissionMatch && request.method === "DELETE") throw new HttpError(400, "Built-in administrator roles cannot be deleted.");
+
+  if (joined === "/admin/roles-permissions/assign-users" && request.method === "POST") {
+    const admin = requireAdminRole(request, ["super_admin"]);
+    const body = await jsonBody(request);
+    const role = validateBuiltInRole(body.role);
+    if (!Array.isArray(body.adminIds) || body.adminIds.length === 0 || body.adminIds.some((id: unknown) => typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id))) {
+      throw new HttpError(400, "Select one or more valid administrator accounts.");
+    }
+    const ids = [...new Set(body.adminIds as string[])];
+    const supabase = getSupabaseServiceClient();
+    const { data: selected, error: selectedError } = await supabase.from("admin_roles").select("user_id,role").in("user_id", ids);
+    if (selectedError || selected?.length !== ids.length) throw new HttpError(404, "One or more administrator accounts were not found.");
+    if (role !== "super_admin" && selected.some((row) => row.role === "super_admin")) {
+      const { count, error } = await supabase.from("admin_roles").select("user_id", { count: "exact", head: true }).eq("role", "super_admin");
+      if (error) throw new HttpError(503, "Unable to verify super administrator assignments.");
+      if ((count || 0) <= selected.filter((row) => row.role === "super_admin").length || ids.includes(admin.userId)) {
+        throw new HttpError(409, "Keep at least one active super administrator and do not remove your own super administrator access.");
       }
     }
+    const { error } = await supabase.from("admin_roles").upsert(ids.map((user_id) => ({ user_id, role })), { onConflict: "user_id" });
+    if (error) throw new HttpError(503, "Unable to update administrator role assignments.");
+    return NextResponse.json({ success: true, assigned: ids.length, role });
+  }
 
-    return NextResponse.json({ success: true, rows: Array.from(uniqueUsersMap.values()) });
+  const adminUserPermissionsMatch = joined.match(/^\/admin\/admin-users\/([^/]+)$/);
+  if (adminUserPermissionsMatch && request.method === "PATCH") {
+    const admin = requireAdminRole(request, ["super_admin"]);
+    const userId = decodeURIComponent(adminUserPermissionsMatch[1]);
+    if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new HttpError(400, "Invalid administrator account ID.");
+    const body = await jsonBody(request);
+    if (typeof body.custom_permissions_enabled !== "boolean") throw new HttpError(400, "Choose whether custom permissions are enabled.");
+    const supabase = getSupabaseServiceClient();
+    const { data: target, error: targetError } = await supabase.from("admin_roles").select("user_id").eq("user_id", userId).maybeSingle();
+    if (targetError) throw new HttpError(503, "Unable to verify the target administrator account.");
+    if (!target) throw new HttpError(404, "Administrator account not found.");
+    if (!body.custom_permissions_enabled) {
+      const { error } = await supabase.from("admin_user_permission_overrides").delete().eq("user_id", userId);
+      if (error) throw new HttpError(503, "Unable to clear custom permissions.");
+      return NextResponse.json({ success: true, custom_permissions_enabled: false, custom_permissions: [] });
+    }
+    const permissions = new Set(validatePermissionList(body.custom_permissions));
+    const now = new Date().toISOString();
+    const rows = ADMIN_PERMISSION_KEYS.map((permission) => ({ user_id: userId, permission, allowed: permissions.has(permission), updated_by: admin.userId, updated_at: now }));
+    const { error } = await supabase.from("admin_user_permission_overrides").upsert(rows, { onConflict: "user_id,permission" });
+    if (error) throw new HttpError(503, "Unable to save custom administrator permissions.");
+    return NextResponse.json({ success: true, custom_permissions_enabled: true, custom_permissions: [...permissions] });
   }
 
   if (joined === "/admin/admin-users") {
     const admin = requireAdminRole(request, ["super_admin"]);
     if (request.method === "GET") {
-      const defaultSuper = {
-        id: "admin-super-001",
-        email: "admin@scopexdiagnostics.in",
-        role: "super_admin",
-        name: "ScopeX Super Administrator",
-        is_active: true,
-        created_at: new Date().toISOString()
-      };
-      return NextResponse.json({ success: true, users: [defaultSuper] });
+      const supabase = getSupabaseServiceClient();
+      const { data: roleRows, error: roleError } = await supabase.from("admin_roles").select("user_id,role");
+      if (roleError) throw new HttpError(500, "Unable to load admin role assignments.");
+      const roleByUser = new Map((roleRows || []).map((row) => [row.user_id, row.role]));
+      const authUsers: Array<{ id: string; email?: string; created_at?: string; banned_until?: string; user_metadata?: Record<string, unknown> }> = [];
+      for (let page = 1; ; page += 1) {
+        const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw new HttpError(500, "Unable to load admin account records.");
+        authUsers.push(...data.users);
+        if (data.users.length < 1000) break;
+      }
+      const users = authUsers.filter((user) => roleByUser.has(user.id)).map((user) => ({
+        id: user.id,
+        email: user.email || "",
+        role: roleByUser.get(user.id),
+        name: String(user.user_metadata?.full_name || user.email?.split("@")[0] || "Admin"),
+        is_active: !user.banned_until || Date.parse(user.banned_until) < Date.now(),
+        created_at: user.created_at || null
+      }));
+      return NextResponse.json({ success: true, users });
     }
     if (request.method === "POST") {
       const body = await jsonBody(request);
@@ -512,7 +787,7 @@ async function handleBackendRequest(request: Request, path: string[]) {
       const page = Number(searchParams.get("page")) || 1;
       const pageSize = Number(searchParams.get("pageSize")) || 25;
 
-      const result = queryLeads({
+      const result = await listCrmLeadsFromDatabase({
         q,
         status,
         priority,
@@ -529,48 +804,33 @@ async function handleBackendRequest(request: Request, path: string[]) {
 
     if (request.method === "POST") {
       const body = await jsonBody(request);
-      const result = await createCrmLead({
-        ...body,
-        performedBy: admin.email || "Customer Support"
-      });
+      const result = await createCrmLeadInDatabase(body, admin.email || admin.userId);
       return NextResponse.json({ success: true, ...result }, { status: 201 });
     }
   }
 
   if (joined === "/admin/crm/reports") {
     requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
-    const report = getCrmAnalyticsReport();
+    const timeframeDays = Number(searchParams.get("timeframeDays")) || 30;
+    const report = await getCrmAnalyticsFromDatabase(timeframeDays);
     return NextResponse.json({ success: true, report });
   }
 
   if (joined === "/admin/crm/team") {
-    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
+    requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     if (request.method === "GET") {
-      return NextResponse.json({ success: true, team: Array.from(inMemoryTeamMembers.values()) });
+      return NextResponse.json({ success: true, team: await listCrmTeamFromDatabase() });
     }
     if (request.method === "POST") {
       const body = await jsonBody(request);
-      const id = body.id || `team-cust-${Date.now()}`;
-      inMemoryTeamMembers.set(id, {
-        id,
-        name: body.name || "Customer Care Representative",
-        email: body.email || "",
-        phone: body.phone || "",
-        role: body.role || "customer_support",
-        city: body.city || "Indore",
-        coveredPincodes: Array.isArray(body.coveredPincodes) ? body.coveredPincodes : [],
-        active: body.active !== false,
-        status: body.status || "available",
-        maxDailyWorkload: Number(body.maxDailyWorkload) || 20,
-        currentWorkload: Number(body.currentWorkload) || 0
-      });
-      return NextResponse.json({ success: true, member: inMemoryTeamMembers.get(id) }, { status: 201 });
+      const member = await upsertCrmTeamMemberInDatabase(body);
+      return NextResponse.json({ success: true, member }, { status: 201 });
     }
   }
 
   if (joined === "/admin/crm/leads/bulk-auto-assign" && request.method === "POST") {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
-    const result = bulkAutoAssignUnassignedLeads(admin.email || "Customer Support");
+    const result = await bulkAutoAssignCrmLeadsFromDatabase(admin.email || admin.userId);
     return NextResponse.json({ success: true, ...result });
   }
 
@@ -579,33 +839,18 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const leadId = crmLeadAssignMatch[1];
     const body = await jsonBody(request);
-    const updated = assignOrTransferLead(leadId, body.targetEmployeeId, body.reason, admin.email || "Customer Support");
-    return NextResponse.json({ success: true, lead: updated });
+    const result = await assignCrmLeadInDatabase(leadId, String(body.targetEmployeeId || ""), String(body.reason || ""), admin.email || admin.userId, false);
+    return NextResponse.json({ success: true, lead: result.lead });
   }
 
   const crmLeadAutoAssignMatch = joined.match(/^\/admin\/crm\/leads\/([^/]+)\/auto-assign$/);
   if (crmLeadAutoAssignMatch && request.method === "POST") {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const leadId = crmLeadAutoAssignMatch[1];
-    const lead = getLeadById(leadId);
+    const lead = await getCrmLeadFromDatabase(leadId);
     if (!lead) return NextResponse.json({ success: false, message: "Lead not found." }, { status: 404 });
-
-    const autoRes = runAutomaticAssignment({
-      city: lead.city,
-      pincode: lead.pincode,
-      priority: lead.priority
-    });
-
-    if (autoRes.assignedMember) {
-      const updated = assignOrTransferLead(leadId, autoRes.assignedMember.id, autoRes.reason, "Auto-Assignment Engine");
-      return NextResponse.json({ success: true, lead: updated, assignment: autoRes });
-    }
-
-    return NextResponse.json({
-      success: false,
-      message: autoRes.reason,
-      lead
-    }, { status: 422 });
+    const result = await assignCrmLeadInDatabase(leadId, null, "Automatic assignment requested.", "Auto-Assignment Engine", true);
+    return NextResponse.json({ success: result.assigned, lead: result.lead, assignment: { assigned: result.assigned } }, { status: result.assigned ? 200 : 422 });
   }
 
   const crmLeadActivityMatch = joined.match(/^\/admin\/crm\/leads\/([^/]+)\/activity$/);
@@ -613,17 +858,11 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const leadId = crmLeadActivityMatch[1];
     if (request.method === "GET") {
-      return NextResponse.json({ success: true, activities: getLeadActivitiesById(leadId) });
+      return NextResponse.json({ success: true, activities: await listCrmLeadActivitiesFromDatabase(leadId) });
     }
     if (request.method === "POST") {
       const body = await jsonBody(request);
-      const act = addLeadActivityTouchpoint(
-        leadId,
-        body.activityType || "note",
-        body.notes || "",
-        admin.email || "Customer Support",
-        body.title
-      );
+      const act = await addCrmLeadActivityToDatabase(leadId, body, admin.email || admin.userId);
       return NextResponse.json({ success: true, activity: act }, { status: 201 });
     }
   }
@@ -633,16 +872,7 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const leadId = crmLeadConvertMatch[1];
     const body = await jsonBody(request);
-    const converted = convertLeadToBooking(
-      leadId,
-      {
-        bookingNumber: body.bookingNumber,
-        bookingId: body.bookingId,
-        convertedAmount: Number(body.convertedAmount) || 0,
-        notes: body.notes
-      },
-      admin.email || "Customer Support"
-    );
+    const converted = await convertCrmLeadToBookingInDatabase(leadId, body, admin.email || admin.userId);
     return NextResponse.json({ success: true, lead: converted });
   }
 
@@ -651,14 +881,14 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const leadId = crmLeadDetailMatch[1];
     if (request.method === "GET") {
-      const lead = getLeadById(leadId);
+      const lead = await getCrmLeadFromDatabase(leadId);
       if (!lead) return NextResponse.json({ success: false, message: "Lead not found." }, { status: 404 });
-      const activities = getLeadActivitiesById(leadId);
+      const activities = await listCrmLeadActivitiesFromDatabase(leadId);
       return NextResponse.json({ success: true, lead, activities });
     }
     if (request.method === "PATCH") {
       const body = await jsonBody(request);
-      const updated = updateLeadRecord(leadId, body, admin.email || "Customer Support");
+      const updated = await updateCrmLeadInDatabase(leadId, body, admin.email || admin.userId);
       return NextResponse.json({ success: true, lead: updated });
     }
   }
@@ -668,11 +898,11 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const admin = requireAdminRole(request);
     const leadId = leadActivityMatch[1];
     if (request.method === "GET") {
-      return NextResponse.json({ success: true, activities: getLeadActivities(leadId) });
+      return NextResponse.json({ success: true, activities: await listCrmLeadActivitiesFromDatabase(leadId) });
     }
     if (request.method === "POST") {
       const body = await jsonBody(request);
-      const created = await addLeadActivity(leadId, body, admin);
+      const created = await addCrmLeadActivityToDatabase(leadId, body, admin.email || admin.userId);
       return NextResponse.json({ success: true, activity: created }, { status: 201 });
     }
   }
@@ -864,12 +1094,12 @@ async function handleBackendRequest(request: Request, path: string[]) {
   if (joined === "/admin/categories") {
     requireAdminRole(request, ["super_admin", "admin", "manager"]);
     if (request.method === "GET") {
-      return NextResponse.json({ success: true, categories: getAdminCategoriesList() });
+      return NextResponse.json({ success: true, categories: await getAdminCategoriesList() });
     }
     if (request.method === "POST") {
       const admin = requireAdminRole(request, ["super_admin", "admin"]);
       const body = await jsonBody(request);
-      const cat = createAdminCategory(body, admin);
+      const cat = await createAdminCategory(body, admin);
       return NextResponse.json({ success: true, category: cat }, { status: 201 });
     }
   }
@@ -881,12 +1111,12 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
     if (request.method === "GET") {
       const city = searchParams.get("city") || undefined;
-      const areas = getAdminServiceAreas(city);
+      const areas = await getAdminServiceAreas(city);
       return NextResponse.json({ success: true, areas, total: areas.length });
     }
     if (request.method === "POST") {
       const body = await jsonBody(request);
-      const created = createAdminServiceArea(body, admin);
+      const created = await createAdminServiceArea(body, admin);
       return NextResponse.json({ success: true, area: created }, { status: 201 });
     }
   }
@@ -897,19 +1127,60 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const areaId = adminServiceAreaMatch[1];
     if (request.method === "PATCH") {
       const body = await jsonBody(request);
-      const updated = updateAdminServiceArea(areaId, body, admin);
+      const updated = await updateAdminServiceArea(areaId, body, admin);
       return NextResponse.json({ success: true, area: updated });
     }
   }
 
   if (joined === "/admin/email-logs" && request.method === "GET") {
     requireAdminRole(request);
-    return NextResponse.json({ success: true, logs: [] });
+    const supabase = getSupabaseServiceClient();
+    let query = supabase.from("notification_logs").select("id,recipient,template,status,error_message,sent_at,created_at").eq("channel", "email").order("created_at", { ascending: false }).limit(200);
+    const q = (searchParams.get("q") || "").replace(/[,%()"\\]/g, " ").trim();
+    const status = (searchParams.get("status") || "").toLowerCase();
+    const date = searchParams.get("date") || "";
+    if (q) query = query.or(`recipient.ilike.%${q}%,template.ilike.%${q}%`);
+    if (status === "success") query = query.eq("status", "sent");
+    if (status === "failed") query = query.eq("status", "failed");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      query = query.gte("created_at", `${date}T00:00:00.000Z`).lt("created_at", `${date}T23:59:59.999Z`);
+    }
+    const { data, error } = await query;
+    if (error) throw new HttpError(500, "Unable to load email delivery logs.");
+    const rows = (data || []).map((row) => ({
+      id: row.id,
+      recipient_email: row.recipient,
+      subject: row.template,
+      event_type: row.template,
+      status: row.status === "sent" ? "success" : row.status === "failed" ? "failed" : "pending",
+      sent_at: row.sent_at,
+      error_message: row.error_message,
+      created_at: row.created_at
+    }));
+    if (searchParams.get("format") === "csv") {
+      return new NextResponse(toCsv(rows, ["id", "recipient_email", "subject", "event_type", "status", "sent_at", "error_message", "created_at"]), {
+        headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=scopex-email-logs.csv" }
+      });
+    }
+    return NextResponse.json({ success: true, rows, total: rows.length, source: "notification_logs" });
   }
 
-  if (joined === "/admin/reports") {
+  if ((joined === "/admin/reports" || joined === "/admin/report-uploads") && request.method === "GET") {
     requireAdminRole(request);
-    return NextResponse.json({ success: true, reports: [] });
+    const supabase = getSupabaseServiceClient();
+    let query = supabase.from("report_uploads").select("id,booking_id,booking_code,user_id,patient_name,mobile_number,file_name,file_size,mime_type,file_data,uploaded_by,created_at", { count: "exact" }).order("created_at", { ascending: false });
+    const q = (searchParams.get("q") || "").replace(/[,%()"\\]/g, " ").trim();
+    const date = searchParams.get("date") || "";
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 25)));
+    if (q) query = query.or(`booking_code.ilike.%${q}%,patient_name.ilike.%${q}%,mobile_number.ilike.%${q}%,file_name.ilike.%${q}%`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      query = query.gte("created_at", `${date}T00:00:00.000Z`).lt("created_at", `${date}T23:59:59.999Z`);
+    }
+    const start = (page - 1) * pageSize;
+    const { data, error, count } = await query.range(start, start + pageSize - 1);
+    if (error) throw new HttpError(500, "Unable to load uploaded report records.");
+    return NextResponse.json({ success: true, reports: data || [], total: count || 0, page, pageSize });
   }
 
   // ---------------------------------------------------------------------------
@@ -952,14 +1223,9 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const jobId = phlebActionMatch[1];
     const body = await jsonBody(request);
     const action = body.action as PhlebotomistAction;
-
-    let actorName = body.performedBy || "Phlebotomist Staff";
-    try {
-      const auth = requireAuthToken(request);
-      actorName = auth.email || actorName;
-    } catch {
-      // Allow simulator in preview
-    }
+    // Actor identity comes only from the verified token; never accept a client
+    // supplied name for an operational status/audit record.
+    const actorName = routeAuth?.email || routeAuth?.userId || "Phlebotomist Staff";
 
     const updated = updateCollectionJobStatus(jobId, action, {
       performedBy: actorName,
@@ -985,115 +1251,53 @@ async function handleBackendRequest(request: Request, path: string[]) {
   // CUSTOMER CARE DESK & COLLECTION DISPATCH
   // ---------------------------------------------------------------------------
   if (joined === "/admin/customer-care/dashboard" && request.method === "GET") {
-    seedInitialJobsIfEmpty();
-    const allBookings = await getAdminBookingsList({});
-    const pendingConfirmations = allBookings.filter((b) => b.booking_status === "new" || b.booking_status === "pending_confirmation");
-    const confirmedBookings = allBookings.filter((b) => b.booking_status === "confirmed");
-    const cancelledBookings = allBookings.filter((b) => b.booking_status === "cancelled");
-
-    const allJobs = Array.from(inMemoryCollectionJobs.values());
-    const activeCollections = allJobs.filter((j) => ["Assigned", "Accepted", "En Route", "Arrived", "Collected"].includes(j.status));
-    const exceptions = allJobs.filter((j) => j.inExceptionQueue || j.status === "Exception");
-
-    const allLeads = Array.from(inMemoryLeads.values());
-    const todayStr = new Date().toISOString().split("T")[0];
-    const followUpsDueToday = allLeads.filter((l) => l.followUpDate && l.followUpDate.startsWith(todayStr) && l.status !== "Closed");
-
-    return NextResponse.json({
-      success: true,
-      summary: {
-        pendingConfirmationsCount: pendingConfirmations.length,
-        pendingDispatchCount: confirmedBookings.filter((b) => !b.assigned_phlebotomist_id).length,
-        activeCollectionsCount: activeCollections.length,
-        exceptionsCount: exceptions.length,
-        cancelledCount: cancelledBookings.length,
-        followUpsDueTodayCount: followUpsDueToday.length,
-        totalCallsLogged: inMemoryCustomerCareCalls.length,
-        totalMessagesSent: inMemoryCustomerCareMessages.length
-      },
-      queues: {
-        pendingConfirmations: pendingConfirmations.slice(0, 20),
-        pendingDispatch: confirmedBookings.filter((b) => !b.assigned_phlebotomist_id).slice(0, 20),
-        cancellations: cancelledBookings.slice(0, 20),
-        exceptions: exceptions.slice(0, 20),
-        followUpsDueToday: followUpsDueToday.slice(0, 20)
-      },
-      recentCalls: inMemoryCustomerCareCalls.slice(0, 15),
-      recentMessages: inMemoryCustomerCareMessages.slice(0, 15)
-    });
+    requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
+    return NextResponse.json({ success: true, ...(await getCustomerCareDashboardFromDatabase()) });
   }
 
   if (joined === "/admin/customer-care/call" && request.method === "POST") {
+    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const body = await jsonBody(request);
-    let performedBy = body.performedBy || "Customer Care Agent";
-    try {
-      const auth = requireAuthToken(request);
-      performedBy = auth.email || performedBy;
-    } catch {
-      // Allow fallback
-    }
-
-    const record = recordCustomerCareCall({
-      targetId: body.targetId,
-      targetKind: body.targetKind || "booking",
-      callType: body.callType || "outbound",
-      outcome: body.outcome || "connected_interested",
-      durationSeconds: Number(body.durationSeconds) || 60,
-      notes: body.notes || "Customer care conversation logged.",
-      scheduledFollowUpDate: body.scheduledFollowUpDate,
-      performedBy
+    const record = await recordCustomerCareInteraction({
+      targetId: String(body.targetId || ""),
+      targetKind: body.targetKind === "lead" ? "lead" : "booking",
+      interactionKind: "call",
+      channel: "phone",
+      outcome: String(body.outcome || body.callType || "connected_interested"),
+      durationSeconds: Math.max(0, Math.min(86400, Number(body.durationSeconds) || 0)),
+      notes: String(body.notes || "Customer care call logged."),
+      followUpAt: body.scheduledFollowUpDate || null,
+      performedBy: admin.email || admin.userId
     });
-
-    return NextResponse.json({ success: true, record });
+    return NextResponse.json({ success: true, record }, { status: 201 });
   }
 
   if (joined === "/admin/customer-care/message" && request.method === "POST") {
+    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const body = await jsonBody(request);
-    let performedBy = body.performedBy || "Customer Care Agent";
-    try {
-      const auth = requireAuthToken(request);
-      performedBy = auth.email || performedBy;
-    } catch {
-      // Allow fallback
-    }
-
-    const record = recordCustomerCareMessage({
-      targetId: body.targetId,
-      targetKind: body.targetKind || "booking",
-      channel: body.channel || "whatsapp",
-      templateTitle: body.templateTitle || "Slot Confirmation",
-      messageContent: body.messageContent || "Hello from SCOPEX Diagnostics Customer Care.",
-      performedBy
+    const record = await recordCustomerCareInteraction({
+      targetId: String(body.targetId || ""),
+      targetKind: body.targetKind === "lead" ? "lead" : "booking",
+      interactionKind: "message",
+      channel: ["whatsapp", "sms", "email"].includes(body.channel) ? body.channel : "whatsapp",
+      subject: String(body.templateTitle || ""),
+      notes: String(body.messageContent || ""),
+      performedBy: admin.email || admin.userId
     });
-
-    return NextResponse.json({ success: true, record });
+    return NextResponse.json({ success: true, record, message: "Message recorded in the queue; no provider delivery was attempted." }, { status: 201 });
   }
 
   if (joined === "/admin/customer-care/confirm-booking" && request.method === "POST") {
+    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const body = await jsonBody(request);
-    let performedBy = body.performedBy || "Customer Care";
-    try {
-      const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
-      performedBy = auth.email || performedBy;
-    } catch {
-      // Allow fallback
-    }
-
-    const confirmed = confirmBookingByCustomerCare(body.bookingId, body.notes || "Slot and patient details verified over phone.", performedBy);
+    const confirmed = await updateBookingFromCustomerCare({ bookingId: String(body.bookingId || ""), action: "confirm", notes: String(body.notes || "Slot and patient details verified over phone."), performedBy: admin.email || admin.userId });
     return NextResponse.json({ success: true, booking: confirmed });
   }
 
   if (joined === "/admin/customer-care/cancel-booking" && request.method === "POST") {
+    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const body = await jsonBody(request);
-    let performedBy = body.performedBy || "Customer Care";
-    try {
-      const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
-      performedBy = auth.email || performedBy;
-    } catch {
-      // Allow fallback
-    }
-
-    const cancelled = cancelBookingByCustomerCare(body.bookingId, body.reason || "Patient cancelled appointment.", performedBy);
+    const cancelled = await updateBookingFromCustomerCare({ bookingId: String(body.bookingId || ""), action: "cancel", notes: String(body.reason || "Patient cancelled appointment."), performedBy: admin.email || admin.userId });
     return NextResponse.json({ success: true, booking: cancelled });
   }
 

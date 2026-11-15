@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiErrorResponse } from "@/app/api/_utils/errors";
+import { authorizeSeoRoute } from "@/lib/seo-route-auth";
 import {
   listSeoPages,
   createOrUpdateSeoPage,
@@ -8,6 +10,7 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const { searchParams } = new URL(request.url);
     const kind = (searchParams.get("kind") as SeoEntityKind) || undefined;
     const status = (searchParams.get("status") as ContentStatus) || undefined;
@@ -20,15 +23,13 @@ export async function GET(request: NextRequest) {
       data: pages
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to fetch SEO pages" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to fetch SEO pages");
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const body = await request.json();
     const page = createOrUpdateSeoPage(body);
 
@@ -38,9 +39,6 @@ export async function POST(request: NextRequest) {
       data: page
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to save SEO page" },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Failed to save SEO page");
   }
 }

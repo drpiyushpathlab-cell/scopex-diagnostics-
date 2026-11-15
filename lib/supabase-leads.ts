@@ -1,7 +1,6 @@
-import { hasSupabasePublicConfig } from "@/lib/supabase";
-import { getSupabaseServiceClient } from "@/lib/supabase-server";
 import type { LeadPayload } from "@/lib/validation";
-import { createCrmLead, type InterestedItem } from "@/lib/crm-service";
+import { createCrmLeadInDatabase } from "@/lib/supabase-crm";
+import type { InterestedItem } from "@/lib/crm-service";
 
 function leadEmail(payload: LeadPayload) {
   return payload.officialEmail || undefined;
@@ -52,7 +51,7 @@ export async function storeLeadInSupabase(payload: LeadPayload) {
   }
 
   // Feed into central CRM engine
-  const crmResult = await createCrmLead({
+  const crmResult = await createCrmLeadInDatabase({
     name: payload.name,
     phone,
     email,
@@ -76,7 +75,7 @@ export async function storeLeadInSupabase(payload: LeadPayload) {
     priority: payload.leadType === "growth_partner" ? "High" : "Medium",
     autoAssign: true,
     performedBy: "Website Form"
-  });
+  }, "Website Form");
 
   return {
     duplicate: crmResult.isDuplicate,

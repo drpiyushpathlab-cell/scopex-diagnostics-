@@ -21,6 +21,7 @@ import sitemap from "@/app/sitemap";
 import robots from "@/app/robots";
 import { GET as backendGet, POST as backendPost } from "@/app/api/backend/[...path]/route";
 import { inMemoryPartnerSamples } from "@/lib/partner-lab-service";
+import { hasSupabasePublicConfig } from "@/lib/supabase";
 import {
   approveClinicalReview,
   buildPageStructuredData,
@@ -36,15 +37,14 @@ import {
 // CHECK 5: AUTHENTICATION & ROLE PERMISSIONS
 // ---------------------------------------------------------------------------
 
-test("Check 5: authenticateAdmin issues JWT for valid credentials and rejects invalid credentials", async () => {
-  const result = await authenticateAdmin("admin@scopexdiagnostics.in", "ScopexAdmin#2026");
-  assert.ok(result.token);
-  assert.equal(result.admin.role, "super_admin");
-  assert.equal(result.admin.email, "admin@scopexdiagnostics.in");
-
+test("Check 5: authenticateAdmin fails closed when Supabase auth is not configured", async (t) => {
+  if (hasSupabasePublicConfig()) {
+    t.skip("An authenticated Supabase test project is required for the live admin sign-in flow.");
+    return;
+  }
   await assert.rejects(
-    () => authenticateAdmin("admin@scopexdiagnostics.in", "WrongPassword123"),
-    /Invalid email or password/
+    () => authenticateAdmin("admin@example.invalid", "not-a-real-password"),
+    /Admin authentication is not configured on this server/
   );
 });
 

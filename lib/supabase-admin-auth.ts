@@ -1,5 +1,5 @@
 import { HttpError } from "@/backend/src/lib/http-error";
-import { getSupabaseAnonServerClient } from "@/lib/supabase";
+import { getSupabaseAnonServerClient, hasSupabasePublicConfig } from "@/lib/supabase";
 import { getSupabaseServiceClient } from "@/lib/supabase-server";
 
 const ADMIN_ROLES = new Set([
@@ -24,6 +24,9 @@ export type SupabaseAdminUser = {
 };
 
 export async function authenticateSupabaseAdmin(email: string, password: string): Promise<SupabaseAdminUser> {
+  if (!hasSupabasePublicConfig()) {
+    throw new HttpError(503, "Admin authentication is not configured on this server.");
+  }
   const normalizedEmail = email.trim().toLowerCase();
   const { data: authData, error: authError } = await getSupabaseAnonServerClient().auth.signInWithPassword({
     email: normalizedEmail,

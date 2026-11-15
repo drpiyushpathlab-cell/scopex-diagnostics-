@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiErrorResponse } from "@/app/api/_utils/errors";
+import { authorizeSeoRoute } from "@/lib/seo-route-auth";
 import {
   getSeoPageById,
   getSeoPageBySlug,
@@ -10,6 +12,7 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const body = await request.json();
     const query = (body.query || body.slug || body.url || "").trim();
 
@@ -100,9 +103,6 @@ export async function POST(request: NextRequest) {
       structuredData
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to validate metadata" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to validate metadata");
   }
 }

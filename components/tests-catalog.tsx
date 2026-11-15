@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { testsData } from "@/lib/data";
+import { fetchPublicCatalog } from "@/lib/public-catalog";
 import { Search, Clock, Droplet, ChevronDown, ChevronUp, ArrowRight, ShieldCheck, Sparkles, Scale } from "lucide-react";
 import { useCompare, testToComparable } from "@/lib/compare-context";
 import { getTestSeoSlug } from "@/lib/seo-platform";
@@ -41,7 +41,21 @@ export function TestsCatalog() {
   const [search, setSearch] = useState(urlSearch);
   const [filter, setFilter] = useState<(typeof filters)[number]>(normalizedUrlFilter);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [tests, setTests] = useState<Awaited<ReturnType<typeof fetchPublicCatalog>>["tests"]>([]);
+  const [catalogError, setCatalogError] = useState("");
   const { toggleItem, isItemComparing, selectedItems, openModal } = useCompare();
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicCatalog().then((catalog) => {
+      if (!active) return;
+      setTests(catalog.tests);
+      setCatalogError("");
+    }).catch((error) => {
+      if (active) setCatalogError(error instanceof Error ? error.message : "Unable to load tests.");
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     setSearch(urlSearch);
@@ -77,7 +91,7 @@ export function TestsCatalog() {
 
     return groups
       .map((group) => {
-        const items = testsData.filter((item) => {
+        const items = tests.filter((item) => {
           const matchesFocusGroup = !focusGroup || item.group === focusGroup;
           const matchesGroup = item.group === group;
           const matchesFilter = filter === "All" || item.category === filter;
@@ -96,7 +110,7 @@ export function TestsCatalog() {
         return { group, items };
       })
       .filter((section) => section.items.length > 0);
-  }, [filter, search, urlFocus]);
+  }, [filter, search, urlFocus, tests]);
 
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -118,6 +132,8 @@ export function TestsCatalog() {
             Real prices for individual blood tests, hormone markers, and organ profiles with complimentary doorstep home collection.
           </p>
         </div>
+
+        {catalogError ? <p className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">{catalogError}</p> : null}
 
         {/* Search & Filter Bar */}
         <div className="mt-8 rounded-2xl border border-[#EAEAEA] bg-[#F7F7F7] p-3 sm:p-4">

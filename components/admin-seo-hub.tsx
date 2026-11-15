@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { getStoredAuthToken } from "@/lib/backend-client";
 import {
   Search,
   Sparkles,
@@ -33,6 +34,14 @@ import type {
 } from "@/lib/seo-service";
 
 type ActiveTab = "editor" | "auditor" | "geo_readiness" | "redirects" | "tester" | "metrics";
+
+async function seoFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  const token = getStoredAuthToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  return fetch(input, { ...init, headers });
+}
 
 export function AdminSeoHub() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("editor");
@@ -79,10 +88,10 @@ export function AdminSeoHub() {
     setIsLoading(true);
     try {
       const [pagesRes, auditRes, redirectsRes, metricsRes] = await Promise.all([
-        fetch("/api/admin/seo/pages").then((r) => r.json()),
-        fetch("/api/admin/seo/audit").then((r) => r.json()),
-        fetch("/api/admin/seo/redirects").then((r) => r.json()),
-        fetch("/api/admin/seo/metrics").then((r) => r.json())
+        seoFetch("/api/admin/seo/pages").then((r) => r.json()),
+        seoFetch("/api/admin/seo/audit").then((r) => r.json()),
+        seoFetch("/api/admin/seo/redirects").then((r) => r.json()),
+        seoFetch("/api/admin/seo/metrics").then((r) => r.json())
       ]);
 
       if (pagesRes.success) {
@@ -168,7 +177,7 @@ export function AdminSeoHub() {
     };
 
     try {
-      const res = await fetch("/api/admin/seo/pages", {
+      const res = await seoFetch("/api/admin/seo/pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -211,7 +220,7 @@ export function AdminSeoHub() {
     }
 
     try {
-      const res = await fetch("/api/admin/seo/redirects", {
+      const res = await seoFetch("/api/admin/seo/redirects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -239,7 +248,7 @@ export function AdminSeoHub() {
   const handleDeleteRedirect = async (id: string) => {
     if (!confirm("Are you sure you want to remove this redirect rule?")) return;
     try {
-      const res = await fetch(`/api/admin/seo/redirects?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const res = await seoFetch(`/api/admin/seo/redirects?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
         setStatusMessage({ type: "success", text: "Redirect deleted." });
@@ -257,7 +266,7 @@ export function AdminSeoHub() {
     if (!testSlugInput.trim()) return;
     setIsTesting(true);
     try {
-      const res = await fetch("/api/admin/seo/validate", {
+      const res = await seoFetch("/api/admin/seo/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: testSlugInput.trim() })

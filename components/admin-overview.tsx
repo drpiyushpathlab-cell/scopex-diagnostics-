@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { AdminMetricCard } from "@/lib/booking-types";
 import { backendFetch } from "@/lib/backend-client";
-import { AdminAnalyticsChart } from "@/components/admin-analytics-chart";
+import { AdminAnalyticsChart, type DailyDataPoint } from "@/components/admin-analytics-chart";
 import { AdminStatusSummary } from "@/components/admin-status-summary";
 
 const metricLinks: Record<string, string> = {
@@ -23,6 +23,8 @@ export function AdminOverview() {
   const [recentBookings, setRecentBookings] = useState<Array<Record<string, unknown>>>([]);
   const [allBookings, setAllBookings] = useState<Array<Record<string, unknown>>>([]);
   const [recentUploads, setRecentUploads] = useState<Array<Record<string, unknown>>>([]);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [dailyAnalytics, setDailyAnalytics] = useState<DailyDataPoint[]>([]);
   const [message, setMessage] = useState("Loading overview...");
 
   useEffect(() => {
@@ -33,18 +35,17 @@ export function AdminOverview() {
           backendFetch("/admin/bookings-management").catch(() => null)
         ]);
 
-        if (dashRes && dashRes.ok) {
-          const data = await dashRes.json();
-          setMetrics(data.metrics ?? []);
-          setRecentActivities(data.recentActivities ?? []);
-          setRecentBookings(data.recentBookings ?? []);
-          setRecentUploads(data.recentUploads ?? []);
-        }
-
-        if (bookingsRes && bookingsRes.ok) {
-          const bData = await bookingsRes.json();
-          setAllBookings(bData.rows ?? []);
-        }
+        if (!dashRes?.ok) throw new Error("Unable to load live admin dashboard data.");
+        if (!bookingsRes?.ok) throw new Error("Unable to load live booking records.");
+        const data = await dashRes.json();
+        const bData = await bookingsRes.json();
+        setMetrics(data.metrics ?? []);
+        setRecentActivities(data.recentActivities ?? []);
+        setRecentBookings(data.recentBookings ?? []);
+        setRecentUploads(data.recentUploads ?? []);
+        setStatusCounts(data.statusCounts ?? {});
+        setDailyAnalytics(data.dailyAnalytics ?? []);
+        setAllBookings(bData.rows ?? []);
 
         setMessage("");
       } catch (error) {
@@ -97,9 +98,9 @@ export function AdminOverview() {
         })}
       </div>
 
-      <AdminStatusSummary bookings={allBookings.length > 0 ? allBookings : recentBookings} metrics={metrics} />
+      <AdminStatusSummary bookings={allBookings.length > 0 ? allBookings : recentBookings} metrics={metrics} statusCounts={statusCounts} />
 
-      <AdminAnalyticsChart initialBookings={allBookings.length > 0 ? allBookings : recentBookings} />
+      <AdminAnalyticsChart data={dailyAnalytics} />
 
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <div className="rounded-[24px] border border-[#f1dfce] bg-[#FFF8F2] p-5">

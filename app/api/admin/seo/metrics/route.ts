@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { apiErrorResponse } from "@/app/api/_utils/errors";
+import { authorizeSeoRoute } from "@/lib/seo-route-auth";
 import { getSearchIntegrationStatus } from "@/lib/seo-service";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const status = getSearchIntegrationStatus();
     return NextResponse.json({
       success: true,
@@ -10,9 +13,6 @@ export async function GET() {
       data: status
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to retrieve search metrics" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to retrieve search metrics");
   }
 }

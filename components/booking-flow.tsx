@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useMemo, useState } from "react";
-import { bookingCatalog, bookingPackages, bookingTests } from "@/lib/booking-catalog";
+import { fetchPublicCatalog } from "@/lib/public-catalog";
 import { calculateBookingQuote, formatInr } from "@/lib/offers";
 import { clearVerifiedMobile, getVerifiedMobile, storeVerifiedMobile } from "@/lib/otp-client";
 import { backendFetch, getStoredAuthToken, getStoredAuthUser, logoutAuthSession, storeAuthToken } from "@/lib/backend-client";
@@ -181,12 +181,12 @@ function createPatientFromSavedMember(member: SavedFamilyMember, itemIds: string
   };
 }
 
-function getItemsForPatient(patient: BookingPatient) {
-  return patient.itemIds.map((id) => bookingCatalog.find((item) => item.id === id)).filter(Boolean) as BookingCatalogItem[];
+function getItemsForPatient(patient: BookingPatient, catalog: BookingCatalogItem[]) {
+  return patient.itemIds.map((id) => catalog.find((item) => item.id === id)).filter(Boolean) as BookingCatalogItem[];
 }
 
-function getPatientSubtotal(patient: BookingPatient) {
-  return getItemsForPatient(patient).reduce((sum, item) => sum + item.price, 0);
+function getPatientSubtotal(patient: BookingPatient, catalog: BookingCatalogItem[]) {
+  return getItemsForPatient(patient, catalog).reduce((sum, item) => sum + item.price, 0);
 }
 
 function SectionTitle({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
@@ -216,6 +216,10 @@ export function BookingFlow() {
   const [authMessage, setAuthMessage] = useState("");
   const [authStatus, setAuthStatus] = useState<"idle" | "loading" | "error">("idle");
   const [catalogMode, setCatalogMode] = useState<CatalogMode>("packages");
+  const [bookingCatalog, setBookingCatalog] = useState<BookingCatalogItem[]>([]);
+  const [catalogError, setCatalogError] = useState("");
+  const bookingPackages = useMemo(() => bookingCatalog.filter((item) => item.kind === "package"), [bookingCatalog]);
+  const bookingTests = useMemo(() => bookingCatalog.filter((item) => item.kind === "test"), [bookingCatalog]);
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [customer, setCustomer] = useState<BookingCustomerInput>(initialCustomer);
@@ -244,6 +248,18 @@ export function BookingFlow() {
   const loggedInMobile = savedProfile?.mobile || customer.phone || otpPhone;
 
   useEffect(() => {
+    let active = true;
+    void fetchPublicCatalog().then((catalog) => {
+      if (!active) return;
+      setBookingCatalog(catalog.bookingItems);
+      setCatalogError("");
+    }).catch((error) => {
+      if (active) setCatalogError(error instanceof Error ? error.message : "Unable to load the live catalog.");
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     const phone = getVerifiedMobile();
     const token = getStoredAuthToken();
     const authUser = getStoredAuthUser();
@@ -265,7 +281,7 @@ export function BookingFlow() {
     }
     // Load once from persisted auth/session data on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [bookingPackages, bookingTests]);
 
   // Parse deep-linked package, custom package, or individual test parameters from URL
   useEffect(() => {
@@ -336,7 +352,7 @@ export function BookingFlow() {
 
   const selectedItems = useMemo(
     () => selectedIds.map((id) => bookingCatalog.find((item) => item.id === id)).filter(Boolean) as BookingCatalogItem[],
-    [selectedIds]
+    [selectedIds, bookingCatalog]
   );
 
   const visibleCatalog = useMemo(() => {
@@ -346,7 +362,7 @@ export function BookingFlow() {
     return source.filter((item) => `${item.name} ${item.description} ${item.category} ${(item.searchAliases ?? []).join(" ")}`.toLowerCase().includes(q));
   }, [catalogMode, search]);
 
-  const allPatientItems = useMemo(() => bookingPatients.flatMap((patient) => getItemsForPatient(patient)), [bookingPatients]);
+  const allPatientItems = useMemo(() => bookingPatients.flatMap((patient) => getItemsForPatient(patient, bookingCatalog)), [bookingPatients, bookingCatalog]);
 
   const bookingFamilyMembers = useMemo(
     () =>
@@ -733,7 +749,7 @@ export function BookingFlow() {
         dob: patient.dob || "",
         gender: patient.gender || "",
         mobile: patient.mobile || "",
-        tests: getItemsForPatient(patient)
+        tests: getItemsForPatient(patient, bookingCatalog)
       }));
 
       const response = await backendFetch("/booking/create", {
@@ -1009,6 +1025,9 @@ export function BookingFlow() {
             description="Select one or more packages or tests. ScopeX real prices are shown upfront, with additional bundle savings applied at checkout."
           />
 
+          {catalogError ? <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">{catalogError}</p> : null}
+          {!bookingCatalog.length && !catalogError ? <p className="mt-5 text-sm text-[#5f6868]">Loading the live catalog…</p> : null}
+
           <div className="mt-6 flex flex-wrap gap-3">
             {(["packages", "tests"] as CatalogMode[]).map((mode) => (
               <button
@@ -1171,7 +1190,7 @@ export function BookingFlow() {
               const patientCatalog = (patientMode === "packages" ? bookingPackages : bookingTests).filter((item) =>
                 !query ? true : `${item.name} ${item.category} ${item.description}`.toLowerCase().includes(query)
               );
-              const patientItems = getItemsForPatient(patient);
+              const patientItems = getItemsForPatient(patient, bookingCatalog);
               const missingDetails = !patient.age && !patient.dob || !patient.gender;
               return (
                 <article key={patient.patientId} className="overflow-hidden rounded-[30px] border border-[#f1dfce] bg-white shadow-[0_14px_34px_rgba(16,24,40,0.06)]">
@@ -1189,7 +1208,7 @@ export function BookingFlow() {
                           <h3 className="mt-2 text-2xl font-black text-[#0D0D0D]">{patient.name || "Patient name"}</h3>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className="rounded-full border border-[#f1dfce] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patientItems.length} selected item(s)</span>
-                            <span className="rounded-full border border-[#ffd8bf] bg-white px-3 py-1 text-xs font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient))}</span>
+                            <span className="rounded-full border border-[#ffd8bf] bg-white px-3 py-1 text-xs font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient, bookingCatalog))}</span>
                             <span className="rounded-full border border-[#f1dfce] bg-white px-3 py-1 text-xs font-bold text-[#264547]">{patient.mode === "same" ? "Same package" : "Custom tests"}</span>
                           </div>
                         </div>
@@ -1375,9 +1394,9 @@ export function BookingFlow() {
                       <p className="font-bold text-[#0D0D0D]">{patient.name}</p>
                       <p className="mt-1 text-sm text-[#5f6868]">{patient.relation} - {patient.age || patient.dob} - {patient.gender}</p>
                     </div>
-                    <p className="font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient))}</p>
+                    <p className="font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient, bookingCatalog))}</p>
                   </div>
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#FF6B00]">{getItemsForPatient(patient).length} selected item(s)</p>
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-[#FF6B00]">{getItemsForPatient(patient, bookingCatalog).length} selected item(s)</p>
                 </article>
               ))}
             </div>
@@ -1410,12 +1429,12 @@ export function BookingFlow() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-[#0D0D0D]">{patient.name}</p>
-                          <p className="text-sm text-[#5f6868]">{patient.relation} - {getItemsForPatient(patient).length} item(s)</p>
+                          <p className="text-sm text-[#5f6868]">{patient.relation} - {getItemsForPatient(patient, bookingCatalog).length} item(s)</p>
                         </div>
-                        <p className="font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient))}</p>
+                        <p className="font-bold text-[#FF6B00]">{formatInr(getPatientSubtotal(patient, bookingCatalog))}</p>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {getItemsForPatient(patient).map((item) => (
+                        {getItemsForPatient(patient, bookingCatalog).map((item) => (
                           <span key={`${patient.patientId}-${item.id}`} className="rounded-full bg-[#effaf7] px-3 py-1 text-xs font-bold text-[#FF6B00]">{item.name}</span>
                         ))}
                       </div>

@@ -4,33 +4,9 @@
 
 create extension if not exists pgcrypto;
 
--- 1. Admins Table for secure credential storage & role-based dashboard access
-create table if not exists public.admins (
-  id uuid primary key default gen_random_uuid(),
-  email text unique not null,
-  password_hash text not null,
-  role text not null default 'admin' check (role in ('super_admin', 'admin', 'manager', 'booking_manager', 'report_manager', 'finance_manager', 'customer_support')),
-  name text,
-  phone text,
-  is_active boolean not null default true,
-  reset_token text,
-  reset_expires_at timestamptz,
-  last_login_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+-- Admin identities remain in Supabase Auth and public.admin_roles; do not store passwords here.
 
--- Ensure columns exist if table was partially created earlier
-alter table public.admins add column if not exists role text not null default 'admin';
-alter table public.admins add column if not exists name text;
-alter table public.admins add column if not exists phone text;
-alter table public.admins add column if not exists is_active boolean not null default true;
-alter table public.admins add column if not exists reset_token text;
-alter table public.admins add column if not exists reset_expires_at timestamptz;
-alter table public.admins add column if not exists last_login_at timestamptz;
-alter table public.admins add column if not exists updated_at timestamptz not null default now();
-
--- 2. Phlebotomists / Field Operations Table
+-- 1. Phlebotomists / Field Operations Table
 create table if not exists public.phlebotomists (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -91,13 +67,11 @@ create table if not exists public.login_logs (
   created_at timestamptz not null default now()
 );
 
--- 6. Add phlebotomist assignment and patient fields to bookings if not already present
-alter table public.bookings add column if not exists assigned_phlebotomist_id uuid references public.phlebotomists(id) on delete set null;
+-- 6. Extend booking operations without duplicating the existing phlebotomist_id,
+-- contact_name, or contact_phone columns.
 alter table public.bookings add column if not exists phlebotomist_assigned_at timestamptz;
 alter table public.bookings add column if not exists sample_collected_at timestamptz;
 alter table public.bookings add column if not exists internal_notes text;
-alter table public.bookings add column if not exists customer_phone text;
-alter table public.bookings add column if not exists customer_name text;
 alter table public.bookings add column if not exists cancellation_reason text;
 alter table public.bookings add column if not exists cancelled_at timestamptz;
 
@@ -128,10 +102,9 @@ create index if not exists phlebotomists_city_status_idx on public.phlebotomists
 create index if not exists lead_activities_lead_id_idx on public.lead_activities(lead_id, created_at desc);
 create index if not exists audit_logs_entity_idx on public.audit_logs(entity_type, entity_id, created_at desc);
 create index if not exists login_logs_created_idx on public.login_logs(created_at desc);
-create index if not exists bookings_customer_phone_idx on public.bookings(customer_phone);
+create index if not exists bookings_contact_phone_idx on public.bookings(contact_phone);
 
 -- 10. Enable Row Level Security (RLS)
-alter table public.admins enable row level security;
 alter table public.phlebotomists enable row level security;
 alter table public.lead_activities enable row level security;
 alter table public.audit_logs enable row level security;

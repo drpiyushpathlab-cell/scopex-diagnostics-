@@ -109,6 +109,7 @@ export function AdminRolesPermissions() {
 
   async function saveRole() {
     if (!isSuperAdmin) return setMessage("Only Super Admin can change permissions.");
+    if (!selectedRole.id || !selectedRole.is_system) return setMessage("Select a built-in role before saving permissions.");
     const payload = {
       role: selectedRole.role,
       display_name: selectedRole.display_name || selectedRole.role,
@@ -116,14 +117,13 @@ export function AdminRolesPermissions() {
       permissions: rolePermissions(),
       is_system: selectedRole.is_system ?? false
     };
-    const isNew = !selectedRole.id;
-    const response = await backendFetch(isNew ? "/admin/roles-permissions" : `/admin/roles-permissions/${selectedRole.id}`, {
-      method: isNew ? "POST" : "PATCH",
+    const response = await backendFetch(`/admin/roles-permissions/${selectedRole.id}`, {
+      method: "PATCH",
       body: JSON.stringify(payload)
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return setMessage(data.message || "Unable to save role.");
-    setMessage(isNew ? "Role created." : "Role updated.");
+    setMessage("Role permissions updated.");
     await load();
   }
 
@@ -186,6 +186,18 @@ export function AdminRolesPermissions() {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return setMessage(data.message || "Unable to create admin user.");
+    if (staffForm.custom_permissions_enabled) {
+      const permissionResponse = await backendFetch(`/admin/admin-users/${data.user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ custom_permissions_enabled: true, custom_permissions: staffForm.custom_permissions })
+      });
+      if (!permissionResponse.ok) {
+        const permissionData = await permissionResponse.json().catch(() => ({}));
+        setMessage(`Admin user created, but custom permissions were not saved: ${permissionData.message || "retry from Custom permission mode"}`);
+        await load();
+        return;
+      }
+    }
     setMessage("Admin user created.");
     setStaffForm({
       name: "",
@@ -211,9 +223,8 @@ export function AdminRolesPermissions() {
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-3xl font-black text-[#0D0D0D] md:text-4xl">Dynamic permissions</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">Create roles, clone defaults, assign permissions, and customize individual admin access.</p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#5f6868] md:text-base">Manage permissions for built-in administrator roles, assign administrators, and customize individual access.</p>
           </div>
-          <button type="button" onClick={() => setSelectedRole(blankRole())} className="cta-btn">Create New Role</button>
         </div>
         {message ? <p className="mt-4 rounded-2xl bg-[#eef8f5] p-3 text-sm font-bold text-[#FF6B00]">{message}</p> : null}
       </div>
@@ -225,7 +236,7 @@ export function AdminRolesPermissions() {
             {roles.map((role) => (
               <button key={role.id} type="button" onClick={() => selectRole(role)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedRole.id === role.id ? "border-[#FF6B00] bg-[#eef8f5]" : "border-[#f1dfce] bg-[#FFF8F2] hover:border-[#FF6B00]"}`}>
                 <span className="block font-black text-[#0D0D0D]">{role.display_name || role.role}</span>
-                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[#FF6B00]">{role.role} {role.is_system ? "- System" : "- Custom"}</span>
+                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[#FF6B00]">{role.role} - Built in</span>
                 <span className="mt-2 block text-sm text-[#5f6868]">{rolePermissions(role).includes("*") ? "Full access" : `${rolePermissions(role).length} permissions`}</span>
               </button>
             ))}
@@ -234,9 +245,9 @@ export function AdminRolesPermissions() {
 
         <section className="rounded-[28px] border border-[#f1dfce] bg-white p-6 shadow-[0_16px_36px_rgba(16,24,40,0.06)] md:p-8">
           <div className="grid gap-3 md:grid-cols-2">
-            <input className="form-field" value={selectedRole.display_name || ""} onChange={(event) => setSelectedRole({ ...selectedRole, display_name: event.target.value })} placeholder="Role display name" />
-            <input className="form-field" value={selectedRole.role || ""} onChange={(event) => setSelectedRole({ ...selectedRole, role: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} placeholder="role_code" disabled={Boolean(selectedRole.id && selectedRole.is_system)} />
-            <textarea className="form-field md:col-span-2" value={selectedRole.description || ""} onChange={(event) => setSelectedRole({ ...selectedRole, description: event.target.value })} placeholder="Role description" />
+            <input className="form-field" value={selectedRole.display_name || ""} readOnly placeholder="Built-in role name" />
+            <input className="form-field" value={selectedRole.role || ""} readOnly placeholder="role_code" />
+            <textarea className="form-field md:col-span-2" value={selectedRole.description || ""} readOnly placeholder="Built-in role description" />
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -246,7 +257,7 @@ export function AdminRolesPermissions() {
                 <div className="mt-3 grid gap-2">
                   {group.permissions.map(([key, label]) => (
                     <label key={key} className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold text-[#0D0D0D]">
-                      <input type="checkbox" checked={selectedRolePermissions.has("*") || selectedRolePermissions.has(key)} disabled={selectedRolePermissions.has("*") || !isSuperAdmin} onChange={(event) => setRolePermission(key, event.target.checked)} />
+                      <input type="checkbox" checked={selectedRolePermissions.has("*") || selectedRolePermissions.has(key)} disabled={selectedRolePermissions.has("*") || !isSuperAdmin || selectedRole.role === "super_admin"} onChange={(event) => setRolePermission(key, event.target.checked)} />
                       {label}
                     </label>
                   ))}
@@ -256,9 +267,8 @@ export function AdminRolesPermissions() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={saveRole} className="cta-btn">Save Role</button>
-            {selectedRole.id ? <button type="button" onClick={() => cloneRole(selectedRole)} className="secondary-btn">Clone Existing Role</button> : null}
-            {selectedRole.id && !selectedRole.is_system ? <button type="button" onClick={() => deleteRole(selectedRole)} className="rounded-full border border-[#ffd6bf] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-[#FF6B00]">Delete Role</button> : null}
+            <button type="button" onClick={saveRole} disabled={!selectedRole.id || selectedRole.role === "super_admin"} className="cta-btn disabled:cursor-not-allowed disabled:opacity-50">Save Role Permissions</button>
+            {selectedRole.role === "super_admin" ? <p className="self-center text-sm text-[#5f6868]">Super Admin always has full access.</p> : null}
           </div>
         </section>
       </div>

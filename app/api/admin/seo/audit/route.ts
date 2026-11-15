@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiErrorResponse } from "@/app/api/_utils/errors";
+import { authorizeSeoRoute } from "@/lib/seo-route-auth";
 import {
   runSeoAudit,
   listSeoPages,
   listRedirects
 } from "@/lib/seo-service";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const auditReport = runSeoAudit();
     const allPages = listSeoPages();
     const redirects = listRedirects();
@@ -33,9 +37,6 @@ export async function GET() {
       audit: auditReport
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to run audit" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to run audit");
   }
 }

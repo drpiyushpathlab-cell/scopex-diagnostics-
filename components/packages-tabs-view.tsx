@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PackageCard } from "@/components/package-card";
 import { CustomPackageBuilder } from "@/components/custom-package-builder";
 import type { PackageItem } from "@/lib/data";
+import { fetchPublicCatalog } from "@/lib/public-catalog";
 import { Layers, Sliders, Sparkles, CheckCircle2 } from "lucide-react";
 
 type PackagesTabsViewProps = {
-  fixedPackages: PackageItem[];
   sectionOrder: readonly string[];
   sectionDescriptions: Record<string, string>;
   packageOrderBySection: Record<string, string[]>;
@@ -15,13 +15,27 @@ type PackagesTabsViewProps = {
 };
 
 export function PackagesTabsView({
-  fixedPackages,
   sectionOrder,
   sectionDescriptions,
   packageOrderBySection,
   initialTab = "fixed"
 }: PackagesTabsViewProps) {
   const [activeTab, setActiveTab] = useState<"fixed" | "custom">(initialTab);
+  const [packages, setPackages] = useState<PackageItem[]>([]);
+  const [catalogError, setCatalogError] = useState("");
+  const fixedPackages = packages.filter((item) => item.packageType === "fixed" && item.isActive);
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicCatalog().then((catalog) => {
+      if (!active) return;
+      setPackages(catalog.packages);
+      setCatalogError("");
+    }).catch((error) => {
+      if (active) setCatalogError(error instanceof Error ? error.message : "Unable to load packages.");
+    });
+    return () => { active = false; };
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -64,6 +78,7 @@ export function PackagesTabsView({
       </div>
 
       {/* Content based on Active Tab */}
+      {catalogError ? <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">{catalogError}</p> : null}
       {activeTab === "fixed" ? (
         <div className="space-y-14">
           {sectionOrder.map((sectionName) => {

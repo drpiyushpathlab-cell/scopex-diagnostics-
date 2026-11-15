@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { testsData, type TestItem } from "@/lib/data";
+import type { TestItem } from "@/lib/data";
+import { fetchPublicCatalog } from "@/lib/public-catalog";
 import { calculateCustomPackagePricing } from "@/lib/pricing";
 import {
   Search,
@@ -25,7 +26,8 @@ function formatCurrency(value: number) {
 
 export function CustomPackageBuilder({ initialSelectedIds = [] }: { initialSelectedIds?: string[] }) {
   const router = useRouter();
-  const [tests, setTests] = useState<TestItem[]>(testsData);
+  const [tests, setTests] = useState<TestItem[]>([]);
+  const [catalogError, setCatalogError] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -33,15 +35,11 @@ export function CustomPackageBuilder({ initialSelectedIds = [] }: { initialSelec
   useEffect(() => {
     async function loadFreshTests() {
       try {
-        const res = await fetch("/api/backend/tests");
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.tests) && data.tests.length > 0) {
-            setTests(data.tests);
-          }
-        }
-      } catch {
-        // Fallback to imported testsData
+        const catalog = await fetchPublicCatalog();
+        setTests(catalog.tests);
+        setCatalogError("");
+      } catch (error) {
+        setCatalogError(error instanceof Error ? error.message : "Unable to load tests.");
       }
     }
     void loadFreshTests();
@@ -119,6 +117,7 @@ export function CustomPackageBuilder({ initialSelectedIds = [] }: { initialSelec
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] items-start">
+      {catalogError ? <p className="lg:col-span-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">{catalogError}</p> : null}
       {/* Left Column: Test Search & Selection */}
       <div className="space-y-6">
         <div className="rounded-2xl border border-[#EAEAEA] bg-white p-5 sm:p-6 shadow-xs">

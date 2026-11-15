@@ -202,6 +202,127 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function mapDatabaseTest(row: Record<string, any>): TestItem {
+  const extra = row.schema_json && typeof row.schema_json === "object" ? row.schema_json : {};
+  const categoryRelation = Array.isArray(row.category) ? row.category[0] : row.category;
+  const categoryName = String(extra.category || categoryRelation?.name || extra.group || "Blood");
+  const mrp = Number(row.price ?? row.real_price ?? 0);
+  const price = Number(row.real_price ?? row.discounted_price ?? row.price ?? 0);
+  return {
+    id: String(row.id),
+    name: String(row.display_name || row.name || ""),
+    price,
+    mrp,
+    discount: mrp > price ? Math.round((mrp - price) / mrp * 100) : 0,
+    category: (categoryName.toLowerCase().includes("hormone") ? "Hormone" : categoryName.toLowerCase().includes("profile") ? "Profile" : "Blood") as TestItem["category"],
+    group: String(extra.group || categoryName) as TestItem["group"],
+    components: Array.isArray(extra.components) ? extra.components : [String(row.name || "")],
+    searchAliases: Array.isArray(extra.searchAliases) ? extra.searchAliases : [],
+    fastingHours: extra.fastingHours || (row.fasting_required ? "Fasting required" : "No fasting required"),
+    tat: extra.tat || (row.report_tat_hours ? `${row.report_tat_hours} Hrs` : "12-24 Hrs"),
+    specimenType: row.sample_type || undefined,
+    preparation: row.preparation_instructions || undefined,
+    discountCapPercent: Number(extra.discountCapPercent ?? 20),
+    discountCapRupees: extra.discountCapRupees == null ? undefined : Number(extra.discountCapRupees),
+    isBundleEligible: extra.isBundleEligible !== false,
+    isActive: row.active !== false,
+    seoTitle: row.seo_title || undefined,
+    seoDescription: row.seo_description || undefined,
+    slug: row.slug || undefined,
+    code: row.code || undefined
+  };
+}
+
+function mapTestToDatabase(test: TestItem) {
+  return {
+    slug: test.slug || test.id,
+    code: test.code || null,
+    name: test.name,
+    display_name: test.name,
+    description: test.components?.join(", ") || null,
+    price: Number(test.mrp ?? test.price),
+    discounted_price: test.price,
+    real_price: test.price,
+    sample_type: test.specimenType || null,
+    preparation_instructions: test.preparation || null,
+    fasting_required: Boolean(test.fastingHours && !test.fastingHours.toLowerCase().includes("no fasting")),
+    report_tat_hours: Number.parseInt(String(test.tat || "").match(/\d+/)?.[0] || "0", 10) || null,
+    seo_title: test.seoTitle || null,
+    seo_description: test.seoDescription || null,
+    active: test.isActive !== false,
+    schema_json: {
+      group: test.group,
+      category: test.category,
+      components: test.components || [],
+      searchAliases: test.searchAliases || [],
+      fastingHours: test.fastingHours,
+      tat: test.tat,
+      discountCapPercent: test.discountCapPercent,
+      discountCapRupees: test.discountCapRupees,
+      isBundleEligible: test.isBundleEligible !== false
+    }
+  };
+}
+
+function mapDatabasePackage(row: Record<string, any>): PackageItem {
+  const extra = row.schema_json && typeof row.schema_json === "object" ? row.schema_json : {};
+  const mrp = Number(row.regular_price ?? row.real_price ?? row.selling_price ?? 0);
+  const price = Number(row.real_price ?? row.selling_price ?? row.regular_price ?? 0);
+  const testIds = Array.isArray(row.package_tests) ? row.package_tests.map((link: Record<string, any>) => String(link.test_id)) : (Array.isArray(extra.testIds) ? extra.testIds.map(String) : []);
+  return {
+    id: String(row.id),
+    name: String(row.name || ""),
+    section: String(extra.section || "Preventive Health") as PackageItem["section"],
+    badge: String(extra.badge || "Best Value") as PackageItem["badge"],
+    packageType: "fixed",
+    allowExtraDiscount: extra.allowExtraDiscount === true,
+    price,
+    mrp,
+    discount: mrp > price ? Math.round((mrp - price) / mrp * 100) : 0,
+    savings: Math.max(0, mrp - price),
+    tagline: String(row.description || ""),
+    overview: Array.isArray(extra.overview) ? extra.overview : [],
+    testIds,
+    whyPackage: Array.isArray(extra.whyPackage) ? extra.whyPackage : [],
+    bestFor: Array.isArray(extra.bestFor) ? extra.bestFor : [],
+    featured: row.featured === true,
+    isActive: row.active !== false
+  };
+}
+
+function packageRpcPayload(pkg: PackageItem) {
+  return {
+    ...(UUID_PATTERN.test(pkg.id) ? { id: pkg.id } : {}),
+    slug: UUID_PATTERN.test(pkg.id) ? undefined : pkg.id,
+    name: pkg.name,
+    section: pkg.section,
+    badge: pkg.badge,
+    packageType: "fixed",
+    allowExtraDiscount: pkg.allowExtraDiscount === true,
+    price: pkg.price,
+    mrp: pkg.mrp,
+    savings: pkg.savings,
+    discount: pkg.discount,
+    tagline: pkg.tagline,
+    overview: pkg.overview,
+    testIds: pkg.testIds || [],
+    whyPackage: pkg.whyPackage,
+    bestFor: pkg.bestFor,
+    featured: pkg.featured === true,
+    active: pkg.isActive !== false
+  };
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function resolveTestCategoryId(category: string) {
+  const slug = category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const { data, error } = await getServiceClient().from("test_categories").select("id").eq("slug", slug).maybeSingle();
+  if (error) throw new HttpError(503, "Unable to verify the selected test category.");
+  if (!data) throw new HttpError(400, "Create or select an existing catalog category before saving this test.");
+  return data.id as string;
+}
+
 export function generateBookingNumber(): string {
   const year = new Date().getFullYear();
   const randomPart = Math.floor(100000 + Math.random() * 900000);
@@ -245,6 +366,8 @@ export function requireAdminRole(request: Request, allowedRoles?: AdminRole[]): 
 export async function authenticateAdmin(email: string, passwordPlain: string, clientIp?: string) {
   const admin = await authenticateSupabaseAdmin(email, passwordPlain);
   const token = signAdminAppToken({ userId: admin.id, email: admin.email, role: admin.role });
+
+  void getServiceClient().from("login_logs").insert({ user_id: admin.id, admin_id: admin.id, email: admin.email, role: admin.role, event: "login", ip_address: clientIp || null }).then(() => undefined, () => undefined);
 
   void logAuditAction({
     actorEmail: admin.email,
@@ -500,7 +623,7 @@ export function resetAdminBundleSlabsToDefault(adminUser: AppJwtPayload): Bundle
 // -----------------------------------------------------------------------------
 
 export async function getBackendCatalog() {
-  try {
+  if (hasSupabasePublicConfig()) {
     const supabase = getServiceClient();
     const [testsRes, packagesRes, categoriesRes] = await Promise.all([
       supabase.from("tests").select("*").eq("active", true),
@@ -508,15 +631,8 @@ export async function getBackendCatalog() {
       supabase.from("test_categories").select("*").eq("active", true).order("sort_order")
     ]);
 
-    if (!testsRes.error && testsRes.data && testsRes.data.length > 0) {
-      return {
-        tests: testsRes.data,
-        packages: packagesRes.data || [],
-        categories: categoriesRes.data || []
-      };
-    }
-  } catch {
-    // Supabase unavailable or table empty -> fallback to in-memory store
+    if (testsRes.error || packagesRes.error || categoriesRes.error) throw new HttpError(503, "Unable to load the live diagnostic catalog.");
+    return { tests: testsRes.data || [], packages: packagesRes.data || [], categories: categoriesRes.data || [] };
   }
 
   return {
@@ -531,6 +647,21 @@ export async function getBackendCatalog() {
 // -----------------------------------------------------------------------------
 
 export async function getAdminTestsList(params: { q?: string; category?: string; status?: string }) {
+  if (hasSupabasePublicConfig()) {
+    const supabase = getServiceClient();
+    let query = supabase.from("tests").select("*, category:test_categories(name,slug)").order("name");
+    if (params.status === "active") query = query.eq("active", true);
+    if (params.status === "inactive") query = query.eq("active", false);
+    const { data, error } = await query;
+    if (error) throw new HttpError(503, "Unable to load tests from the catalog database.");
+    let rows = (data || []).map(mapDatabaseTest);
+    if (params.category && params.category !== "All") rows = rows.filter((row) => row.category.toLowerCase() === params.category!.toLowerCase() || row.group.toLowerCase() === params.category!.toLowerCase());
+    if (params.q) {
+      const needle = params.q.trim().toLowerCase();
+      rows = rows.filter((row) => row.name.toLowerCase().includes(needle) || row.id.toLowerCase().includes(needle) || row.category.toLowerCase().includes(needle) || (row.components || []).some((part) => part.toLowerCase().includes(needle)));
+    }
+    return rows;
+  }
   let list = Array.from(inMemoryTests.values());
 
   if (params.category && params.category !== "All") {
@@ -566,7 +697,7 @@ export async function createAdminTest(
   const code = (data.code || "").trim().toLowerCase();
   const id = data.id || code || rawSlug || crypto.randomUUID();
 
-  if (inMemoryTests.has(id)) {
+  if (!hasSupabasePublicConfig() && inMemoryTests.has(id)) {
     throw new HttpError(409, `Test with ID/code/slug "${id}" already exists.`);
   }
 
@@ -595,6 +726,19 @@ export async function createAdminTest(
     seoTitle: data.seoTitle || `${data.name.trim()} at Home | ScopeX Diagnostics`,
     seoDescription: data.seoDescription || `Book ${data.name.trim()} with ScopeX Diagnostics with home sample collection.`
   };
+
+  if (hasSupabasePublicConfig()) {
+    const categoryId = await resolveTestCategoryId(newTest.category);
+    const { data, error } = await getServiceClient().from("tests").insert({ ...mapTestToDatabase(newTest), category_id: categoryId }).select("*, category:test_categories(name,slug)").single();
+    if (error) {
+      if (error.code === "23505") throw new HttpError(409, "A test with this name, code, or slug already exists.");
+      throw new HttpError(503, "Unable to create the test in the catalog database.");
+    }
+    const saved = mapDatabaseTest(data);
+    inMemoryTests.set(saved.id, saved);
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "create_test", entityType: "tests", entityId: saved.id, newVal: saved });
+    return saved;
+  }
 
   inMemoryTests.set(id, newTest);
 
@@ -642,7 +786,12 @@ export async function updateAdminTest(
   patch: Partial<TestItem>,
   adminUser: AppJwtPayload
 ): Promise<TestItem> {
-  const existing = inMemoryTests.get(id);
+  let existing = inMemoryTests.get(id);
+  if (hasSupabasePublicConfig()) {
+    const { data, error } = await getServiceClient().from("tests").select("*, category:test_categories(name,slug)").eq("id", id).maybeSingle();
+    if (error) throw new HttpError(503, "Unable to load the test from the catalog database.");
+    existing = data ? mapDatabaseTest(data) : undefined;
+  }
   if (!existing) throw new HttpError(404, `Test "${id}" not found.`);
 
   const price = typeof patch.price === "number" ? patch.price : existing.price;
@@ -664,6 +813,17 @@ export async function updateAdminTest(
     discountCapRupees,
     isBundleEligible
   };
+
+  if (hasSupabasePublicConfig()) {
+    const categoryId = await resolveTestCategoryId(updated.category);
+    const { data, error } = await getServiceClient().from("tests").update({ ...mapTestToDatabase(updated), category_id: categoryId, updated_at: nowIso() }).eq("id", id).select("*, category:test_categories(name,slug)").maybeSingle();
+    if (error) throw new HttpError(503, "Unable to update the test in the catalog database.");
+    if (!data) throw new HttpError(404, `Test "${id}" not found.`);
+    const saved = mapDatabaseTest(data);
+    inMemoryTests.set(saved.id, saved);
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "update_test", entityType: "tests", entityId: id, oldVal: existing, newVal: saved });
+    return saved;
+  }
 
   inMemoryTests.set(id, updated);
 
@@ -701,8 +861,21 @@ export async function updateAdminTest(
 }
 
 export async function deleteAdminTest(id: string, adminUser: AppJwtPayload) {
-  const existing = inMemoryTests.get(id);
+  let existing = inMemoryTests.get(id);
+  if (hasSupabasePublicConfig()) {
+    const { data, error } = await getServiceClient().from("tests").select("id,name,active").eq("id", id).maybeSingle();
+    if (error) throw new HttpError(503, "Unable to load the test from the catalog database.");
+    existing = data ? { ...existing, id: data.id, name: data.name, isActive: data.active } as TestItem : undefined;
+  }
   if (!existing) throw new HttpError(404, `Test "${id}" not found.`);
+
+  if (hasSupabasePublicConfig()) {
+    const { error } = await getServiceClient().from("tests").update({ active: false, updated_at: nowIso() }).eq("id", id);
+    if (error) throw new HttpError(503, "Unable to deactivate the test in the catalog database.");
+    inMemoryTests.delete(id);
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "deactivate_test", entityType: "tests", entityId: id, oldVal: { isActive: true }, newVal: { isActive: false } });
+    return { success: true, message: `Test "${existing.name}" deactivated.` };
+  }
 
   // Soft deactivate to preserve referential integrity and historical bookings
   existing.isActive = false;
@@ -748,6 +921,7 @@ export async function bulkUpsertAdminTests(
   const results: BulkUpsertTestResult[] = [];
   const createdItems: TestItem[] = [];
   const updatedItems: TestItem[] = [];
+  const existingCatalog = hasSupabasePublicConfig() ? await getAdminTestsList({ status: "all" }) : Array.from(inMemoryTests.values());
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -783,11 +957,7 @@ export async function bulkUpsertAdminTests(
     const id = rawCode || slug || crypto.randomUUID();
 
     // Check if test exists by id, slug, or matching name
-    const existing =
-      inMemoryTests.get(id) ||
-      Array.from(inMemoryTests.values()).find(
-        (t) => (t.slug && t.slug === slug) || t.name.toLowerCase() === name.toLowerCase()
-      );
+    const existing = existingCatalog.find((t) => t.id === id || t.code === rawCode || t.slug === slug || t.name.toLowerCase() === name.toLowerCase());
 
     const rawMrp = row.mrp ?? row.price_mrp ?? row.reference_price ?? row.market_price;
     const mrp = Number(rawMrp);
@@ -882,35 +1052,20 @@ export async function bulkUpsertAdminTests(
     }
   }
 
-  // Supabase sync if client is available
-  try {
+  if (hasSupabasePublicConfig()) {
     const supabase = getServiceClient();
     const allToSync = [...createdItems, ...updatedItems];
     if (allToSync.length > 0) {
-      await supabase.from("tests").upsert(
-        allToSync.map((t) => ({
-          slug: t.slug || t.id,
-          name: t.name,
-          price: t.mrp,
-          real_price: t.price,
-          sample_type: t.specimenType,
-          preparation_instructions: t.preparation,
-          fasting_required: Boolean(t.fastingHours && !t.fastingHours.toLowerCase().includes("no")),
-          seo_title: t.seoTitle,
-          seo_description: t.seoDescription,
-          active: t.isActive,
-          schema_json: {
-            components: t.components,
-            discountCapPercent: t.discountCapPercent,
-            tat: t.tat,
-            group: t.group
-          }
-        })),
-        { onConflict: "slug" }
-      );
+      const records = await Promise.all(allToSync.map(async (t) => ({ ...mapTestToDatabase(t), category_id: await resolveTestCategoryId(t.category) })));
+      const { data, error } = await supabase.from("tests").upsert(records, { onConflict: "slug" }).select("*, category:test_categories(name,slug)");
+      if (error) throw new HttpError(503, "Unable to save the uploaded tests in the catalog database.");
+      for (const row of data || []) {
+        const saved = mapDatabaseTest(row);
+        inMemoryTests.set(saved.id, saved);
+        const result = results.find((item) => item.name.toLowerCase() === saved.name.toLowerCase() && item.status === "success");
+        if (result) result.id = saved.id;
+      }
     }
-  } catch {
-    // In-memory fallback
   }
 
   logAuditAction({
@@ -964,9 +1119,10 @@ export async function bulkAdjustAdminTestPrices(
   const updatedTests: TestItem[] = [];
   let totalOriginalValue = 0;
   let totalNewValue = 0;
+  const currentTests = hasSupabasePublicConfig() ? await getAdminTestsList({ status: "all" }) : Array.from(inMemoryTests.values());
 
   for (const id of testIds) {
-    const existing = inMemoryTests.get(id);
+    const existing = currentTests.find((item) => item.id === id);
     if (!existing) continue;
 
     const adjustment = calculateAdjustedItem(
@@ -997,21 +1153,17 @@ export async function bulkAdjustAdminTestPrices(
     throw new HttpError(404, "None of the selected tests were found in the database.");
   }
 
-  // Attempt Supabase sync if service client is configured
-  try {
-    const supabase = getServiceClient();
-    await supabase.from("tests").upsert(
-      updatedTests.map((t) => ({
-        slug: t.slug || t.id,
-        name: t.name,
-        price: t.mrp,
-        real_price: t.price,
-        active: t.isActive
-      })),
-      { onConflict: "slug" }
-    );
-  } catch {
-    // In-memory fallback
+  if (hasSupabasePublicConfig()) {
+    const { data, error } = await getServiceClient().rpc("admin_bulk_set_test_prices", {
+      p_prices: updatedTests.map((item) => ({ id: item.id, price: item.price, mrp: item.mrp ?? item.price }))
+    });
+    if (error) throw new HttpError(503, "Unable to save bulk test prices to the catalog database.");
+    for (const row of data || []) {
+      const saved = mapDatabaseTest(row);
+      const index = updatedTests.findIndex((item) => item.id === saved.id);
+      if (index >= 0) updatedTests[index] = saved;
+      inMemoryTests.set(saved.id, saved);
+    }
   }
 
   const netDelta = totalNewValue - totalOriginalValue;
@@ -1054,6 +1206,20 @@ export async function bulkAdjustAdminTestPrices(
 // -----------------------------------------------------------------------------
 
 export async function getAdminPackagesList(params: { q?: string; category?: string; status?: string }) {
+  if (hasSupabasePublicConfig()) {
+    let query = getServiceClient().from("packages").select("*, package_tests(test_id)").order("name");
+    if (params.status === "active") query = query.eq("active", true);
+    if (params.status === "inactive") query = query.eq("active", false);
+    const { data, error } = await query;
+    if (error) throw new HttpError(503, "Unable to load packages from the catalog database.");
+    let rows = (data || []).map(mapDatabasePackage);
+    if (params.category && params.category !== "All") rows = rows.filter((row) => row.section.toLowerCase() === params.category!.toLowerCase());
+    if (params.q) {
+      const needle = params.q.trim().toLowerCase();
+      rows = rows.filter((row) => row.name.toLowerCase().includes(needle) || row.id.toLowerCase().includes(needle) || row.tagline.toLowerCase().includes(needle) || row.overview.some((part) => part.toLowerCase().includes(needle)));
+    }
+    return rows;
+  }
   let list = Array.from(inMemoryPackages.values());
 
   if (params.category && params.category !== "All") {
@@ -1084,14 +1250,14 @@ export async function createAdminFixedPackage(
 ): Promise<PackageItem> {
   if (!data.name || !data.name.trim()) throw new HttpError(400, "Package name is required.");
   if (typeof data.price !== "number" || data.price < 0) throw new HttpError(400, "Valid selling price is required.");
-  if ((!data.testIds || data.testIds.length === 0) && (!data.overview || data.overview.length === 0)) {
+  if ((!data.testIds || data.testIds.length === 0) && (hasSupabasePublicConfig() || !data.overview || data.overview.length === 0)) {
     throw new HttpError(400, "At least one diagnostic test must be included in the fixed package.");
   }
 
   const rawSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   const id = data.id || rawSlug || crypto.randomUUID();
 
-  if (inMemoryPackages.has(id)) {
+  if (!hasSupabasePublicConfig() && inMemoryPackages.has(id)) {
     throw new HttpError(409, `Package with ID "${id}" already exists.`);
   }
 
@@ -1130,6 +1296,20 @@ export async function createAdminFixedPackage(
     isActive: data.isActive !== false
   };
 
+  if (hasSupabasePublicConfig()) {
+    const testIds = newPkg.testIds || [];
+    if (testIds.some((testId) => !UUID_PATTERN.test(testId))) throw new HttpError(400, "Package tests must use valid catalog test IDs.");
+    const { data: savedRow, error } = await getServiceClient().rpc("admin_upsert_fixed_package", { p_package: packageRpcPayload(newPkg), p_test_ids: testIds });
+    if (error) {
+      if (error.code === "23505") throw new HttpError(409, "A package with this name or slug already exists.");
+      throw new HttpError(503, "Unable to create the package in the catalog database.");
+    }
+    const saved = mapDatabasePackage({ ...savedRow, package_tests: testIds.map((test_id) => ({ test_id })) });
+    inMemoryPackages.set(saved.id, saved);
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "create_fixed_package", entityType: "packages", entityId: saved.id, newVal: saved });
+    return saved;
+  }
+
   inMemoryPackages.set(id, newPkg);
 
   logAuditAction({
@@ -1149,7 +1329,12 @@ export async function updateAdminFixedPackage(
   patch: Partial<PackageItem>,
   adminUser: AppJwtPayload
 ): Promise<PackageItem> {
-  const existing = inMemoryPackages.get(id);
+  let existing = inMemoryPackages.get(id);
+  if (hasSupabasePublicConfig()) {
+    const { data, error } = await getServiceClient().from("packages").select("*, package_tests(test_id)").eq("id", id).maybeSingle();
+    if (error) throw new HttpError(503, "Unable to load the package from the catalog database.");
+    existing = data ? mapDatabasePackage(data) : undefined;
+  }
   if (!existing) throw new HttpError(404, `Package "${id}" not found.`);
 
   const price = typeof patch.price === "number" ? patch.price : existing.price;
@@ -1180,6 +1365,21 @@ export async function updateAdminFixedPackage(
     overview
   };
 
+  if (hasSupabasePublicConfig()) {
+    const testIds = patch.testIds === undefined ? null : updated.testIds || [];
+    if (testIds?.some((testId) => !UUID_PATTERN.test(testId))) throw new HttpError(400, "Package tests must use valid catalog test IDs.");
+    const { data: savedRow, error } = await getServiceClient().rpc("admin_upsert_fixed_package", { p_package: packageRpcPayload(updated), p_test_ids: testIds });
+    if (error) {
+      if (error.code === "P0002") throw new HttpError(404, `Package "${id}" not found.`);
+      throw new HttpError(503, "Unable to update the package in the catalog database.");
+    }
+    const savedLinks = testIds === null ? undefined : testIds.map((test_id) => ({ test_id }));
+    const saved = mapDatabasePackage(savedLinks ? { ...savedRow, package_tests: savedLinks } : savedRow);
+    inMemoryPackages.set(saved.id, saved);
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "update_fixed_package", entityType: "packages", entityId: id, oldVal: existing, newVal: saved });
+    return saved;
+  }
+
   inMemoryPackages.set(id, updated);
 
   logAuditAction({
@@ -1196,8 +1396,21 @@ export async function updateAdminFixedPackage(
 }
 
 export async function deleteAdminFixedPackage(id: string, adminUser: AppJwtPayload) {
-  const existing = inMemoryPackages.get(id);
+  let existing = inMemoryPackages.get(id);
+  if (hasSupabasePublicConfig()) {
+    const { data, error } = await getServiceClient().from("packages").select("id,name,active").eq("id", id).maybeSingle();
+    if (error) throw new HttpError(503, "Unable to load the package from the catalog database.");
+    existing = data ? { ...existing, id: data.id, name: data.name, isActive: data.active } as PackageItem : undefined;
+  }
   if (!existing) throw new HttpError(404, `Package "${id}" not found.`);
+
+  if (hasSupabasePublicConfig()) {
+    const { error } = await getServiceClient().from("packages").update({ active: false, updated_at: nowIso() }).eq("id", id);
+    if (error) throw new HttpError(503, "Unable to deactivate the package in the catalog database.");
+    inMemoryPackages.delete(id);
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "deactivate_fixed_package", entityType: "packages", entityId: id, oldVal: { isActive: true }, newVal: { isActive: false } });
+    return { success: true, message: `Package "${existing.name}" deactivated.` };
+  }
 
   // Soft deactivate to preserve historical booking references
   existing.isActive = false;
@@ -1216,12 +1429,27 @@ export async function deleteAdminFixedPackage(id: string, adminUser: AppJwtPaylo
   return { success: true, message: `Package "${existing.name}" deactivated.` };
 }
 
-export function getAdminCategoriesList() {
+export async function getAdminCategoriesList() {
+  if (hasSupabasePublicConfig()) {
+    const { data, error } = await getServiceClient().from("test_categories").select("*").order("sort_order").order("name");
+    if (error) throw new HttpError(503, "Unable to load catalog categories.");
+    return data || [];
+  }
   return Array.from(inMemoryCategories.values());
 }
 
-export function createAdminCategory(data: { name: string; slug?: string; sort_order?: number }, adminUser: AppJwtPayload) {
+export async function createAdminCategory(data: { name: string; slug?: string; sort_order?: number }, adminUser: AppJwtPayload) {
+  if (!data.name?.trim()) throw new HttpError(400, "Category name is required.");
   const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  if (hasSupabasePublicConfig()) {
+    const { data: saved, error } = await getServiceClient().from("test_categories").insert({ name: data.name.trim(), slug, sort_order: data.sort_order || 10, active: true }).select("*").single();
+    if (error) {
+      if (error.code === "23505") throw new HttpError(409, "A category with this name or slug already exists.");
+      throw new HttpError(503, "Unable to save catalog category.");
+    }
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "create_category", entityType: "test_categories", entityId: saved.id, newVal: { name: saved.name, slug: saved.slug } });
+    return saved;
+  }
   const newCat = {
     id: `cat-${slug}`,
     name: data.name.trim(),
@@ -1241,7 +1469,14 @@ export function createAdminCategory(data: { name: string; slug?: string; sort_or
   return newCat;
 }
 
-export function getAdminServiceAreas(city?: string) {
+export async function getAdminServiceAreas(city?: string) {
+  if (hasSupabasePublicConfig()) {
+    let query = getServiceClient().from("service_areas").select("*").order("city").order("pincode");
+    if (city) query = query.ilike("city", city);
+    const { data, error } = await query;
+    if (error) throw new HttpError(503, "Unable to load service areas.");
+    return data || [];
+  }
   const areas = Array.from(inMemoryServiceAreas.values());
   if (city) {
     return areas.filter((a) => a.city.toLowerCase() === city.toLowerCase());
@@ -1249,7 +1484,7 @@ export function getAdminServiceAreas(city?: string) {
   return areas;
 }
 
-export function createAdminServiceArea(
+export async function createAdminServiceArea(
   data: {
     city: string;
     pincode: string;
@@ -1263,6 +1498,23 @@ export function createAdminServiceArea(
 ) {
   if (!data.city || !data.pincode) throw new HttpError(400, "City and PIN code are required.");
   if (!/^\d{6}$/.test(data.pincode.trim())) throw new HttpError(400, "PIN code must be a valid 6-digit number.");
+
+  if (hasSupabasePublicConfig()) {
+    const collectionCharge = typeof data.collection_charge === "number" ? data.collection_charge : 99;
+    const minimumOrder = typeof data.minimum_order_value === "number" ? data.minimum_order_value : 600;
+    if (collectionCharge < 0 || minimumOrder < 0) throw new HttpError(400, "Collection charge and minimum order must be non-negative.");
+    const { data: saved, error } = await getServiceClient().from("service_areas").insert({
+      pincode: data.pincode.trim(), city: data.city.trim(), area: data.area?.trim() || null,
+      home_collection_enabled: data.home_collection_enabled !== false, centre_visit_enabled: Boolean(data.centre_visit_enabled),
+      collection_charge: collectionCharge, minimum_order_value: minimumOrder, active: true
+    }).select("*").single();
+    if (error) {
+      if (error.code === "23505") throw new HttpError(409, "This PIN code is already configured.");
+      throw new HttpError(503, "Unable to save service area.");
+    }
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "create_service_area", entityType: "service_areas", entityId: saved.id, newVal: { pincode: saved.pincode, city: saved.city } });
+    return saved;
+  }
 
   const id = `sa-${data.city.slice(0, 3).toLowerCase()}-${data.pincode.trim()}`;
   const record = {
@@ -1291,7 +1543,7 @@ export function createAdminServiceArea(
   return record;
 }
 
-export function updateAdminServiceArea(
+export async function updateAdminServiceArea(
   id: string,
   patch: Partial<{
     home_collection_enabled: boolean;
@@ -1303,6 +1555,19 @@ export function updateAdminServiceArea(
   }>,
   adminUser: AppJwtPayload
 ) {
+  if (hasSupabasePublicConfig()) {
+    const allowed: Record<string, unknown> = {};
+    for (const key of ["home_collection_enabled", "centre_visit_enabled", "collection_charge", "minimum_order_value", "active", "area"] as const) {
+      if (Object.hasOwn(patch, key)) allowed[key] = patch[key];
+    }
+    if (!Object.keys(allowed).length) throw new HttpError(400, "No supported service area fields were provided.");
+    if (Number(allowed.collection_charge ?? 0) < 0 || Number(allowed.minimum_order_value ?? 0) < 0) throw new HttpError(400, "Collection charge and minimum order must be non-negative.");
+    const { data, error } = await getServiceClient().from("service_areas").update({ ...allowed, updated_at: nowIso() }).eq("id", id).select("*").maybeSingle();
+    if (error) throw new HttpError(503, "Unable to update service area.");
+    if (!data) throw new HttpError(404, "Service area not found.");
+    logAuditAction({ actorEmail: adminUser.email || adminUser.userId, role: adminUser.role, action: "update_service_area", entityType: "service_areas", entityId: id, newVal: { fields: Object.keys(allowed) } });
+    return data;
+  }
   const existing = inMemoryServiceAreas.get(id);
   if (!existing) throw new HttpError(404, "Service area not found.");
 
@@ -1756,6 +2021,23 @@ export function logAuditAction(params: {
 
   inMemoryAuditLogs.unshift(log);
   if (inMemoryAuditLogs.length > 500) inMemoryAuditLogs.pop();
+
+  const sensitiveField = /password|secret|token|otp|phone|mobile|email|address|patient|medical|report|file|payment/i;
+  const changedFields = [...new Set([
+    ...Object.keys(params.oldVal && typeof params.oldVal === "object" ? params.oldVal as Record<string, unknown> : {}),
+    ...Object.keys(params.newVal && typeof params.newVal === "object" ? params.newVal as Record<string, unknown> : {})
+  ])].filter((field) => !sensitiveField.test(field)).slice(0, 50);
+  if (hasSupabasePublicConfig()) {
+    void getServiceClient().from("audit_logs").insert({
+      actor_email: params.actorEmail || "system",
+      role: params.role || "system",
+      action: params.action,
+      entity_type: params.entityType,
+      entity_id: params.entityId || null,
+      ip_address: params.ipAddress || null,
+      metadata: { changed_fields: changedFields }
+    }).then(() => undefined, () => undefined);
+  }
 }
 
 export function getAuditLogsList(limit = 100) {

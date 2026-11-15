@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiErrorResponse } from "@/app/api/_utils/errors";
+import { authorizeSeoRoute } from "@/lib/seo-route-auth";
 import {
   listRedirects,
   addRedirect,
@@ -6,8 +8,9 @@ import {
   matchRedirect
 } from "@/lib/seo-service";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const rules = listRedirects();
     return NextResponse.json({
       success: true,
@@ -15,15 +18,13 @@ export async function GET() {
       data: rules
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to fetch redirects" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to fetch redirects");
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const body = await request.json();
     const rule = addRedirect(body);
 
@@ -33,15 +34,13 @@ export async function POST(request: NextRequest) {
       data: rule
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to create redirect" },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Failed to create redirect");
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    await authorizeSeoRoute(request);
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -65,9 +64,6 @@ export async function DELETE(request: NextRequest) {
       message: "Redirect rule deleted successfully"
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to delete redirect" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to delete redirect");
   }
 }

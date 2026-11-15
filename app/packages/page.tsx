@@ -3,7 +3,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { PackageCard } from "@/components/package-card";
 import { PackagesTabsView } from "@/components/packages-tabs-view";
-import { packagesData } from "@/lib/data";
 import { Sparkles, ShieldCheck, CheckCircle2, Clock, Home, ArrowRight } from "lucide-react";
 import { PackagesCompareTrigger } from "@/components/packages-compare-trigger";
 
@@ -81,7 +80,6 @@ export default function PackagesPage() {
 
         {/* Package Tabs: Type 1 Fixed Packages and Type 2 Custom Packages */}
         <PackagesTabsView
-          fixedPackages={packagesData}
           sectionOrder={sectionOrder}
           sectionDescriptions={sectionDescriptions}
           packageOrderBySection={packageOrderBySection}

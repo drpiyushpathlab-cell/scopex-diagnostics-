@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiErrorResponse } from "@/app/api/_utils/errors";
+import { authorizeSeoRoute } from "@/lib/seo-route-auth";
 import {
   getSeoPageById,
   createOrUpdateSeoPage,
@@ -14,6 +16,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await authorizeSeoRoute(_request);
     const { id } = await params;
     const page = getSeoPageById(id);
 
@@ -29,10 +32,7 @@ export async function GET(
       data: page
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to fetch page" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to fetch page");
   }
 }
 
@@ -41,6 +41,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await authorizeSeoRoute(request);
     const { id } = await params;
     const body = await request.json();
 
@@ -101,10 +102,7 @@ export async function PATCH(
       data: saved
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to update page" },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Failed to update page");
   }
 }
 
@@ -113,6 +111,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await authorizeSeoRoute(_request);
     const { id } = await params;
     const deleted = deleteSeoPage(id);
 
@@ -128,9 +127,6 @@ export async function DELETE(
       message: "SEO page deleted successfully"
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to delete page" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Failed to delete page");
   }
 }
