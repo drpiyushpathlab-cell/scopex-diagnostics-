@@ -134,6 +134,14 @@ export type CollectionJob = {
 export type PhlebotomistRestrictedPatientView = {
   jobId: string;
   bookingNumber: string;
+  bookingId?: string;
+  partnerLabId?: string | null;
+  partnerLabName?: string | null;
+  partnerLocationId?: string | null;
+  partnerLocationCity?: string | null;
+  partnerLocationAddress?: string | null;
+  assignmentStatus?: string;
+  sampleRecords?: Array<{ id: string; scopex_sample_id: string; test_names: string[]; handover_status: string }>;
   status: CollectionJobStatus;
   patientName: string;
   patientPhone: string;

@@ -1,7 +1,7 @@
 import { requireAdminRole } from "@/lib/backend-service";
 import type { AppJwtPayload } from "@/backend/src/lib/jwt";
 
-const ADMIN_LOGIN_PATHS = new Set(["/admin/login"]);
+const ADMIN_LOGIN_PATHS = new Set(["/admin/login", "/phlebotomist/login"]);
 
 /** Enforce authentication at the route boundary, including handlers that omit local guards. */
 export function authorizeBackendRoute(request: Request, path: string): AppJwtPayload | null {
@@ -9,12 +9,11 @@ export function authorizeBackendRoute(request: Request, path: string): AppJwtPay
   if (ADMIN_LOGIN_PATHS.has(path) && method === "POST") return null;
 
   if (path === "/admin" || path.startsWith("/admin/")) {
-    // These two partner sample endpoints are intentionally available to
-    // assigned phlebotomists; the handlers apply the record ownership filter.
-    const phlebotomistSampleRead = path === "/admin/partner-samples" && method === "GET";
+    // Handover submission is available to phlebotomists only after the SQL RPC
+    // checks the authenticated identity against the assigned collection job.
     const phlebotomistSampleHandover =
       /^\/admin\/partner-samples\/[^/]+\/handover$/.test(path) && method === "POST";
-    if (phlebotomistSampleRead || phlebotomistSampleHandover) {
+    if (phlebotomistSampleHandover) {
       return requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support", "phlebotomist"]);
     }
     return requireAdminRole(request);

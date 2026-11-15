@@ -96,6 +96,7 @@ export function getStoredAuthUser(): StoredAuthUser | null {
 }
 
 export function getDashboardHrefForRole(role?: string | null) {
+  if (role === "phlebotomist") return "/phlebotomist";
   if (["admin", "manager", "booking_manager", "report_manager", "finance_manager", "customer_support"].includes(String(role))) return "/admin/dashboard";
   if (role === "super-admin" || role === "super_admin") return "/super-admin/dashboard";
   return "/patient/dashboard";

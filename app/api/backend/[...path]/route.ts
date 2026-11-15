@@ -55,6 +55,17 @@ import {
 import { createRazorpayOrder, getRazorpayKeyId, verifyRazorpaySignature } from "@/lib/razorpay";
 import { hasSupabasePublicConfig } from "@/lib/supabase";
 import { getSupabaseServiceClient } from "@/lib/supabase-server";
+import { getOrCreateBookingPaymentLink } from "@/lib/supabase-booking-payment";
+import {
+  authenticatePhlebotomist,
+  assignBookingCollectionWorkflow,
+  listAssignedCollectionJobs,
+  listCollectionAssignmentOptions,
+  listPartnerHandoverSamples,
+  setPartnerSampleIdentifiers,
+  submitPartnerSampleHandover,
+  updateCollectionJobInDatabase
+} from "@/lib/supabase-phlebotomy";
 import { getCustomerCareDashboardFromDatabase, recordCustomerCareInteraction, updateBookingFromCustomerCare } from "@/lib/supabase-customer-care";
 import { HttpError } from "@/backend/src/lib/http-error";
 import {
@@ -178,6 +189,12 @@ async function handleBackendRequest(request: Request, path: string[]) {
       token: result.token,
       user: result.admin
     });
+  }
+
+  if (request.method === "POST" && joined === "/phlebotomist/login") {
+    const body = await jsonBody(request);
+    const result = await authenticatePhlebotomist(String(body.email || ""), String(body.password || ""));
+    return NextResponse.json({ success: true, ...result });
   }
 
   if (request.method === "POST" && joined === "/auth/logout") {
@@ -496,17 +513,41 @@ async function handleBackendRequest(request: Request, path: string[]) {
     requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     const q = searchParams.get("q") || "";
     const status = searchParams.get("status") || "";
+    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const city = searchParams.get("city") || "";
+    const dateFrom = searchParams.get("dateFrom") || "";
+    const dateTo = searchParams.get("dateTo") || "";
+    const collectionDate = searchParams.get("collectionDate") || "";
+    const exportCsv = searchParams.get("format") === "csv";
     const page = Math.max(1, Number(searchParams.get("page") || 1));
-    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 50)));
+    const pageSize = exportCsv ? 1000 : Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 50)));
     const supabase = getSupabaseServiceClient();
     let query = supabase.from("bookings").select("*", { count: "exact" }).order("created_at", { ascending: false });
     if (status) query = query.eq("booking_status", status.toUpperCase());
+    if (paymentStatus) query = query.eq("payment_status", paymentStatus.toUpperCase());
+    if (city) query = query.ilike("city", `%${city.replace(/[,%()\\]/g, " ").trim()}%`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) query = query.gte("created_at", `${dateFrom}T00:00:00.000Z`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) query = query.lt("created_at", `${dateTo}T23:59:59.999Z`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(collectionDate)) query = query.eq("preferred_date", collectionDate);
     const safeQ = q.replace(/[,%()"\\]/g, " ").trim();
     if (safeQ) query = query.or(`booking_number.ilike.%${safeQ}%,contact_name.ilike.%${safeQ}%,contact_phone.ilike.%${safeQ}%,city.ilike.%${safeQ}%`);
     const start = (page - 1) * pageSize;
     const { data, error, count } = await query.range(start, start + pageSize - 1);
     if (error) throw new HttpError(500, "Unable to load live bookings.");
+    if (exportCsv) {
+      const columns = ["booking_number", "created_at", "contact_name", "contact_phone", "city", "address", "preferred_date", "preferred_time", "subtotal", "discount_total", "payable_amount", "payment_status", "booking_status", "phlebotomist_id"];
+      return new NextResponse(toCsv((data || []) as Array<Record<string, unknown>>, columns), {
+        headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=scopex-bookings.csv" }
+      });
+    }
     return NextResponse.json({ success: true, rows: data || [], total: count ?? (data || []).length, page, pageSize });
+  }
+
+  const adminPaymentLinkMatch = joined.match(/^\/admin\/bookings-management\/([^/]+)\/payment-link$/);
+  if (adminPaymentLinkMatch && request.method === "POST") {
+    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "finance_manager"]);
+    const result = await getOrCreateBookingPaymentLink(adminPaymentLinkMatch[1], admin.email || admin.userId);
+    return NextResponse.json({ success: true, ...result }, { status: result.reused ? 200 : 201 });
   }
 
   const adminBookingMatch = joined.match(/^\/admin\/bookings-management\/([^/]+)$/);
@@ -517,7 +558,6 @@ async function handleBackendRequest(request: Request, path: string[]) {
       const body = await jsonBody(request);
       const allowedFields: Record<string, string> = {
         booking_status: "booking_status",
-        payment_status: "payment_status",
         preferred_date: "preferred_date",
         preferred_time: "preferred_time",
         assigned_phlebotomist_id: "phlebotomist_id",
@@ -527,16 +567,11 @@ async function handleBackendRequest(request: Request, path: string[]) {
         Object.entries(allowedFields).filter(([key]) => Object.prototype.hasOwnProperty.call(body, key)).map(([key, column]) => [column, body[key]])
       );
       if (!Object.keys(patch).length) throw new HttpError(400, "No supported booking fields were provided.");
-      const bookingStatuses = new Set(["STARTED", "DETAILS_ENTERED", "SLOT_SELECTED", "PAYMENT_STARTED", "PENDING_PAYMENT", "PAID", "CONFIRMED", "ASSIGNED", "COLLECTION_STARTED", "SAMPLE_COLLECTED", "PROCESSING", "REPORT_READY", "COMPLETED", "CANCELLED", "REFUNDED", "ABANDONED"]);
-      const paymentStatuses = new Set(["PENDING", "PAID", "FAILED", "REFUNDED"]);
+      const bookingStatuses = new Set(["STARTED", "DETAILS_ENTERED", "SLOT_SELECTED", "PAYMENT_STARTED", "PENDING_PAYMENT", "CONFIRMED", "ASSIGNED", "COLLECTION_STARTED", "SAMPLE_COLLECTED", "PROCESSING", "REPORT_READY", "COMPLETED", "CANCELLED", "REFUNDED", "ABANDONED"]);
       if (patch.booking_status && !bookingStatuses.has(String(patch.booking_status).toUpperCase())) {
         throw new HttpError(400, "Unsupported booking status.");
       }
-      if (patch.payment_status && !paymentStatuses.has(String(patch.payment_status).toUpperCase())) {
-        throw new HttpError(400, "Unsupported payment status.");
-      }
       if (patch.booking_status) patch.booking_status = String(patch.booking_status).toUpperCase();
-      if (patch.payment_status) patch.payment_status = String(patch.payment_status).toUpperCase();
       patch.updated_at = new Date().toISOString();
       const { data, error } = await getSupabaseServiceClient().from("bookings").update(patch).eq("id", bookingId).select("*").maybeSingle();
       if (error) throw new HttpError(500, "Unable to update booking.");
@@ -1186,64 +1221,41 @@ async function handleBackendRequest(request: Request, path: string[]) {
   // ---------------------------------------------------------------------------
   // PHLEBOTOMIST PORTAL & COLLECTION OPERATIONS
   // ---------------------------------------------------------------------------
+  if (joined === "/admin/phlebotomist-assignment-options" && request.method === "GET") {
+    requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
+    return NextResponse.json({ success: true, ...(await listCollectionAssignmentOptions()) });
+  }
+
   if (joined === "/phlebotomist/jobs" && request.method === "GET") {
-    seedInitialJobsIfEmpty();
-    const phlebId = searchParams.get("phlebotomistId") || "";
-    const statusParam = searchParams.get("status") || "";
-
-    let jobs = Array.from(inMemoryCollectionJobs.values());
-    if (phlebId) {
-      jobs = jobs.filter((j) => j.phlebotomistId === phlebId);
-    }
-    if (statusParam) {
-      jobs = jobs.filter((j) => j.status.toLowerCase() === statusParam.toLowerCase());
-    }
-
-    // Sort by scheduledDate asc, scheduledTime asc
-    jobs.sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate) || a.scheduledTime.localeCompare(b.scheduledTime));
-
-    // Privacy boundary: expose only minimal required patient collection information
-    const restrictedViews = jobs.map(getPhlebotomistJobView);
-    return NextResponse.json({ success: true, jobs: restrictedViews, total: restrictedViews.length });
+    const auth = requireAdminRole(request, ["phlebotomist"]);
+    const result = await listAssignedCollectionJobs(auth.userId);
+    const statusParam = searchParams.get("status")?.toLowerCase();
+    const jobs = statusParam ? result.jobs.filter((job: any) => job.status.toLowerCase() === statusParam) : result.jobs;
+    return NextResponse.json({ success: true, phlebotomist: result.phlebotomist, jobs, total: jobs.length });
   }
 
   if (joined === "/phlebotomist/team" && request.method === "GET") {
-    seedInitialJobsIfEmpty();
-    const city = searchParams.get("city") || "";
-    let team = Array.from(inMemoryPhlebotomistTeam.values());
-    if (city) {
-      team = team.filter((p) => p.city.toLowerCase() === city.toLowerCase());
-    }
-    return NextResponse.json({ success: true, team });
+    requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
+    const { phlebotomists } = await listCollectionAssignmentOptions();
+    return NextResponse.json({ success: true, team: phlebotomists });
   }
 
   const phlebActionMatch = joined.match(/^\/phlebotomist\/jobs\/([^/]+)\/action$/);
   if (phlebActionMatch && request.method === "POST") {
-    seedInitialJobsIfEmpty();
     const jobId = phlebActionMatch[1];
     const body = await jsonBody(request);
     const action = body.action as PhlebotomistAction;
-    // Actor identity comes only from the verified token; never accept a client
-    // supplied name for an operational status/audit record.
-    const actorName = routeAuth?.email || routeAuth?.userId || "Phlebotomist Staff";
-
-    const updated = updateCollectionJobStatus(jobId, action, {
-      performedBy: actorName,
-      declineReason: body.declineReason,
-      exceptionReason: body.exceptionReason,
-      collectionNotes: body.collectionNotes,
-      barcodes: body.barcodes,
-      vialsCollected: body.vialsCollected,
+    const auth = requireAdminRole(request, ["phlebotomist"]);
+    const updated = await updateCollectionJobInDatabase({
+      jobId, actorId: auth.userId, action, notes: body.collectionNotes,
+      exceptionReason: body.declineReason || body.exceptionReason,
       temperatureVerified: body.temperatureVerified,
-      fastingStatusVerified: body.fastingStatusVerified,
-      fastingHoursReported: body.fastingHoursReported,
-      destinationLab: body.destinationLab
+      fastingVerified: body.fastingStatusVerified,
+      fastingHours: body.fastingHoursReported
     });
 
     return NextResponse.json({
-      success: true,
-      message: `Job status transitioned to ${updated.status}`,
-      job: getPhlebotomistJobView(updated)
+      success: true, message: `Job status transitioned to ${updated.status}`, job: updated
     });
   }
 
@@ -1302,42 +1314,17 @@ async function handleBackendRequest(request: Request, path: string[]) {
   }
 
   if (joined === "/admin/customer-care/transfer-to-collection" && request.method === "POST") {
-    seedInitialJobsIfEmpty();
     const body = await jsonBody(request);
-    let performedBy = body.performedBy || "Customer Care";
-    try {
-      const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
-      performedBy = auth.email || performedBy;
-    } catch {
-      // Allow fallback
-    }
-
-    const result = transferCaseToCollection({
-      bookingId: body.bookingId,
-      bookingNumber: body.bookingNumber,
-      customerName: body.customerName,
-      customerPhone: body.customerPhone,
-      patientName: body.patientName,
-      patientAge: body.patientAge,
-      patientGender: body.patientGender,
-      address: body.address,
-      pincode: body.pincode,
-      city: body.city,
-      scheduledDate: body.scheduledDate,
-      scheduledTime: body.scheduledTime,
-      testNames: body.testNames,
-      fastingRequired: body.fastingRequired,
-      specialInstructions: body.specialInstructions,
-      allocationMode: body.allocationMode || "auto",
-      targetPhlebotomistId: body.targetPhlebotomistId,
-      performedBy
+    const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
+    const scheduledAt = body.scheduledAt || (body.scheduledDate && body.scheduledTime ? `${body.scheduledDate}T${body.scheduledTime}` : "");
+    const job = await assignBookingCollectionWorkflow({
+      bookingId: String(body.bookingId || ""),
+      phlebotomistId: String(body.targetPhlebotomistId || ""),
+      partnerLabId: String(body.partnerLabId || ""),
+      partnerLocationId: String(body.partnerLocationId || body.locationId || ""),
+      scheduledAt: String(scheduledAt), actorId: auth.userId, remarks: body.specialInstructions
     });
-
-    return NextResponse.json({
-      success: true,
-      job: getPhlebotomistJobView(result.job),
-      allocation: result.allocation
-    });
+    return NextResponse.json({ success: true, job, message: "Booking assigned with partner lab and location." });
   }
 
   if (joined === "/admin/allocation/exceptions" && request.method === "GET") {
@@ -1525,8 +1512,41 @@ async function handleBackendRequest(request: Request, path: string[]) {
   }
 
   // Phase 3 & 4: Sample Assignment, Handover & Status Lifecycle
+  if (joined === "/admin/partner-samples/pending-handover" && request.method === "GET") {
+    requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
+    const rows = await listPartnerHandoverSamples();
+    const samples = rows.map((sample: any) => {
+      const booking = Array.isArray(sample.booking) ? sample.booking[0] : sample.booking;
+      const patient = Array.isArray(booking?.patients) ? booking.patients[0] : booking?.patients;
+      const lab = Array.isArray(sample.partner_lab) ? sample.partner_lab[0] : sample.partner_lab;
+      const location = Array.isArray(sample.partner_location) ? sample.partner_location[0] : sample.partner_location;
+      const collectionJob = Array.isArray(sample.collectionJob) ? sample.collectionJob[0] : sample.collectionJob;
+      const phlebotomist = Array.isArray(collectionJob?.phlebotomist) ? collectionJob.phlebotomist[0] : collectionJob?.phlebotomist;
+      return {
+        ...sample, bookingNumber: booking?.booking_number || sample.booking_id,
+        id: sample.id, scopexSampleId: sample.scopex_sample_id,
+        partnerLabId: sample.partner_lab_id, locationId: sample.location_id,
+        partnerBarcode: sample.partner_barcode, partnerAccessionNumber: sample.partner_accession_number,
+        testNames: sample.test_names || [], testIds: sample.test_ids || [],
+        applicableRateSnapshot: sample.rate_snapshot || [], totalProcessingCost: Number(sample.total_processing_cost || 0),
+        adminVerified: sample.admin_verified,
+        statusHistory: (sample.handover_status_history || []).map((event: any, index: number, all: any[]) => ({
+          id: `${sample.id}-${index}`, previousStatus: all[index + 1]?.status || "Awaiting Collection",
+          newStatus: event.status, updatedBy: event.actorId || "System", updatedAt: event.at || "", remarks: ""
+        })),
+        patientName: patient?.name || "Patient", patientPhone: patient?.mobile || "",
+        partnerLabName: lab?.name || sample.partner_lab_id, locationCity: location?.city || "",
+        locationAddress: location?.full_address || "", handoverStatus: sample.handover_status,
+        phlebotomistName: phlebotomist?.name || "", collectionDateTime: collectionJob?.collected_at || collectionJob?.scheduled_at || "",
+        status: sample.handover_status,
+        barcodePhotoUrl: sample.handoverPhotos?.[0]?.signedUrl || sample.barcode_photo_url || ""
+      };
+    });
+    return NextResponse.json({ success: true, samples, total: samples.length });
+  }
+
   if (joined === "/admin/partner-samples") {
-    const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support", "phlebotomist"]);
+    const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "customer_support"]);
     seedInitialPartnerLabDataIfEmpty();
     let samples = Array.from(inMemoryPartnerSamples.values());
 
@@ -1562,17 +1582,11 @@ async function handleBackendRequest(request: Request, path: string[]) {
   }
 
   if (joined === "/admin/partner-samples/assign" && request.method === "POST") {
-    const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
-    const body = await jsonBody(request);
-    const assigned = assignSampleToPartnerLab({
-      bookingId: body.bookingId,
-      scopexSampleId: body.scopexSampleId,
-      partnerLabId: body.partnerLabId,
-      locationId: body.locationId,
-      remarks: body.remarks,
-      adminUser: admin
-    });
-    return NextResponse.json({ success: true, sample: assigned });
+    requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
+    return NextResponse.json({
+      success: false, code: "COMBINED_ASSIGNMENT_REQUIRED",
+      error: "Assign the phlebotomist, partner laboratory, and location together from Customer Care dispatch."
+    }, { status: 409 });
   }
 
   if (joined === "/admin/partner-samples/reassign" && request.method === "POST") {
@@ -1590,19 +1604,13 @@ async function handleBackendRequest(request: Request, path: string[]) {
 
   const sampleHandoverMatch = joined.match(/^\/admin\/partner-samples\/([^/]+)\/handover$/);
   if (sampleHandoverMatch && request.method === "POST") {
-    seedInitialPartnerLabDataIfEmpty();
     const sampleRecordId = sampleHandoverMatch[1];
-    const body = await jsonBody(request);
-    const auth = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager", "phlebotomist"]);
-    const performedBy = auth.email || auth.userId;
-
-    const updated = recordPartnerLabBarcodeHandover({
-      sampleRecordId,
-      partnerBarcode: body.partnerBarcode,
-      barcodePhotoUrl: body.barcodePhotoUrl,
-      handoverGpsCoordinates: body.handoverGpsCoordinates,
-      remarks: body.remarks,
-      performedBy
+    const auth = requireAdminRole(request, ["phlebotomist"]);
+    const form = await request.formData();
+    const photos = form.getAll("photos").filter((entry): entry is File => entry instanceof File);
+    const updated = await submitPartnerSampleHandover({
+      sampleRecordId, actorId: auth.userId,
+      remarks: String(form.get("remarks") || ""), files: photos
     });
     return NextResponse.json({ success: true, sample: updated });
   }
@@ -1612,12 +1620,12 @@ async function handleBackendRequest(request: Request, path: string[]) {
     const admin = requireAdminRole(request, ["super_admin", "admin", "manager", "booking_manager"]);
     const sampleRecordId = sampleVerifyMatch[1];
     const body = await jsonBody(request);
-    const updated = verifyPartnerSampleHandoverByAdmin({
-      sampleRecordId,
-      correctedPartnerBarcode: body.correctedPartnerBarcode,
-      verified: body.verified !== false,
-      remarks: body.remarks,
-      adminUser: admin
+    const updated = await setPartnerSampleIdentifiers({
+      sampleRecordId, actorId: admin.userId,
+      barcode: body.partnerBarcode || body.correctedPartnerBarcode,
+      accessionNumber: body.accessionNumber,
+      verify: body.verified === true,
+      remarks: body.remarks || body.verificationNotes
     });
     return NextResponse.json({ success: true, sample: updated });
   }

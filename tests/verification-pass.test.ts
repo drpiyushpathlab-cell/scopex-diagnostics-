@@ -20,7 +20,6 @@ import { verifyRazorpaySignature } from "@/lib/razorpay";
 import sitemap from "@/app/sitemap";
 import robots from "@/app/robots";
 import { GET as backendGet, POST as backendPost } from "@/app/api/backend/[...path]/route";
-import { inMemoryPartnerSamples } from "@/lib/partner-lab-service";
 import { hasSupabasePublicConfig } from "@/lib/supabase";
 import {
   approveClinicalReview,
@@ -82,57 +81,15 @@ test("partner sample handover rejects unauthenticated requests", async () => {
   assert.equal(response.status, 401);
 });
 
-test("phlebotomists only see partner samples for their assigned bookings", async () => {
-  const assignedBookingId = "booking-phleb-scope-check";
-  const otherBookingId = "booking-phleb-scope-other";
-  const assignedSampleId = "sample-phleb-scope-check";
-  const otherSampleId = "sample-phleb-scope-other";
-  const now = new Date().toISOString();
-  const makeSample = (id: string, bookingId: string) => ({
-    id,
-    bookingId,
-    bookingNumber: bookingId,
-    scopexSampleId: id,
-    partnerLabId: "PLAB-SECURITY-TEST",
-    partnerLabName: "Dummy Lab",
-    locationId: "LOC-DUM-01",
-    locationCity: "Indore",
-    patientName: "Dummy Patient",
-    patientPhone: "9000000000",
-    testIds: [],
-    testNames: [],
-    applicableRateSnapshot: [],
-    totalProcessingCost: 0,
-    status: "Assigned to Partner Lab" as const,
-    statusHistory: [],
-    adminVerified: false,
-    createdAt: now,
-    updatedAt: now
+test("phlebotomists cannot browse the admin partner sample queue", async () => {
+  const token = signAppToken({ userId: "phleb-scope-check", role: "phlebotomist" });
+  const request = new NextRequest("http://localhost/api/backend/admin/partner-samples", {
+    headers: { authorization: `Bearer ${token}` }
   });
-
-  inMemoryBookings.set(assignedBookingId, { assigned_phlebotomist_id: "phleb-scope-check" });
-  inMemoryBookings.set(otherBookingId, { assigned_phlebotomist_id: "another-phleb" });
-  inMemoryPartnerSamples.set(assignedSampleId, makeSample(assignedSampleId, assignedBookingId));
-  inMemoryPartnerSamples.set(otherSampleId, makeSample(otherSampleId, otherBookingId));
-
-  try {
-    const token = signAppToken({ userId: "phleb-scope-check", role: "phlebotomist" });
-    const request = new NextRequest("http://localhost/api/backend/admin/partner-samples", {
-      headers: { authorization: `Bearer ${token}` }
-    });
-    const response = await backendGet(request, {
-      params: Promise.resolve({ path: ["admin", "partner-samples"] })
-    });
-    const payload = await response.json();
-
-    assert.equal(response.status, 200, JSON.stringify(payload));
-    assert.deepEqual(payload.samples.map((sample: { id: string }) => sample.id), [assignedSampleId]);
-  } finally {
-    inMemoryBookings.delete(assignedBookingId);
-    inMemoryBookings.delete(otherBookingId);
-    inMemoryPartnerSamples.delete(assignedSampleId);
-    inMemoryPartnerSamples.delete(otherSampleId);
-  }
+  const response = await backendGet(request, {
+    params: Promise.resolve({ path: ["admin", "partner-samples"] })
+  });
+  assert.equal(response.status, 403);
 });
 
 test("Check 5: requireAuthToken and requireAdminRole enforce RBAC and block patient role from admin routes", async () => {

@@ -51,6 +51,10 @@ export const backendEnv = {
     process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY ||
     process.env.ANON_KEY ||
     "",
+  RAZORPAY_KEY_ID:
+    data.RAZORPAY_KEY_ID ||
+    process.env.Razorpay_Live_API_Key ||
+    "",
   MSG91_AUTH_KEY:
     data.MSG91_AUTH_KEY,
   MSG91_TEMPLATE_ID:

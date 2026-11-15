@@ -29,6 +29,16 @@ import {
 import { backendFetch, getStoredAuthUser } from "@/lib/backend-client";
 import type { CollectionJob, PhlebotomistProfile } from "@/lib/phlebotomist-service";
 
+function toTimeInput(value: string | undefined) {
+  const match = value?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return "07:30";
+  let hours = Number(match[1]);
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem === "PM" && hours < 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, "0")}:${match[2]}`;
+}
+
 type CareTab = "queues" | "bookings" | "leads" | "exceptions" | "history";
 
 export function AdminCustomerCareDesk() {
@@ -50,6 +60,8 @@ export function AdminCustomerCareDesk() {
   const [allBookings, setAllBookings] = useState<any[]>([]);
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [phlebotomistTeam, setPhlebotomistTeam] = useState<PhlebotomistProfile[]>([]);
+  const [assignmentLabs, setAssignmentLabs] = useState<Array<{ id: string; name: string }>>([]);
+  const [assignmentLocations, setAssignmentLocations] = useState<Array<{ id: string; partner_lab_id: string; city: string; full_address: string }>>([]);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,10 +90,11 @@ export function AdminCustomerCareDesk() {
   const [messageContent, setMessageContent] = useState("");
 
   // Dispatch form state
-  const [dispatchMode, setDispatchMode] = useState<"auto" | "manual">("auto");
   const [selectedPhlebId, setSelectedPhlebId] = useState("");
+  const [selectedPartnerLabId, setSelectedPartnerLabId] = useState("");
+  const [selectedPartnerLocationId, setSelectedPartnerLocationId] = useState("");
   const [dispatchDate, setDispatchDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dispatchSlot, setDispatchSlot] = useState("07:30 AM - 08:30 AM");
+  const [dispatchSlot, setDispatchSlot] = useState("07:30");
   const [dispatchNotes, setDispatchNotes] = useState("");
   const [dispatchResult, setDispatchResult] = useState<any | null>(null);
 
@@ -106,7 +119,7 @@ export function AdminCustomerCareDesk() {
         backendFetch("/admin/customer-care/dashboard"),
         backendFetch("/admin/bookings-management"),
         backendFetch("/admin/crm/leads?pageSize=50"),
-        backendFetch("/phlebotomist/team")
+        backendFetch("/admin/phlebotomist-assignment-options")
       ]);
 
       if (dashRes.ok) {
@@ -126,7 +139,10 @@ export function AdminCustomerCareDesk() {
       }
       if (teamRes.ok) {
         const t = await teamRes.json();
-        setPhlebotomistTeam(t.team || []);
+        setPhlebotomistTeam(t.phlebotomists || []);
+        setAssignmentLabs(t.partnerLabs || []);
+        setAssignmentLocations(t.locations || []);
+        if (!selectedPartnerLabId && t.partnerLabs?.length) setSelectedPartnerLabId(t.partnerLabs[0].id);
       }
       setMessage("");
     } catch (err: any) {
@@ -134,7 +150,7 @@ export function AdminCustomerCareDesk() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedPartnerLabId]);
 
   useEffect(() => {
     void loadData();
@@ -257,8 +273,13 @@ export function AdminCustomerCareDesk() {
   const handleDispatchCollection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItem) return;
+    if (!selectedPhlebId || !selectedPartnerLabId || !selectedPartnerLocationId) {
+      setDispatchResult({ success: false, message: "Select an active phlebotomist, partner laboratory, and partner location." });
+      return;
+    }
 
     try {
+      const scheduledAt = new Date(`${dispatchDate}T${dispatchSlot}:00`).toISOString();
       const res = await backendFetch("/admin/customer-care/transfer-to-collection", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -271,10 +292,10 @@ export function AdminCustomerCareDesk() {
           address: selectedItem.address || "Main Road",
           pincode: selectedItem.pincode || "452001",
           city: selectedItem.city || "Indore",
-          scheduledDate: dispatchDate,
-          scheduledTime: dispatchSlot,
-          allocationMode: dispatchMode,
-          targetPhlebotomistId: dispatchMode === "manual" ? selectedPhlebId : undefined,
+          scheduledAt,
+          targetPhlebotomistId: selectedPhlebId,
+          partnerLabId: selectedPartnerLabId,
+          partnerLocationId: selectedPartnerLocationId,
           specialInstructions: dispatchNotes,
           performedBy: agentName
         })
@@ -640,7 +661,10 @@ export function AdminCustomerCareDesk() {
                         onClick={() => {
                           setSelectedItem(b);
                           setDispatchDate(b.preferred_date || new Date().toISOString().split("T")[0]);
-                          setDispatchSlot(b.preferred_time || "07:30 AM - 08:30 AM");
+                          setDispatchSlot(toTimeInput(b.preferred_time));
+                          setSelectedPhlebId("");
+                          setSelectedPartnerLocationId("");
+                          setDispatchResult(null);
                           setShowDispatchModal(true);
                         }}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-[#FF6B00] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#e05e00] transition"
@@ -920,8 +944,10 @@ export function AdminCustomerCareDesk() {
                           onClick={() => {
                             setSelectedItem(ex);
                             setDispatchDate(ex.scheduledDate || new Date().toISOString().split("T")[0]);
-                            setDispatchSlot(ex.scheduledTime || "08:00 AM");
-                            setDispatchMode("manual");
+                            setDispatchSlot(toTimeInput(ex.scheduledTime));
+                            setSelectedPhlebId("");
+                            setSelectedPartnerLocationId("");
+                            setDispatchResult(null);
                             setShowDispatchModal(true);
                           }}
                           className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition"
@@ -1189,36 +1215,6 @@ export function AdminCustomerCareDesk() {
 
             <form onSubmit={handleDispatchCollection} className="mt-4 space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-700">Allocation Mode</label>
-                <div className="mt-1 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDispatchMode("auto")}
-                    className={`flex-1 rounded-xl py-2.5 text-xs font-bold ${
-                      dispatchMode === "auto" ? "bg-[#FF6B00] text-white" : "border border-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Automatic Allocation Engine
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDispatchMode("manual")}
-                    className={`flex-1 rounded-xl py-2.5 text-xs font-bold ${
-                      dispatchMode === "manual" ? "bg-[#FF6B00] text-white" : "border border-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Manual Staff Selection
-                  </button>
-                </div>
-                <p className="mt-1 text-[11px] text-gray-400">
-                  {dispatchMode === "auto"
-                    ? "Validates service area, PIN code, shift, required skills, and workload automatically."
-                    : "Explicitly assign a specific phlebotomist."}
-                </p>
-              </div>
-
-              {dispatchMode === "manual" && (
-                <div>
                   <label className="text-xs font-bold text-gray-700">Select Phlebotomist</label>
                   <select
                     required
@@ -1227,14 +1223,32 @@ export function AdminCustomerCareDesk() {
                     className="w-full mt-1 rounded-xl border border-gray-200 px-3 py-2 text-xs focus:outline-none"
                   >
                     <option value="">Choose Phlebotomist...</option>
-                    {phlebotomistTeam.map((p) => (
+                    <option value="">Choose Phlebotomist...</option>
+                    {phlebotomistTeam.filter((p: any) => p.active && p.verification_status === "active").map((p: any) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} ({p.city} • Shift: {p.shift} • Workload: {p.assignedCount}/{p.maxDailySlots}) - {p.status}
+                        {p.name} ({p.city} • Shift: {p.shift} • Workload: {p.assigned_count}/{p.max_daily_slots})
                       </option>
                     ))}
                   </select>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-bold text-gray-700">Partner Laboratory</label>
+                  <select required value={selectedPartnerLabId} onChange={(e) => { setSelectedPartnerLabId(e.target.value); setSelectedPartnerLocationId(""); }} className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                    <option value="">Choose active partner lab...</option>
+                    {assignmentLabs.map((lab) => <option key={lab.id} value={lab.id}>{lab.name}</option>)}
+                  </select>
                 </div>
-              )}
+                <div>
+                  <label className="text-xs font-bold text-gray-700">Partner Lab City Location</label>
+                  <select required value={selectedPartnerLocationId} onChange={(e) => setSelectedPartnerLocationId(e.target.value)} className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                    <option value="">Choose active location...</option>
+                    {assignmentLocations.filter((location) => location.partner_lab_id === selectedPartnerLabId).map((location) => <option key={location.id} value={location.id}>{location.city} — {location.full_address}</option>)}
+                  </select>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-500">Partner test mappings and current rates are validated before the assignment is committed.</p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1250,7 +1264,7 @@ export function AdminCustomerCareDesk() {
                 <div>
                   <label className="text-xs font-bold text-gray-700">Scheduled Slot</label>
                   <input
-                    type="text"
+                    type="time"
                     value={dispatchSlot}
                     onChange={(e) => setDispatchSlot(e.target.value)}
                     className="w-full mt-1 rounded-xl border border-gray-200 px-3 py-2 text-xs focus:outline-none"

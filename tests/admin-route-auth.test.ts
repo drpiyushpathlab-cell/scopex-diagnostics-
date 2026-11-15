@@ -42,11 +42,11 @@ test("phlebotomist job routes require a phlebotomist or authorized admin role", 
   );
 });
 
-test("phlebotomists retain only the explicitly scoped partner sample endpoints", () => {
+test("phlebotomists can submit assigned handovers but cannot browse the admin partner sample queue", () => {
   const phlebotomistToken = signAppToken({ userId: "phlebotomist-test", role: "phlebotomist" });
-  assert.equal(
-    authorizeBackendRoute(requestFor("/admin/partner-samples", phlebotomistToken), "/admin/partner-samples")?.role,
-    "phlebotomist"
+  assert.throws(
+    () => authorizeBackendRoute(requestFor("/admin/partner-samples", phlebotomistToken), "/admin/partner-samples"),
+    { statusCode: 403 }
   );
   assert.equal(
     authorizeBackendRoute(

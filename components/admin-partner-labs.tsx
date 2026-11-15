@@ -95,13 +95,19 @@ interface PartnerSampleRecord {
   id: string;
   bookingId: string;
   bookingNumber: string;
+  scopex_sample_id?: string;
+  test_names?: string[];
   scopexSampleId: string;
   partnerBarcode?: string;
+  partnerAccessionNumber?: string;
+  partner_barcode?: string;
+  partner_accession_number?: string;
   barcodePhotoUrl?: string;
   partnerLabId: string;
   partnerLabName: string;
   locationId: string;
   locationCity: string;
+  locationAddress?: string;
   patientName: string;
   patientPhone: string;
   testIds?: string[];
@@ -120,6 +126,7 @@ interface PartnerSampleRecord {
   }>;
   totalProcessingCost: number;
   status: string;
+  handoverStatus?: string;
   statusHistory: Array<{
     id: string;
     previousStatus: string;
@@ -130,6 +137,11 @@ interface PartnerSampleRecord {
   }>;
   handoverConfirmedBy?: string;
   handoverConfirmedAt?: string;
+  handover_submitted_at?: string;
+  handover_remarks?: string;
+  phlebotomistName?: string;
+  collectionDateTime?: string;
+  handoverPhotos?: Array<{ id: string; signedUrl: string }>;
   adminVerified: boolean;
   adminVerifiedBy?: string;
   adminVerifiedAt?: string;
@@ -399,7 +411,7 @@ export function AdminPartnerLabs() {
       const [labsRes, mapRes, samplesRes, repRes, finRes, invRes, bookRes, testRes] = await Promise.all([
         backendFetch("/admin/partner-labs"),
         backendFetch("/admin/partner-test-master"),
-        backendFetch("/admin/partner-samples"),
+        backendFetch("/admin/partner-samples/pending-handover"),
         backendFetch("/admin/partner-reports"),
         backendFetch("/admin/partner-financials"),
         backendFetch("/admin/partner-invoices"),
@@ -794,19 +806,21 @@ export function AdminPartnerLabs() {
     }
   };
 
-  const handleVerifyHandover = async (sampleId: string, correctedBarcode?: string) => {
+  const handleVerifyHandover = async (sampleId: string, partnerBarcode?: string, accessionNumber?: string, verify = false) => {
     try {
       const res = await backendFetch(`/admin/partner-samples/${sampleId}/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          partnerBarcode: correctedBarcode || undefined,
-          verificationNotes: "Handover barcode verified against tube photograph by admin desk."
+          partnerBarcode: partnerBarcode?.trim() || undefined,
+          accessionNumber: accessionNumber?.trim() || undefined,
+          verified: verify,
+          verificationNotes: verify ? "Physical sample handover reviewed and verified by admin." : "Partner identifier is unavailable; handover remains pending."
         })
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Verification failed.");
-      setFeedback({ type: "success", text: `Handover verified successfully for sample ${d.sample.scopexSampleId}` });
+      setFeedback({ type: "success", text: verify ? `Handover verified successfully for sample ${sampleId}` : `Partner identifier details saved for sample ${sampleId}; pending Admin verification.` });
       setShowHandoverVerifyModal(null);
       void loadAll();
     } catch (err: any) {
@@ -1483,30 +1497,23 @@ export function AdminPartnerLabs() {
                 onChange={(e) => setSelectedStatusFilter(e.target.value)}
                 className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 focus:outline-none"
               >
-                <option value="all">All 10 Lifecycle Stages</option>
-                <option value="exception">⚠️ Exception Queue</option>
-                {LIFECYCLE_STEPS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
+                <option value="all">All Pending Handovers</option>
+                <option value="Pending Admin Verification">Pending Admin Verification</option>
+                <option value="Barcode / Accession ID Entered">Barcode / Accession ID Entered</option>
+                <option value="Handover Exception">Handover Exception</option>
               </select>
             </div>
 
-            <button
-              onClick={() => setShowAssignSampleModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#008080] px-4 py-2 text-xs font-bold text-white hover:bg-[#006666] transition shadow-sm"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Assign Booking to Partner Lab
-            </button>
+            <Link href="/admin/customer-care" className="inline-flex items-center gap-1.5 rounded-xl bg-[#008080] px-4 py-2 text-xs font-bold text-white hover:bg-[#006666] transition shadow-sm">
+              Assign Phlebotomist + Partner Lab
+            </Link>
           </div>
 
           {/* Samples Cards List */}
           <div className="grid gap-4">
             {filteredSamples.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-xs text-gray-500">
-                No samples found for the selected status. Click &quot;Assign Booking to Partner Lab&quot; to assign a sample.
+                No samples are waiting for handover review.
               </div>
             ) : (
               filteredSamples.map((s) => (
@@ -1524,15 +1531,19 @@ export function AdminPartnerLabs() {
                         <span className="font-mono text-xs font-bold text-blue-700">{s.bookingNumber}</span>
                         <span className="font-bold text-gray-900">{s.patientName}</span>
                         <span className="text-xs text-gray-500 font-mono">Sample: {s.scopexSampleId}</span>
-                        {s.partnerBarcode && (
+                        {(s.partnerBarcode || s.partnerAccessionNumber) && (
                           <span className="rounded bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-mono font-bold text-indigo-800">
-                            Partner Accession: {s.partnerBarcode}
+                            {s.partnerBarcode ? `Partner Barcode: ${s.partnerBarcode}` : ""}{s.partnerBarcode && s.partnerAccessionNumber ? " · " : ""}{s.partnerAccessionNumber ? `Accession: ${s.partnerAccessionNumber}` : ""}
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
-                        Assigned Lab: <span className="font-bold text-gray-800">{s.partnerLabName}</span> ({s.locationCity}) • Historical Rate Snapshot: <span className="font-bold text-emerald-700">₹{s.totalProcessingCost}</span>
+                        Assigned Lab: <span className="font-bold text-gray-800">{s.partnerLabName}</span> ({s.locationCity}){s.locationAddress ? ` · ${s.locationAddress}` : ""} • Historical Rate Snapshot: <span className="font-bold text-emerald-700">₹{s.totalProcessingCost}</span>
                       </p>
+                      {s.handoverStatus && <p className="mt-1 text-xs text-gray-600">
+                        Test: <span className="font-semibold">{s.testNames?.join(", ") || "—"}</span> · Phlebotomist: <span className="font-semibold">{s.phlebotomistName || "—"}</span> · Collection: {s.collectionDateTime ? new Date(s.collectionDateTime).toLocaleString() : "—"} · Handover: {s.handover_submitted_at ? new Date(s.handover_submitted_at).toLocaleString() : "—"}
+                      </p>}
+                      {s.handoverStatus && <p className="mt-1 text-xs font-semibold text-indigo-700">Verification: {s.handoverStatus} · Photographs: {s.handoverPhotos?.length || 0}</p>}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -1568,10 +1579,10 @@ export function AdminPartnerLabs() {
                         onClick={() => setShowStatusHistoryModal(s)}
                         className="rounded-xl border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
                       >
-                        Lifecycle Audit ({s.statusHistory.length})
+                        Handover Audit ({s.statusHistory?.length || 0})
                       </button>
 
-                      {s.status !== "Completed" && s.status !== "Report Uploaded" && (
+                      {!s.handoverStatus && s.status !== "Completed" && s.status !== "Report Uploaded" && (
                         <button
                           onClick={() => {
                             setShowReassignModal(s);
@@ -1588,7 +1599,7 @@ export function AdminPartnerLabs() {
                   </div>
 
                   {/* 10-Step Lifecycle Pipeline Indicator */}
-                  <div className="mt-4 pt-2">
+                  {!s.handoverStatus && <div className="mt-4 pt-2">
                     <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">
                       10-Step Laboratory Processing Pipeline
                     </div>
@@ -1614,7 +1625,7 @@ export function AdminPartnerLabs() {
                         );
                       })}
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Exception callout if present */}
                   {s.exceptionType && (
@@ -3228,32 +3239,41 @@ export function AdminPartnerLabs() {
                 <div>Booking: <span className="font-bold text-gray-900">{showHandoverVerifyModal.bookingNumber}</span></div>
                 <div>Patient: <span className="font-bold text-gray-900">{showHandoverVerifyModal.patientName}</span></div>
                 <div>Partner Lab: <span className="font-bold text-gray-900">{showHandoverVerifyModal.partnerLabName}</span></div>
-                <div>SCOPEX Barcode: <span className="font-mono font-bold text-blue-700">{showHandoverVerifyModal.scopexSampleId}</span></div>
+                <div>Partner Location: <span className="font-bold text-gray-900">{showHandoverVerifyModal.locationCity} — {showHandoverVerifyModal.locationAddress}</span></div>
+                <div>Test: <span className="font-bold text-gray-900">{showHandoverVerifyModal.test_names?.join(", ") || "—"}</span></div>
+                <div>SCOPEX Sample ID: <span className="font-mono font-bold text-blue-700">{showHandoverVerifyModal.scopex_sample_id || showHandoverVerifyModal.scopexSampleId}</span></div>
+                <div>Handover Submitted: <span className="font-bold text-gray-900">{showHandoverVerifyModal.handover_submitted_at ? new Date(showHandoverVerifyModal.handover_submitted_at).toLocaleString() : "—"}</span></div>
+                <div>Phlebotomist Remarks: <span className="font-medium">{showHandoverVerifyModal.handover_remarks || "—"}</span></div>
               </div>
 
               <div>
-                <label className="font-bold text-gray-700">Partner Lab Accession Barcode (Verify / Correct)</label>
+                <label className="font-bold text-gray-700">Partner Barcode ID (if used by this lab)</label>
                 <input
                   type="text"
-                  defaultValue={showHandoverVerifyModal.partnerBarcode || `APX-ACC-${showHandoverVerifyModal.scopexSampleId.slice(-4)}`}
-                  id="corrected-partner-barcode"
+                  defaultValue={showHandoverVerifyModal.partner_barcode || ""}
+                  id="partner-barcode-id"
+                  className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs font-mono font-bold focus:outline-none"
+                />
+                <label className="mt-3 block font-bold text-gray-700">Partner Accession / Registration ID (if used by this lab)</label>
+                <input
+                  type="text"
+                  defaultValue={showHandoverVerifyModal.partner_accession_number || ""}
+                  id="partner-accession-id"
                   className="w-full mt-1 rounded-xl border border-gray-200 p-2 text-xs font-mono font-bold focus:outline-none"
                 />
               </div>
 
-              {showHandoverVerifyModal.barcodePhotoUrl && (
+              {(showHandoverVerifyModal.handoverPhotos || []).length > 0 ? (
                 <div>
-                  <label className="font-bold text-gray-700">Labeled Tube Photograph</label>
-                  <div className="mt-1 rounded-xl border border-gray-200 overflow-hidden bg-gray-100 p-2 flex justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={showHandoverVerifyModal.barcodePhotoUrl}
-                      alt="Labeled vacutainer"
-                      className="max-h-48 object-contain rounded-lg"
-                    />
-                  </div>
+                  <label className="font-bold text-gray-700">Sample and handover photographs</label>
+                  <div className="mt-1 grid grid-cols-2 gap-2">{(showHandoverVerifyModal.handoverPhotos || []).map((photo: any) => (
+                    <a key={photo.id} href={photo.signedUrl} target="_blank" rel="noreferrer" className="rounded-xl border p-1">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photo.signedUrl} alt="Sample handover evidence" className="max-h-48 w-full object-contain rounded-lg" />
+                    </a>
+                  ))}</div>
                 </div>
-              )}
+              ) : <p className="rounded-lg bg-amber-50 p-3 text-amber-800">No handover photograph is available; do not verify this sample.</p>}
 
               <div className="mt-5 flex justify-end gap-2 border-t pt-3">
                 <button
@@ -3263,16 +3283,16 @@ export function AdminPartnerLabs() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.getElementById("corrected-partner-barcode") as HTMLInputElement;
-                    handleVerifyHandover(showHandoverVerifyModal.id, input?.value);
-                  }}
-                  className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white hover:bg-indigo-700"
-                >
-                  Approve & Verify Handover
-                </button>
+                <button type="button" onClick={() => {
+                  const barcode = (document.getElementById("partner-barcode-id") as HTMLInputElement)?.value;
+                  const accession = (document.getElementById("partner-accession-id") as HTMLInputElement)?.value;
+                  void handleVerifyHandover(showHandoverVerifyModal.id, barcode, accession, false);
+                }} className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-bold text-gray-700">Save Pending</button>
+                <button type="button" disabled={!showHandoverVerifyModal.handoverPhotos?.length} onClick={() => {
+                  const barcode = (document.getElementById("partner-barcode-id") as HTMLInputElement)?.value;
+                  const accession = (document.getElementById("partner-accession-id") as HTMLInputElement)?.value;
+                  void handleVerifyHandover(showHandoverVerifyModal.id, barcode, accession, true);
+                }} className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50">Verify Handover & Save ID</button>
               </div>
             </div>
           </div>

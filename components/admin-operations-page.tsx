@@ -65,7 +65,14 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
   const [adminUsers, setAdminUsers] = useState<Row[]>([]);
   const [selected, setSelected] = useState<Row | null>(null);
   const [history, setHistory] = useState<Row[]>([]);
+  const [paymentLink, setPaymentLink] = useState<{ shortUrl: string; status: string; reused: boolean } | null>(null);
+  const [creatingPaymentLink, setCreatingPaymentLink] = useState(false);
   const [query, setQuery] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [collectionDate, setCollectionDate] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
   const [status, setStatus] = useState(initialStatus);
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -83,6 +90,21 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
   const pageSize = 12;
   const cols = columnsFor(mode);
 
+  function bookingParams(format?: "csv") {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (mode === "bookings") {
+      if (status) params.set("status", status);
+      if (paymentStatus) params.set("paymentStatus", paymentStatus);
+      if (cityFilter.trim()) params.set("city", cityFilter.trim());
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
+      if (collectionDate) params.set("collectionDate", collectionDate);
+    }
+    if (format) params.set("format", format);
+    return params;
+  }
+
   useEffect(() => {
     void loadRows();
     if (mode === "users") void loadAdminUsers();
@@ -91,9 +113,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
 
   async function loadRows() {
     setMessage("Loading records...");
-    const params = new URLSearchParams();
-    if (query.trim()) params.set("q", query.trim());
-    if (mode === "bookings" && status) params.set("status", status);
+    const params = bookingParams();
     try {
       const response = await backendFetch(`${endpointFor(mode)}?${params.toString()}`);
       const data = await response.json().catch(() => ({}));
@@ -133,10 +153,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
   }
 
   async function exportCsv() {
-    const params = new URLSearchParams();
-    params.set("format", "csv");
-    if (query.trim()) params.set("q", query.trim());
-    if (mode === "bookings" && status) params.set("status", status);
+    const params = bookingParams("csv");
     const response = await backendFetch(`${endpointFor(mode)}?${params.toString()}`);
     if (!response.ok) {
       setMessage("Unable to export CSV.");
@@ -169,6 +186,32 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
     setRows((current) => current.map((row) => (row.id === id ? data.data : row)));
     setSelected(data.data);
     setMessage("Booking updated successfully.");
+  }
+
+  async function generateBookingPaymentLink(bookingId: string) {
+    setCreatingPaymentLink(true);
+    setPaymentLink(null);
+    try {
+      const response = await backendFetch(`/admin/bookings-management/${bookingId}/payment-link`, { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "Unable to create payment link.");
+      setPaymentLink({ shortUrl: data.link.shortUrl, status: data.link.status, reused: data.reused === true });
+      setMessage(data.reused ? "Existing payment link is ready to copy. No message was sent." : "Payment link generated. No message was sent.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to create payment link.");
+    } finally {
+      setCreatingPaymentLink(false);
+    }
+  }
+
+  async function copyPaymentLink() {
+    if (!paymentLink?.shortUrl) return;
+    try {
+      await navigator.clipboard.writeText(paymentLink.shortUrl);
+      setMessage("Payment link copied. Share it with the customer using an approved channel.");
+    } catch {
+      setMessage("Clipboard access is unavailable. Select and copy the payment link manually.");
+    }
   }
 
   async function deleteRow(row: Row) {
@@ -286,8 +329,18 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
           {mode === "revenue" ? <p className="rounded-2xl bg-[#eef8f5] px-5 py-3 text-xl font-black text-[#FF6B00]">Total {money(totalRevenue)}</p> : null}
         </div>
 
-        <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto_auto]">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records" className="form-field" />
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search booking, patient, mobile" className="form-field" />
+          {mode === "bookings" ? <>
+            <input value={cityFilter} onChange={(event) => setCityFilter(event.target.value)} placeholder="City" className="form-field" />
+            <label className="form-field flex items-center gap-2 text-xs">Booking from <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm" /></label>
+            <label className="form-field flex items-center gap-2 text-xs">Booking to <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm" /></label>
+            <label className="form-field flex items-center gap-2 text-xs">Collection date <input type="date" value={collectionDate} onChange={(event) => setCollectionDate(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm" /></label>
+            <select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)} className="form-field">
+              <option value="">All payment statuses</option>
+              {["pending", "paid", "failed", "refunded", "cod_pending", "advance_paid"].map((value) => <option key={value} value={value}>{value.replace(/_/g, " ")}</option>)}
+            </select>
+          </> : null}
           {mode === "bookings" ? (
             <select value={status} onChange={(event) => setStatus(event.target.value)} className="form-field">
               <option value="">All statuses</option>
@@ -297,6 +350,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
           <button type="button" onClick={loadRows} className="cta-btn">Search</button>
           <button type="button" onClick={exportCsv} className="secondary-btn text-center">Export CSV</button>
           <button type="button" onClick={() => printRows()} className="secondary-btn text-center">Print</button>
+          {mode === "bookings" ? <button type="button" onClick={() => { setQuery(""); setCityFilter(""); setDateFrom(""); setDateTo(""); setCollectionDate(""); setPaymentStatus(""); setStatus(""); }} className="secondary-btn text-center">Reset filters</button> : null}
         </div>
 
         <div className="mt-6 overflow-hidden rounded-[24px] border border-[#f1dfce]">
@@ -309,7 +363,7 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
             <article key={String(row.id)} className="grid gap-3 border-t border-[#f1dfce] bg-white p-4 text-sm text-[#5f6868] lg:items-center" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) 220px` }}>
               {cols.map((col) => <div key={col}><span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#FF6B00] lg:hidden">{col.replace(/_/g, " ")}</span><span className={col.includes("amount") || col === "payable_amount" ? "font-black text-[#FF6B00]" : ""}>{col.includes("amount") || col === "payable_amount" ? money(row[col]) : label(row[col])}</span></div>)}
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => setSelected(row)} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#FF6B00]">View</button>
+                <button type="button" onClick={() => { setSelected(row); setPaymentLink(null); }} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-black text-[#FF6B00]">View</button>
                 {mode === "bookings" ? (
                   <>
                     <select value={String(row.booking_status || "")} onChange={(event) => updateBooking(String(row.id), { booking_status: event.target.value })} className="rounded-full border border-[#cfe4df] px-3 py-2 text-xs font-bold">
@@ -398,11 +452,22 @@ export function AdminOperationsPage({ mode, title, subtitle, initialStatus = "" 
 
       {selected ? (
         <aside className="fixed inset-y-0 right-0 z-[80] w-full max-w-xl overflow-y-auto border-l border-[#f1dfce] bg-white p-6 shadow-2xl">
-          <button type="button" onClick={() => { setSelected(null); setHistory([]); }} className="secondary-btn text-xs">Close</button>
+          <button type="button" onClick={() => { setSelected(null); setHistory([]); setPaymentLink(null); }} className="secondary-btn text-xs">Close</button>
           <h2 className="mt-6 text-2xl font-black text-[#0D0D0D]">Record details</h2>
           <pre className="mt-4 overflow-x-auto rounded-2xl bg-[#FFF8F2] p-4 text-xs text-[#0D0D0D]">{JSON.stringify(selected, null, 2)}</pre>
           {mode === "bookings" ? (
             <div className="mt-4 grid gap-3">
+              <button type="button" onClick={() => void generateBookingPaymentLink(String(selected.id))} disabled={creatingPaymentLink} className="cta-btn disabled:opacity-60">
+                {creatingPaymentLink ? "Generating payment link…" : "Generate / Reuse Razorpay Link"}
+              </button>
+              {paymentLink ? (
+                <div className="rounded-2xl border border-[#f1dfce] bg-[#FFF8F2] p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#FF6B00]">Payment link · {paymentLink.status}</p>
+                  <a href={paymentLink.shortUrl} target="_blank" rel="noreferrer" className="mt-2 block break-all text-sm underline">{paymentLink.shortUrl}</a>
+                  <button type="button" onClick={() => void copyPaymentLink()} className="secondary-btn mt-3">Copy link</button>
+                  <p className="mt-2 text-xs text-[#5f6868]">Creating or copying this link does not mark the booking paid.</p>
+                </div>
+              ) : null}
               <a
                 href={`/admin/partner-labs?tab=samples&assignBookingId=${selected.id}`}
                 className="cta-btn text-center block"

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PhlebotomistPortal } from "@/components/phlebotomist-portal";
+import { PhlebotomistAccess } from "@/components/phlebotomist-access";
 
 export const metadata: Metadata = {
   title: "Field Phlebotomy Portal | SCOPEX Diagnostics",
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <section className="section-wrap py-10">
-      <PhlebotomistPortal />
+      <PhlebotomistAccess />
     </section>
   );
 }
